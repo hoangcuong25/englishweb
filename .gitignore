@@ -1,0 +1,29 @@
+# Dependencies
+**/node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+**/dist/
+**/.next/
+out/
+build/
+
+# Environment variables
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
+!**/.env.example
+!**/.env.local.example
+
+# Temporary & logs
+SRS_extracted.txt
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db

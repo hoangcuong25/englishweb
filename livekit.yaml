@@ -1,0 +1,17 @@
+port: 7880
+bind_addresses:
+  - ""
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50050
+  use_external_ip: false
+keys:
+  API_KEY_DEV: API_SECRET_DEV_ENGLISHWEB_2026
+logging:
+  json: false
+  level: info
+webhook:
+  api_key: API_KEY_DEV
+  urls:
+    - http://server:3001/api/livekit/webhook
