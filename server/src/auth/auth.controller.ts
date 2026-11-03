@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Res, Req, UseGuards, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Res, Req, UseGuards, HttpStatus, HttpCode, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -47,6 +47,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
@@ -56,9 +57,13 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh JWT access token' })
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const refreshToken = req.cookies['refresh_token'] || req.body?.refreshToken;
+    const refreshToken = req.cookies?.['refresh_token'] || req.body?.refreshToken;
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
     const tokens = await this.authService.refreshTokens(refreshToken);
 
     const isProd = process.env.NODE_ENV === 'production';
@@ -79,9 +84,10 @@ export class AuthController {
   }
 
   @Post('logout')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout and revoke refresh token' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const refreshToken = req.cookies['refresh_token'] || req.body?.refreshToken;
+    const refreshToken = req.cookies?.['refresh_token'] || req.body?.refreshToken;
     await this.authService.logout(refreshToken);
 
     res.clearCookie('access_token');

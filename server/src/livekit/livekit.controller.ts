@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, Headers, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LivekitService } from './livekit.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -30,6 +30,7 @@ export class LivekitController {
   }
 
   @Post('end-room')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
@@ -39,6 +40,7 @@ export class LivekitController {
   }
 
   @Post('mute-participant')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
