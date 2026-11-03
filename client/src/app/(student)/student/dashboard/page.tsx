@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { BookOpen, Video, Mic, CheckCircle2, Clock, LogOut, PlayCircle } from 'lucide-react';
 
@@ -52,13 +53,13 @@ export default function StudentDashboard() {
             </p>
           </div>
           <div className="flex-shrink-0">
-            <button
-              onClick={() => alert('Phòng học WebRTC LiveKit đang mở. Kết nối...')}
+            <Link
+              href="/student/classroom/ielts-speaking-live"
               className="px-6 py-3 bg-white text-sky-700 hover:bg-sky-50 font-bold rounded-xl shadow-md transition flex items-center space-x-2"
             >
               <Video className="w-5 h-5 text-sky-600" />
               <span>Vào Lớp Trực Tuyến Ngay</span>
-            </button>
+            </Link>
           </div>
         </div>
 

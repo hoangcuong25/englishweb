@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import {
   Users,
@@ -72,13 +73,13 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => alert('Đang khởi tạo phòng học LiveKit Room: "IELTS-Class-Tonight" với quyền Host Admin...')}
+            <Link
+              href="/admin/classroom/ielts-speaking-live"
               className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-md shadow-sky-200 transition flex items-center space-x-2"
             >
               <Video className="w-5 h-5" />
               <span>Mở Phòng Học (Host)</span>
-            </button>
+            </Link>
             <button
               onClick={() => alert('Xuất bảng điểm danh định dạng Excel...')}
               className="px-4 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold rounded-xl border border-emerald-200 transition flex items-center space-x-2"

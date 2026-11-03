@@ -2,7 +2,10 @@ import { Controller, Post, Body, Headers, UseGuards, Req } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LivekitService } from './livekit.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Role } from '@prisma/client';
 import { Request } from 'express';
 
 @ApiTags('LiveKit WebRTC')
@@ -26,13 +29,35 @@ export class LivekitController {
     );
   }
 
+  @Post('end-room')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin Host ends class for everyone' })
+  async endRoom(@Body('roomName') roomName: string) {
+    return this.livekitService.endRoom(roomName);
+  }
+
+  @Post('mute-participant')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin Host mutes a participant track' })
+  async muteParticipant(
+    @Body('roomName') roomName: string,
+    @Body('identity') identity: string,
+    @Body('trackSid') trackSid: string,
+    @Body('muted') muted: boolean,
+  ) {
+    return this.livekitService.muteParticipantTrack(roomName, identity, trackSid, muted);
+  }
+
   @Post('webhook')
   @ApiOperation({ summary: 'LiveKit SFU webhook endpoint for participant events' })
   async handleWebhook(
     @Req() req: Request,
     @Headers('authorization') authHeader: string,
   ) {
-    // Body can be string or buffer or object
     const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     return this.livekitService.handleWebhook(rawBody, authHeader);
   }
