@@ -4,6 +4,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './core/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CoursesModule } from './modules/courses/courses.module';
+import { LessonsModule } from './modules/lessons/lessons.module';
+import { MaterialsModule } from './modules/materials/materials.module';
 import { LivekitModule } from './core/livekit/livekit.module';
 
 @Module({
@@ -14,6 +17,9 @@ import { LivekitModule } from './core/livekit/livekit.module';
     }),
     PrismaModule,
     AuthModule,
+    CoursesModule,
+    LessonsModule,
+    MaterialsModule,
     LivekitModule,
   ],
   controllers: [AppController],
