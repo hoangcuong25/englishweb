@@ -1,0 +1,9 @@
+# Hook JS, shell script và markdown PHẢI checkout ra LF trên MỌI nền tảng.
+# hooks/git/pre-commit là script bash: nếu blob mang CRLF thì Linux/macOS báo
+# "bad interpreter: /usr/bin/env bash^M" → mất secret-scan ÂM THẦM (không ai thấy lỗi).
+# Ép eol=lf để core.autocrlf=true trên máy Windows không lọt CRLF vào repo.
+* text=auto eol=lf
+
+# Ngoại lệ: batch wrapper của Windows cần CRLF, nếu không cmd.exe nuốt ký tự đầu dòng.
+*.bat text eol=crlf
+*.cmd text eol=crlf

@@ -1,0 +1,4 @@
+{
+  "//": "Ép Node coi mọi .js trong submodule này là CommonJS (require/module.exports), độc lập với 'type' của package.json project host. Không name/dependencies/scripts để tránh bị nhặt làm workspace member. Xem hooks/README.md.",
+  "type": "commonjs"
+}

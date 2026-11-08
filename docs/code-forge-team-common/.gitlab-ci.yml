@@ -1,0 +1,82 @@
+# CI pipeline cho code-forge-team-common
+# Phase 1B: lint markdown (advisory) + kiểm tra cấu trúc (blocking) + validate frontmatter agents/skills (blocking).
+
+# ── TẠMDỪNG ──────────────────────────────────────────────────────────────────
+# Pipeline đang bị tắt trong giai đoạn local development.
+# Để bật lại: xóa hoặc comment toàn bộ block `workflow:` bên dưới.
+workflow:
+  rules:
+    - when: never
+# ─────────────────────────────────────────────────────────────────────────────
+
+stages:
+  - validate
+
+# --- Job 1: Lint markdown (advisory — không block merge) ---------------------
+# allow_failure: true → GitLab hiển thị cảnh báo rõ trong UI thay vì || true che khuất.
+markdown-lint:
+  stage: validate
+  image: node:20-alpine
+  script:
+    - npm install -g markdownlint-cli
+    - markdownlint "**/*.md" --ignore node_modules
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# --- Job 2: Kiểm tra cấu trúc thư mục bắt buộc (blocking) -------------------
+structure-check:
+  stage: validate
+  image: alpine:3.20
+  script:
+    - apk add --no-cache bash
+    - bash ci/check-structure.sh
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# --- Job 3: Validate frontmatter agents và skills (blocking) -----------------
+# Agent: bắt buộc có 'name:' và 'description:' trong frontmatter.
+# Skill:  bắt buộc có 'description:' trong frontmatter (Claude dùng để auto-trigger).
+frontmatter-check:
+  stage: validate
+  image: alpine:3.20
+  script:
+    - apk add --no-cache bash
+    - |
+      fail=0
+
+      echo "== Validate frontmatter — agents =="
+      for f in agents/*.md; do
+        [ -f "$f" ] || continue
+        # Trích phần frontmatter (giữa 2 dòng ---) rồi kiểm tra field bắt buộc
+        fm=$(awk '/^---$/{c++; if(c==2) exit} c==1' "$f")
+        if ! echo "$fm" | grep -q "^name:"; then
+          echo "❌ $f: thiếu 'name:' trong frontmatter"
+          fail=1
+        elif ! echo "$fm" | grep -q "^description:"; then
+          echo "❌ $f: thiếu 'description:' trong frontmatter"
+          fail=1
+        else
+          echo "✅ $f"
+        fi
+      done
+
+      echo ""
+      echo "== Validate frontmatter — skills =="
+      for f in skills/*/SKILL.md; do
+        [ -f "$f" ] || continue
+        fm=$(awk '/^---$/{c++; if(c==2) exit} c==1' "$f")
+        if ! echo "$fm" | grep -q "^description:"; then
+          echo "❌ $f: thiếu 'description:' trong frontmatter"
+          fail=1
+        else
+          echo "✅ $f"
+        fi
+      done
+
+      exit $fail
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
