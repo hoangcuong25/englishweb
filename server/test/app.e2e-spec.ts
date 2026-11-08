@@ -417,6 +417,58 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
 
       expect(response.body).toHaveProperty('success');
     });
+
+    it('FR-5.3: GET /api/livekit/rooms as Student -> should return list of active/scheduled classrooms', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/livekit/rooms')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
+      expect(response.body[0]).toHaveProperty('name');
+    });
+
+    it('FR-5.4: POST /api/livekit/rooms as Admin -> should schedule a new live room', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/livekit/rooms')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          name: 'ielts-speaking-intensive-stream',
+          scheduledStartTime: new Date().toISOString(),
+          scheduledEndTime: new Date(Date.now() + 5400000).toISOString(),
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('name', 'ielts-speaking-intensive-stream');
+      expect(response.body).toHaveProperty('status', 'SCHEDULED');
+    });
+
+    it('FR-5.5: POST /api/livekit/rooms as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/livekit/rooms')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          name: 'student-illegal-stream-room',
+          scheduledStartTime: new Date().toISOString(),
+          scheduledEndTime: new Date(Date.now() + 3600000).toISOString(),
+        })
+        .expect(403);
+    });
+
+    it('FR-5.6: POST /api/livekit/mute-participant as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/livekit/mute-participant')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          roomName: 'ielts-masterclass-live',
+          identity: 'student-uuid-1',
+          trackSid: 'TR_MOCK_123',
+          muted: true,
+        })
+        .expect(403);
+    });
   });
 
   // ==========================================

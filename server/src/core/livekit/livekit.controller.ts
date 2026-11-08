@@ -1,10 +1,11 @@
-import { Controller, Post, Body, Headers, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Headers, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LivekitService } from './livekit.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { Role } from '@prisma/client';
 import { Request } from 'express';
 
@@ -12,6 +13,33 @@ import { Request } from 'express';
 @Controller('livekit')
 export class LivekitController {
   constructor(private livekitService: LivekitService) {}
+
+  @Get('rooms')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get list of active or scheduled live classrooms' })
+  @ResponseMessage('Lấy danh sách phòng học trực tuyến thành công')
+  async getRooms() {
+    return this.livekitService.listRooms();
+  }
+
+  @Post('rooms')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin schedules a new LiveKit classroom' })
+  @ResponseMessage('Lập lịch phòng học trực tuyến thành công')
+  async createRoom(
+    @CurrentUser('id') hostId: string,
+    @Body() body: { name: string; courseId?: string; scheduledStartTime: string; scheduledEndTime: string },
+  ) {
+    return this.livekitService.createRoom(hostId, {
+      name: body.name,
+      courseId: body.courseId,
+      scheduledStartTime: new Date(body.scheduledStartTime),
+      scheduledEndTime: new Date(body.scheduledEndTime),
+    });
+  }
 
   @Post('token')
   @UseGuards(JwtAuthGuard)
