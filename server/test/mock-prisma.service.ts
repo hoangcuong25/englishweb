@@ -212,6 +212,16 @@ export class MockPrismaService {
           if (args.select[key]) {
             if (key === 'googleAccount') {
               selected.googleAccount = this.googleAccounts.find((g) => g.userId === found.id) || null;
+            } else if (key === 'enrollments') {
+              selected.enrollments = this.enrollments.filter((e) => e.userId === found.id);
+            } else if (key === 'attendanceRecords') {
+              selected.attendanceRecords = this.attendanceRecords.filter((a) => a.studentId === found.id);
+            } else if (key === '_count') {
+              selected._count = {
+                writingSubmissions: this.writingSubmissions.filter((w) => w.userId === found.id).length,
+                speakingSubmissions: this.speakingSubmissions.filter((s) => s.userId === found.id).length,
+                quizSubmissions: this.quizSubmissions.filter((q) => q.userId === found.id).length,
+              };
             } else {
               selected[key] = clone[key];
             }
@@ -319,7 +329,17 @@ export class MockPrismaService {
         return list.map((u) => {
           const res: any = {};
           for (const k of Object.keys(args.select)) {
-            if (args.select[k]) res[k] = (u as any)[k];
+            if (args.select[k]) {
+              if (k === '_count') {
+                res._count = {
+                  enrollments: this.enrollments.filter((e) => e.userId === u.id).length,
+                  writingSubmissions: this.writingSubmissions.filter((w) => w.userId === u.id).length,
+                  speakingSubmissions: this.speakingSubmissions.filter((s) => s.userId === u.id).length,
+                };
+              } else {
+                res[k] = (u as any)[k];
+              }
+            }
           }
           return res;
         });

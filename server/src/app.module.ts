@@ -13,6 +13,7 @@ import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { UsersModule } from './modules/users/users.module';
 import { LivekitModule } from './core/livekit/livekit.module';
 
 @Module({
@@ -32,6 +33,7 @@ import { LivekitModule } from './core/livekit/livekit.module';
     AttendanceModule,
     DashboardModule,
     ChatModule,
+    UsersModule,
     LivekitModule,
   ],
   controllers: [AppController],

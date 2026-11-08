@@ -1250,4 +1250,76 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
       expect(response.body.markedCount).toBeGreaterThanOrEqual(1);
     });
   });
+
+  // ==========================================
+  // 18. USER & STUDENT MANAGEMENT FLOW (FR-12)
+  // ==========================================
+  describe('18. User & Student Management Flow (FR-12)', () => {
+    it('FR-12.1: GET /api/users as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .get('/api/users')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(403);
+    });
+
+    it('FR-12.2: GET /api/users as Admin -> should list students with pagination', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/users?role=STUDENT')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('total');
+      expect(response.body).toHaveProperty('items');
+      expect(Array.isArray(response.body.items)).toBeTruthy();
+      expect(response.body.items.length).toBeGreaterThanOrEqual(1);
+      expect(response.body.items[0]).toHaveProperty('role', 'STUDENT');
+    });
+
+    it('FR-12.3: GET /api/users/:id as Admin -> should return student full learning profile', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/users/student-uuid-1')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('id', 'student-uuid-1');
+      expect(response.body).toHaveProperty('email');
+      expect(response.body).toHaveProperty('fullName');
+      expect(response.body).toHaveProperty('enrollments');
+      expect(response.body).toHaveProperty('attendanceRecords');
+    });
+
+    it('FR-12.4: PUT /api/users/:id/status as Admin -> should toggle student isActive status', async () => {
+      const response = await request(app.getHttpServer())
+        .put('/api/users/student-uuid-1/status')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({ isActive: true })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('isActive', true);
+    });
+
+    it('FR-12.5: PUT /api/users/:id/reset-password as Admin -> should reset student password', async () => {
+      const response = await request(app.getHttpServer())
+        .put('/api/users/student-uuid-1/reset-password')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({ newPassword: 'NewPassword@2026' })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body).toHaveProperty('userId', 'student-uuid-1');
+    });
+
+    it('FR-12.6: Login with newly reset password -> should succeed', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'student@englishweb.com',
+          password: 'NewPassword@2026',
+        })
+        .expect(200);
+
+      expect(response.body.user).toHaveProperty('role', 'STUDENT');
+      expect(response.body).toHaveProperty('accessToken');
+    });
+  });
 });
