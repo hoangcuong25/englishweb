@@ -7,15 +7,28 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ==========================================
+// ENUMS
+// ==========================================
+
 enum Role {
   STUDENT
   ADMIN
+}
+
+enum Language {
+  VI
+  EN
+  ZH
+  JA
 }
 
 enum CourseCategory {
   IELTS
   BUSINESS
   KIDS
+  PEDAGOGY
+  LIFE_SKILLS
 }
 
 enum MaterialType {
@@ -27,6 +40,18 @@ enum QuestionType {
   SINGLE_CHOICE
   MULTIPLE_CHOICE
   FILL_BLANK
+}
+
+enum WritingTaskType {
+  TASK_1
+  TASK_2
+}
+
+enum WritingSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  AI_EVALUATED
+  APPROVED
 }
 
 enum RoomStatus {
@@ -46,42 +71,74 @@ enum SubmissionStatus {
   GRADED
 }
 
-model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  fullName     String
-  phone        String?
-  role         Role     @default(STUDENT)
-  isActive     Boolean  @default(true)
-  avatarUrl    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+// ==========================================
+// 1. AUTH & USER MANAGEMENT (MÔ-ĐUN 1 & 2)
+// ==========================================
 
-  refreshTokens       RefreshToken[]
-  enrollments         Enrollment[]
-  lessonProgresses    LessonProgress[]
-  quizSubmissions     QuizSubmission[]
-  speakingSubmissions SpeakingSubmission[] @relation("StudentSpeakingSubmissions")
-  gradedSpeakings     SpeakingSubmission[] @relation("AdminGradedSpeakings")
-  hostedRooms         Classroom[]          @relation("HostRooms")
-  attendanceRecords   AttendanceRecord[]
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String?
+  fullName      String
+  phone         String?
+  role          Role      @default(STUDENT)
+  isActive      Boolean   @default(true)
+  avatarUrl     String?
+  preferredLang Language  @default(VI)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  refreshTokens            RefreshToken[]
+  googleAccount            GoogleAccount?
+  enrollments              Enrollment[]
+  lessonProgresses         LessonProgress[]
+  quizSubmissions          QuizSubmission[]
+  studentWritingSubmits    WritingSubmission[]   @relation("StudentWritingSubmissions")
+  adminApprovedWritings    WritingSubmission[]   @relation("AdminApprovedWritings")
+  speakingSubmissions      SpeakingSubmission[]  @relation("StudentSpeakingSubmissions")
+  gradedSpeakings          SpeakingSubmission[]  @relation("AdminGradedSpeakings")
+  hostedRooms              Classroom[]           @relation("HostRooms")
+  attendanceRecords        AttendanceRecord[]
+  conversationsAsStudent   Conversation[]        @relation("StudentConversations")
+  conversationsAsAdmin     Conversation[]        @relation("AdminConversations")
+  sentMessages             Message[]             @relation("SentMessages")
 
   @@map("users")
 }
 
 model RefreshToken {
-  id        String    @id @default(uuid())
-  token     String    @unique @db.VarChar(500)
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(uuid())
+  token      String    @unique @db.VarChar(500)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId   String?
+  ipAddress  String?
+  userAgent  String?   @db.Text
+  isRevoked  Boolean   @default(false)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([userId])
   @@map("refresh_tokens")
 }
+
+model GoogleAccount {
+  id         String   @id @default(uuid())
+  googleId   String   @unique
+  email      String
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("google_accounts")
+}
+
+// ==========================================
+// 2. LMS & DIGITAL LIBRARY (MÔ-ĐUN 3 & 4)
+// ==========================================
 
 model Course {
   id          String         @id @default(uuid())
@@ -111,28 +168,29 @@ model CourseModule {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  lessons Lesson[]
+  lessons     Lesson[]
 
   @@index([courseId])
   @@map("course_modules")
 }
 
 model Lesson {
-  id              String       @id @default(uuid())
+  id              String         @id @default(uuid())
   moduleId        String
-  module          CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module          CourseModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   title           String
-  description     String?      @db.Text
-  orderIndex      Int          @default(0)
-  durationMinutes Int          @default(45)
+  description     String?        @db.Text
+  orderIndex      Int            @default(0)
+  durationMinutes Int            @default(45)
   videoUrl        String?
-  isFreePreview   Boolean      @default(false)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  isFreePreview   Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   materials        Material[]
   quizzes          Quiz[]
   speakingPrompts  SpeakingPrompt[]
+  writingPrompts   WritingPrompt[]
   lessonProgresses LessonProgress[]
 
   @@index([moduleId])
@@ -140,15 +198,17 @@ model Lesson {
 }
 
 model Material {
-  id        String       @id @default(uuid())
-  lessonId  String
-  lesson    Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  title     String
-  type      MaterialType @default(PDF)
-  fileKey   String
-  fileSize  Int?
-  isPrivate Boolean      @default(true)
-  createdAt DateTime     @default(now())
+  id              String       @id @default(uuid())
+  lessonId        String
+  lesson          Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title           String
+  type            MaterialType @default(PDF)
+  fileKey         String
+  fileSize        Int?
+  durationSeconds Int?
+  isPrivate       Boolean      @default(true)
+  isWatermarked   Boolean      @default(true)
+  createdAt       DateTime     @default(now())
 
   @@index([lessonId])
   @@map("materials")
@@ -185,6 +245,113 @@ model LessonProgress {
   @@map("lesson_progresses")
 }
 
+// ==========================================
+// 3. AI WRITING ASSESSMENT (MÔ-ĐUN 6)
+// ==========================================
+
+model WritingPrompt {
+  id               String          @id @default(uuid())
+  lessonId         String?
+  lesson           Lesson?         @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  title            String
+  taskType         WritingTaskType @default(TASK_2)
+  topic            String          @db.Text
+  targetWords      Int             @default(250)
+  timeLimitMinutes Int             @default(40)
+  sampleEssay      String?         @db.Text
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  submissions      WritingSubmission[]
+
+  @@index([lessonId])
+  @@map("writing_prompts")
+}
+
+model WritingSubmission {
+  id                     String                  @id @default(uuid())
+  promptId               String
+  prompt                 WritingPrompt           @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  userId                 String
+  user                   User                    @relation("StudentWritingSubmissions", fields: [userId], references: [id], onDelete: Cascade)
+  content                String                  @db.Text
+  wordCount              Int                     @default(0)
+  timeSpentSeconds       Int                     @default(0)
+  status                 WritingSubmissionStatus @default(SUBMITTED)
+  overallBand            Float?
+  taskAchievementScore   Float?
+  coherenceCohesionScore Float?
+  lexicalResourceScore   Float?
+  grammarScore           Float?
+  aiFeedback             String?                 @db.Text
+  aiSuggestions          Json?
+  sampleBand8Essay       String?                 @db.Text
+  adminFeedback          String?                 @db.Text
+  adminOverrideBand      Float?
+  approvedAt             DateTime?
+  approvedById           String?
+  approvedBy             User?                   @relation("AdminApprovedWritings", fields: [approvedById], references: [id], onDelete: SetNull)
+  submittedAt            DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  @@index([promptId])
+  @@index([userId])
+  @@index([approvedById])
+  @@map("writing_submissions")
+}
+
+// ==========================================
+// 4. SPEAKING STUDIO (MÔ-ĐUN 7)
+// ==========================================
+
+model SpeakingPrompt {
+  id             String   @id @default(uuid())
+  lessonId       String?
+  lesson         Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  title          String
+  topic          String?  @db.Text
+  sampleAudioUrl String?
+  minSeconds     Int      @default(30)
+  maxSeconds     Int      @default(120)
+  createdAt      DateTime @default(now())
+
+  submissions    SpeakingSubmission[]
+
+  @@index([lessonId])
+  @@map("speaking_prompts")
+}
+
+model SpeakingSubmission {
+  id                 String           @id @default(uuid())
+  promptId           String
+  prompt             SpeakingPrompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User             @relation("StudentSpeakingSubmissions", fields: [userId], references: [id], onDelete: Cascade)
+  audioUrl           String
+  durationSeconds    Int              @default(0)
+  status             SubmissionStatus @default(PENDING)
+  bandScore          Float?
+  fluencyScore       Float?
+  lexicalScore       Float?
+  grammarScore       Float?
+  pronunciationScore Float?
+  feedback           String?          @db.Text
+  timestampFeedback  Json?
+  gradedAt           DateTime?
+  gradedById         String?
+  gradedBy           User?            @relation("AdminGradedSpeakings", fields: [gradedById], references: [id], onDelete: SetNull)
+  submittedAt        DateTime         @default(now())
+
+  @@index([promptId])
+  @@index([userId])
+  @@index([gradedById])
+  @@map("speaking_submissions")
+}
+
+// ==========================================
+// 5. QUIZ ENGINE (MÔ-ĐUN 8)
+// ==========================================
+
 model Quiz {
   id               String   @id @default(uuid())
   lessonId         String
@@ -192,7 +359,7 @@ model Quiz {
   title            String
   description      String?  @db.Text
   timeLimitMinutes Int      @default(15)
-  passScore        Float    @default(70)
+  passScore        Float    @default(80)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -268,48 +435,9 @@ model QuizAnswer {
   @@map("quiz_answers")
 }
 
-model SpeakingPrompt {
-  id             String   @id @default(uuid())
-  lessonId       String
-  lesson         Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  title          String
-  topic          String?  @db.Text
-  sampleAudioUrl String?
-  minSeconds     Int      @default(30)
-  maxSeconds     Int      @default(120)
-  createdAt      DateTime @default(now())
-
-  submissions SpeakingSubmission[]
-
-  @@index([lessonId])
-  @@map("speaking_prompts")
-}
-
-model SpeakingSubmission {
-  id                 String           @id @default(uuid())
-  promptId           String
-  prompt             SpeakingPrompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  userId             String
-  user               User             @relation("StudentSpeakingSubmissions", fields: [userId], references: [id], onDelete: Cascade)
-  audioUrl           String
-  durationSeconds    Int              @default(0)
-  status             SubmissionStatus @default(PENDING)
-  bandScore          Float?
-  fluencyScore       Float?
-  lexicalScore       Float?
-  grammarScore       Float?
-  pronunciationScore Float?
-  feedback           String?          @db.Text
-  gradedAt           DateTime?
-  gradedById         String?
-  gradedBy           User?            @relation("AdminGradedSpeakings", fields: [gradedById], references: [id], onDelete: SetNull)
-  submittedAt        DateTime         @default(now())
-
-  @@index([promptId])
-  @@index([userId])
-  @@index([gradedById])
-  @@map("speaking_submissions")
-}
+// ==========================================
+// 6. LIVEKIT WEBRTC & ATTENDANCE (MÔ-ĐUN 5 & 9)
+// ==========================================
 
 model Classroom {
   id                 String     @id @default(uuid())
@@ -351,4 +479,42 @@ model AttendanceRecord {
   @@index([classroomId])
   @@index([studentId])
   @@map("attendance_records")
+}
+
+// ==========================================
+// 7. REALTIME CHAT & MESSAGING (MÔ-ĐUN 11)
+// ==========================================
+
+model Conversation {
+  id            String    @id @default(uuid())
+  studentId     String
+  student       User      @relation("StudentConversations", fields: [studentId], references: [id], onDelete: Cascade)
+  adminId       String
+  admin         User      @relation("AdminConversations", fields: [adminId], references: [id], onDelete: Cascade)
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages      Message[]
+
+  @@unique([studentId, adminId])
+  @@index([studentId])
+  @@index([adminId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  content        String       @db.Text
+  isRead         Boolean      @default(false)
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
 }
