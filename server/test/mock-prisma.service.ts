@@ -1071,6 +1071,9 @@ export class MockPrismaService {
       if (args?.where?.lessonId) {
         result = result.filter((q) => q.lessonId === args.where.lessonId);
       }
+      if (args?.where?.skill) {
+        result = result.filter((q) => q.skill === args.where.skill);
+      }
       return result.map((q) => {
         const qs = this.questions
           .filter((quest) => quest.quizId === q.id)
@@ -1079,7 +1082,14 @@ export class MockPrismaService {
             ...quest,
             options: this.questionOptions.filter((opt) => opt.questionId === quest.id),
           }));
-        return { ...q, questions: qs };
+        return {
+          ...q,
+          questions: qs,
+          _count: {
+            questions: qs.length,
+            submissions: this.quizSubmissions.filter((s) => s.quizId === q.id).length,
+          },
+        };
       });
     },
     findUnique: async (args: any) => {
@@ -1096,12 +1106,14 @@ export class MockPrismaService {
           }));
       }
       if (args.include?.lesson) {
-        const lesson = this.lessons.find((l) => l.id === found.lessonId);
+        const lesson = found.lessonId ? this.lessons.find((l) => l.id === found.lessonId) : null;
         const mod = lesson ? this.courseModules.find((m) => m.id === lesson.moduleId) : null;
-        clone.lesson = {
-          ...lesson,
-          module: mod ? { ...mod, courseId: mod.courseId } : null,
-        };
+        clone.lesson = lesson
+          ? {
+              ...lesson,
+              module: mod ? { ...mod, courseId: mod.courseId } : null,
+            }
+          : null;
       }
       return clone;
     },
@@ -1130,7 +1142,9 @@ export class MockPrismaService {
         id: randomUUID(),
         quizId: args.data.quizId,
         content: args.data.content,
-        type: args.data.type,
+        skill: args.data.skill || 'READING',
+        type: args.data.type || 'SINGLE_CHOICE',
+        subCategory: args.data.subCategory || null,
         points: args.data.points,
         explanation: args.data.explanation,
         orderIndex: args.data.orderIndex,
@@ -1155,17 +1169,33 @@ export class MockPrismaService {
 
   // --- QUIZ SUBMISSION REPOSITORY ---
   quizSubmission = {
-    findMany: async (args: any) => {
+    findMany: async (args?: any) => {
       let result = [...this.quizSubmissions];
-      if (args.where?.quizId) {
+      if (args?.where?.quizId) {
         result = result.filter((s) => s.quizId === args.where.quizId);
       }
-      if (args.where?.userId) {
+      if (args?.where?.userId) {
         result = result.filter((s) => s.userId === args.where.userId);
       }
       return result.map((s) => ({
         ...s,
-        answers: this.quizAnswers.filter((a) => a.submissionId === s.id),
+        answers: this.quizAnswers
+          .filter((a) => a.submissionId === s.id)
+          .map((a) => {
+            const q = this.questions.find((quest) => quest.id === a.questionId);
+            return {
+              ...a,
+              question: q
+                ? {
+                    id: q.id,
+                    content: q.content,
+                    skill: q.skill || 'READING',
+                    type: q.type || 'SINGLE_CHOICE',
+                    subCategory: q.subCategory || null,
+                  }
+                : null,
+            };
+          }),
       }));
     },
     create: async (args: any) => {

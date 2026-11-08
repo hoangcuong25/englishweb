@@ -1613,4 +1613,212 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
       expect(response.body).toHaveProperty('success', true);
     });
   });
+
+  // ==========================================
+  // 23. 4-SKILLS IELTS TEST ENGINE & DIAGNOSTIC ANALYTICS (FR-14)
+  // ==========================================
+  describe('23. 4-Skills IELTS Test Engine & Diagnostic Analytics Flow (FR-14)', () => {
+    let mockTestId: string;
+    let matchingQId: string;
+    let tfngQId: string;
+    let mcqQId: string;
+
+    let matchingCorrectOptId: string;
+    let matchingWrongOptId: string;
+    let tfngCorrectOptId: string;
+    let tfngWrongOptId: string;
+    let mcqCorrectOptId: string;
+    let mcqWrongOptId: string;
+
+    it('FR-14.1: POST /api/quizzes as Admin -> creates 4-skills practice test with reading passage', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/quizzes')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          title: 'IELTS Academic Reading Test: Renewable Energy & Future Cities',
+          description: 'Bài kiểm tra năng lực đọc hiểu chuyên sâu với 3 dạng câu hỏi điển hình',
+          skill: 'READING',
+          testType: 'FULL_MOCK_TEST',
+          passage: 'As urban populations burgeon globally, the imperative for decentralized renewable energy infrastructures has escalated exponentially...',
+          timeLimitMinutes: 40,
+          passScore: 70,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('skill', 'READING');
+      expect(response.body).toHaveProperty('passage');
+      mockTestId = response.body.id;
+    });
+
+    it('FR-14.2: POST /api/quizzes/:id/questions as Admin -> adds questions categorized by specific IELTS question types', async () => {
+      // 1. MATCHING_HEADINGS question
+      const resMatching = await request(app.getHttpServer())
+        .post(`/api/quizzes/${mockTestId}/questions`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          content: 'Choose the correct heading for Paragraph B (Matching Headings):',
+          skill: 'READING',
+          type: 'MATCHING_HEADINGS',
+          subCategory: 'Skimming & Main Idea',
+          points: 1.0,
+          explanation: 'Paragraph B elaborates on financial incentives fostering decentralized solar installations.',
+          options: [
+            { content: 'Economic catalysts and governmental subsidization', isCorrect: true },
+            { content: 'Environmental ramifications of unchecked industrialization', isCorrect: false },
+          ],
+        })
+        .expect(201);
+
+      matchingQId = resMatching.body.id;
+      matchingCorrectOptId = resMatching.body.options.find((o: any) => o.isCorrect).id;
+      matchingWrongOptId = resMatching.body.options.find((o: any) => !o.isCorrect).id;
+
+      // 2. TRUE_FALSE_NOT_GIVEN question
+      const resTfng = await request(app.getHttpServer())
+        .post(`/api/quizzes/${mockTestId}/questions`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          content: 'Decentralized solar networks have completely supplanted conventional electrical grids worldwide.',
+          skill: 'READING',
+          type: 'TRUE_FALSE_NOT_GIVEN',
+          subCategory: 'Factual Information Verification',
+          points: 1.0,
+          explanation: 'The passage explicitly notes that solar grids complement rather than supplant legacy power infrastructure, so the statement is FALSE.',
+          options: [
+            { content: 'FALSE', isCorrect: true },
+            { content: 'TRUE', isCorrect: false },
+            { content: 'NOT GIVEN', isCorrect: false },
+          ],
+        })
+        .expect(201);
+
+      tfngQId = resTfng.body.id;
+      tfngCorrectOptId = resTfng.body.options.find((o: any) => o.isCorrect).id;
+      tfngWrongOptId = resTfng.body.options.find((o: any) => !o.isCorrect).id;
+
+      // 3. MULTIPLE_CHOICE question
+      const resMcq = await request(app.getHttpServer())
+        .post(`/api/quizzes/${mockTestId}/questions`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          content: 'According to the author, what constitutes the primary impediment to municipal microgrid adoption?',
+          skill: 'READING',
+          type: 'MULTIPLE_CHOICE',
+          subCategory: 'Detail Comprehension',
+          points: 1.0,
+          explanation: 'Capital expenditures and regulatory inertia are highlighted as the core deterrents.',
+          options: [
+            { content: 'Prohibitive upfront capital investment and regulatory hurdles', isCorrect: true },
+            { content: 'Complete absence of consumer interest and technological viability', isCorrect: false },
+          ],
+        })
+        .expect(201);
+
+      mcqQId = resMcq.body.id;
+      mcqCorrectOptId = resMcq.body.options.find((o: any) => o.isCorrect).id;
+      mcqWrongOptId = resMcq.body.options.find((o: any) => !o.isCorrect).id;
+    });
+
+    it('FR-14.3: GET /api/quizzes/skills/tests -> lists practice tests filtered by skill READING', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/quizzes/skills/tests?skill=READING')
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
+      const found = response.body.find((t: any) => t.id === mockTestId);
+      expect(found).toBeDefined();
+      expect(found.skill).toBe('READING');
+    });
+
+    it('FR-14.4: POST /api/quizzes/:id/submit as Student -> submits answers with intentional mistakes in Matching and TFNG', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/quizzes/${mockTestId}/submit`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          answers: [
+            { questionId: matchingQId, selectedOptionId: matchingWrongOptId }, // Sai Matching
+            { questionId: tfngQId, selectedOptionId: tfngWrongOptId }, // Sai TFNG
+            { questionId: mcqQId, selectedOptionId: mcqCorrectOptId }, // Đúng MCQ
+          ],
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('score');
+      expect(response.body).toHaveProperty('correctAnswers', 1);
+      expect(response.body).toHaveProperty('totalQuestions', 3);
+    });
+
+    it('FR-14.5: GET /api/quizzes/diagnostic/me as Student -> diagnoses strengths, weaknesses & question types breakdown', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/quizzes/diagnostic/me')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('skillsBreakdown');
+      expect(response.body.skillsBreakdown).toHaveProperty('reading');
+      expect(response.body.skillsBreakdown).toHaveProperty('listening');
+      expect(response.body.skillsBreakdown).toHaveProperty('writing');
+      expect(response.body.skillsBreakdown).toHaveProperty('speaking');
+
+      // Check question types breakdown
+      expect(response.body).toHaveProperty('questionTypesBreakdown');
+      const types = response.body.questionTypesBreakdown;
+      expect(Array.isArray(types)).toBeTruthy();
+
+      const matchingStat = types.find((t: any) => t.type === 'MATCHING_HEADINGS');
+      const tfngStat = types.find((t: any) => t.type === 'TRUE_FALSE_NOT_GIVEN');
+      const mcqStat = types.find((t: any) => t.type === 'MULTIPLE_CHOICE');
+
+      expect(matchingStat).toBeDefined();
+      expect(matchingStat.accuracyPercentage).toBe(0);
+      expect(matchingStat.errorRatePercentage).toBe(100);
+      expect(matchingStat.status).toBe('WEAK');
+      expect(matchingStat).toHaveProperty('recommendation');
+
+      expect(tfngStat).toBeDefined();
+      expect(tfngStat.accuracyPercentage).toBe(0);
+      expect(tfngStat.status).toBe('WEAK');
+
+      expect(mcqStat).toBeDefined();
+      expect(mcqStat.accuracyPercentage).toBe(100);
+      expect(mcqStat.status).toBe('STRONG');
+
+      // Check identified weaknesses & strengths
+      expect(response.body).toHaveProperty('weaknesses');
+      expect(response.body.weaknesses.some((w: any) => w.type === 'MATCHING_HEADINGS')).toBe(true);
+      expect(response.body.weaknesses.some((w: any) => w.type === 'TRUE_FALSE_NOT_GIVEN')).toBe(true);
+
+      expect(response.body).toHaveProperty('strengths');
+      expect(response.body.strengths.some((s: any) => s.type === 'MULTIPLE_CHOICE')).toBe(true);
+
+      expect(response.body).toHaveProperty('diagnosticSummary');
+      expect(response.body.diagnosticSummary).toContain('MATCHING_HEADINGS');
+    });
+
+    it('FR-14.6: GET /api/quizzes/diagnostic/admin/overview as Admin -> returns academy-wide error breakdown by question types', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/quizzes/diagnostic/admin/overview')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('totalQuestionsAttempted');
+      expect(response.body).toHaveProperty('topDifficultTypes');
+      expect(Array.isArray(response.body.topDifficultTypes)).toBeTruthy();
+      expect(response.body).toHaveProperty('academyQuestionTypes');
+    });
+
+    it('FR-14.7: GET /api/quizzes/diagnostic/students/:studentId as Admin -> inspects specific student learning gaps', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/quizzes/diagnostic/students/student-uuid-1')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('userId', 'student-uuid-1');
+      expect(response.body).toHaveProperty('weaknesses');
+      expect(response.body.weaknesses.length).toBeGreaterThanOrEqual(1);
+      expect(response.body).toHaveProperty('strengths');
+    });
+  });
 });

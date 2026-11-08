@@ -5,6 +5,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { QuizzesService } from './quizzes.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
@@ -24,7 +26,7 @@ import { OptionalJwtAuthGuard } from '../../core/common/guards/optional-jwt-auth
 import { RolesGuard } from '../../core/common/guards/roles.guard';
 import { Roles } from '../../core/common/decorators/roles.decorator';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
-import { Role } from '@prisma/client';
+import { Role, SkillType } from '@prisma/client';
 import { Request } from 'express';
 
 @ApiTags('Quiz Engine & Instant Assessment')
@@ -36,7 +38,7 @@ export class QuizzesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin tạo bài trắc nghiệm (Quiz) mới gắn với bài học' })
+  @ApiOperation({ summary: 'Admin tạo bài trắc nghiệm / Test 4 kỹ năng mới' })
   @ApiResponse({ status: 201, description: 'Tạo Quiz thành công' })
   createQuiz(@Body() dto: CreateQuizDto) {
     return this.quizzesService.createQuiz(dto);
@@ -46,13 +48,68 @@ export class QuizzesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin thêm câu hỏi và đáp án vào bài Quiz' })
+  @ApiOperation({ summary: 'Admin thêm câu hỏi phân loại theo dạng bài và kỹ năng' })
   @ApiParam({ name: 'id', description: 'UUID của bài Quiz' })
   addQuestion(
     @Param('id') id: string,
     @Body() dto: CreateQuestionDto,
   ) {
     return this.quizzesService.addQuestion(id, dto);
+  }
+
+  // ==========================================
+  // 4-SKILLS DIAGNOSTIC ANALYTICS ENDPOINTS
+  // ==========================================
+
+  @Get('skills/tests')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Lấy danh sách đề thi phân loại theo 4 kỹ năng (Reading, Listening, Writing, Speaking)' })
+  @ApiQuery({ name: 'skill', required: false, enum: SkillType })
+  findSkillsTests(@Query('skill') skill?: SkillType, @Req() req?: Request) {
+    const user = (req as any)?.user;
+    return this.quizzesService.findSkillsTests(skill, user?.role);
+  }
+
+  @Get('diagnostic/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Học viên xem báo cáo chẩn đoán năng lực 4 kỹ năng: phân tích dạng bài hay làm sai, điểm yếu, điểm mạnh và gợi ý cải thiện',
+  })
+  @ApiQuery({ name: 'skill', required: false, enum: SkillType })
+  getMyDiagnostic(
+    @CurrentUser('id') userId: string,
+    @Query('skill') skill?: SkillType,
+  ) {
+    return this.quizzesService.getStudentSkillsDiagnostic(userId, skill);
+  }
+
+  @Get('diagnostic/admin/overview')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Admin xem tổng quan chẩn đoán toàn học viện: thống kê các dạng câu hỏi học sinh hay làm sai nhất',
+  })
+  @ApiQuery({ name: 'skill', required: false, enum: SkillType })
+  getAdminDiagnosticOverview(@Query('skill') skill?: SkillType) {
+    return this.quizzesService.getAdminSkillsDiagnosticOverview(skill);
+  }
+
+  @Get('diagnostic/students/:studentId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin xem chi tiết chẩn đoán năng lực và các dạng câu hỏi yếu của một học viên' })
+  @ApiParam({ name: 'studentId', description: 'UUID của học viên' })
+  @ApiQuery({ name: 'skill', required: false, enum: SkillType })
+  getStudentDiagnosticByAdmin(
+    @Param('studentId') studentId: string,
+    @Query('skill') skill?: SkillType,
+  ) {
+    return this.quizzesService.getStudentSkillsDiagnostic(studentId, skill);
   }
 
   @Get('lesson/:lessonId')

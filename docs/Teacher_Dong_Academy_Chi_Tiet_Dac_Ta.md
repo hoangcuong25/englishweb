@@ -1368,6 +1368,43 @@ câu trả lời điền khuyết chưa được SRS quy định.
 
 ------------------------------------------------------------------------
 
+### QZ-SCR-006 -- Báo cáo chẩn đoán năng lực 4 Kỹ năng & Phân tích điểm yếu (STUDENT, ADMIN)
+
+#### 1. Hệ thống phân loại 4 Kỹ năng (4 Skills Taxonomy):
+- **READING**: Đọc hiểu chuyên sâu theo các bài đọc Passage.
+- **LISTENING**: Nghe hiểu tích hợp audio Cloudinary và bài tập nghe điền từ / sơ đồ.
+- **WRITING**: Luyện viết Task 1 & Task 2 tích hợp chấm điểm AI Gemini.
+- **SPEAKING**: Ghi âm studio và chấm điểm 4 tiêu chí từ Admin.
+
+#### 2. Phân loại chi tiết dạng câu hỏi (Question Types):
+- **Dạng bài Reading**:
+  - `MATCHING_HEADINGS`: Nối tiêu đề đoạn văn (đánh giá kỹ năng Skimming, nắm bắt Topic Sentence).
+  - `TRUE_FALSE_NOT_GIVEN` / `YES_NO_NOT_GIVEN`: Xác định tính đúng/sai/không đề cập (phân biệt Fact vs Claim).
+  - `MATCHING_INFORMATION` / `MATCHING_FEATURES`: Nối thông tin chi tiết / đặc điểm đối tượng.
+  - `SENTENCE_COMPLETION` / `SUMMARY_COMPLETION`: Điền từ hoàn thành câu / bản tóm tắt.
+  - `MULTIPLE_CHOICE`: Trắc nghiệm 1 hoặc nhiều đáp án (phân tích bẫy Distractors).
+- **Dạng bài Listening**:
+  - `NOTE_COMPLETION` / `FORM_COMPLETION`: Nghe điền thông tin biểu mẫu / ghi chú.
+  - `MAP_DIAGRAM_LABELING`: Nghe định hướng và điền nhãn sơ đồ bản đồ.
+  - `FLOW_CHART_COMPLETION`: Nghe quy trình các bước.
+  - `SHORT_ANSWER`: Trả lời ngắn theo giới hạn số từ.
+
+#### 3. Chức năng phân tích hiển thị Frontend (Diagnostic Analytics):
+- **Thống kê theo 4 kỹ năng (`skillsBreakdown`)**: Tổng số câu đã làm, số câu đúng, số câu sai, tỷ lệ chính xác %, điểm Band trung bình.
+- **Phân loại theo từng dạng bài (`questionTypesBreakdown`)**:
+  - Tỷ lệ đúng %, tỷ lệ sai sót %.
+  - Xếp loại năng lực: `STRONG` (&ge; 80%), `MODERATE` (50% - 79%), `WEAK` (< 50%).
+- **Danh sách điểm yếu hay làm sai (`weaknesses`)**:
+  - Tự động sắp xếp các dạng bài có tỷ lệ sai cao nhất lên đầu.
+  - Đưa ra lời khuyên sư phạm riêng biệt (`recommendation`) cho từng dạng câu hỏi (Ví dụ: cách phân biệt False và Not Given; cách Skimming tìm Topic Sentence cho Matching Headings).
+- **Danh sách thế mạnh làm đúng (`strengths`)**:
+  - Liệt kê các dạng câu hỏi học viên thành thạo nhất (&ge; 80%).
+- **Đặc quyền ADMIN**:
+  - Xem tổng quan toàn học viện (`GET /api/quizzes/diagnostic/admin/overview`), phát hiện 5 dạng câu hỏi học sinh hay sai sót nhất toàn trường.
+  - Tra cứu hồ sơ chẩn đoán chi tiết của từng học viên cụ thể (`GET /api/quizzes/diagnostic/students/:studentId`).
+
+------------------------------------------------------------------------
+
 ## 3.9. Điểm danh tự động (ATT)
 
 ### ATT-SCR-001 -- Danh sách/báo cáo điểm danh (ADMIN)

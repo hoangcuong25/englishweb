@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { QuestionType } from '@prisma/client';
+import { QuestionType, SkillType } from '@prisma/client';
 
 export class QuestionOptionDto {
   @ApiProperty({ example: 'Moreover / In addition' })
@@ -33,9 +33,19 @@ export class CreateQuestionDto {
   @IsString()
   content: string;
 
-  @ApiProperty({ enum: QuestionType, default: QuestionType.SINGLE_CHOICE })
+  @ApiPropertyOptional({ enum: SkillType, default: SkillType.READING, description: 'Kỹ năng câu hỏi (READING, LISTENING, WRITING, SPEAKING)' })
+  @IsOptional()
+  @IsEnum(SkillType)
+  skill?: SkillType;
+
+  @ApiProperty({ enum: QuestionType, default: QuestionType.SINGLE_CHOICE, description: 'Dạng bài câu hỏi (MCQ, TRUE_FALSE_NOT_GIVEN, MATCHING_HEADINGS...)' })
   @IsEnum(QuestionType, { message: 'Loại câu hỏi không hợp lệ' })
   type: QuestionType;
+
+  @ApiPropertyOptional({ example: 'Skimming & Scanning', description: 'Phân loại chi tiết kỹ năng phụ' })
+  @IsOptional()
+  @IsString()
+  subCategory?: string;
 
   @ApiPropertyOptional({ example: 1.0, default: 1.0 })
   @IsOptional()
