@@ -694,4 +694,508 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
         .expect(200);
     });
   });
+
+  // ==========================================
+  // 12. AI IELTS WRITING STUDIO FLOW (FR-06)
+  // ==========================================
+  describe('12. AI IELTS Writing Studio Flow (FR-06)', () => {
+    let testPromptId: string;
+    let testSubmissionId: string;
+
+    it('FR-6.1: GET /api/writing/prompts -> should list prompts', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/writing/prompts')
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('FR-6.2: POST /api/writing/prompts as Admin -> should create a new writing prompt', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/writing/prompts')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          title: 'IELTS Writing Task 2: Artificial Intelligence in Education',
+          taskType: 'TASK_2',
+          topic: 'Some people think that AI will completely replace human teachers in the future. Discuss both views and give your opinion.',
+          targetWords: 250,
+          timeLimitMinutes: 40,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('title');
+      testPromptId = response.body.id;
+    });
+
+    it('FR-6.3: POST /api/writing/submissions as Student -> should trigger AI evaluation across 4 criteria', async () => {
+      const essayContent = `
+        In contemporary educational discourse, the escalating integration of artificial intelligence has precipitated intense debate regarding whether autonomous algorithmic tutors could ultimately supersede pedagogical human instructors. From my perspective, while advanced AI tools undeniably furnish unprecedented personalized learning opportunities, the irreplaceable empathetic guidance and social-emotional mentoring provided by human educators ensure their persistent indispensability.
+
+        On the one hand, AI systems possess peerless efficiency in diagnostic feedback and adaptive curricula. Through the proliferation of machine learning algorithms, digital platforms can instantly detect lexical deficiencies and grammatical discrepancies. Furthermore, learners can progress at their bespoke pacing without experiencing stigmatization. Consequently, routine linguistic instruction and repetitive drills can be automated effectively.
+
+        On the other hand, authentic pedagogy transcends the mere mechanical dissemination of factual knowledge. Inspiring intellectual curiosity, instilling moral ethical values, and cultivating critical thinking require human emotional resonance that artificial neural networks cannot replicate. When encountering cognitive plateaus, students derive resilience from empathetic encouragement rather than cold algorithmic prompts.
+
+        In conclusion, although artificial intelligence will unquestionably augment instructional methodologies, human teachers will remain the cornerstone of holistic education.
+      `.trim();
+
+      const response = await request(app.getHttpServer())
+        .post('/api/writing/submissions')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          promptId: testPromptId,
+          content: essayContent,
+          timeSpentSeconds: 1980,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('submission');
+      const sub = response.body.submission;
+      expect(sub.status).toBe('AI_EVALUATED');
+      expect(sub.wordCount).toBeGreaterThanOrEqual(150);
+      expect(sub).toHaveProperty('overallBand');
+      expect(sub).toHaveProperty('taskAchievementScore');
+      expect(sub).toHaveProperty('coherenceCohesionScore');
+      expect(sub).toHaveProperty('lexicalResourceScore');
+      expect(sub).toHaveProperty('grammarScore');
+      expect(sub).toHaveProperty('aiFeedback');
+      expect(sub).toHaveProperty('aiSuggestions');
+      expect(sub).toHaveProperty('sampleBand8Essay');
+
+      testSubmissionId = sub.id;
+    });
+
+    it('FR-6.4: GET /api/writing/submissions/my as Student -> should list own essays', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/writing/submissions/my')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.some((s: any) => s.id === testSubmissionId)).toBeTruthy();
+    });
+
+    it('FR-6.5: GET /api/writing/admin/submissions as Admin -> should list submissions for approval', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/writing/admin/submissions')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.some((s: any) => s.id === testSubmissionId)).toBeTruthy();
+    });
+
+    it('FR-6.6: POST /api/writing/admin/submissions/:id/approve as Admin -> should override score and publish approved result', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/writing/admin/submissions/${testSubmissionId}/approve`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          adminOverrideBand: 8.0,
+          adminFeedback: 'Bài viết lập luận rất sắc bén, dùng nhiều từ vựng C1/C2 xuất sắc!',
+        })
+        .expect(200);
+
+      expect(response.body.status).toBe('APPROVED');
+      expect(response.body.adminOverrideBand).toBe(8.0);
+      expect(response.body).toHaveProperty('approvedAt');
+    });
+  });
+
+  // ==========================================
+  // 13. IELTS SPEAKING STUDIO FLOW (FR-07)
+  // ==========================================
+  describe('13. IELTS Speaking Studio Flow (FR-07)', () => {
+    let testSpeakingPromptId: string;
+    let testSpeakingSubmissionId: string;
+
+    it('FR-7.1: GET /api/speaking/prompts -> should list prompts', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/speaking/prompts')
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('FR-7.2: POST /api/speaking/prompts as Admin -> should create speaking prompt', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/speaking/prompts')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          title: 'Speaking Part 2: Describe a book that had a major influence on you',
+          topic: 'You should say: what the book is, who wrote it, what it is about, and explain why it influenced you.',
+          minSeconds: 40,
+          maxSeconds: 120,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      testSpeakingPromptId = response.body.id;
+    });
+
+    it('FR-7.3: POST /api/speaking/submissions as Student -> should submit audio recording (status PENDING)', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/speaking/submissions')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          promptId: testSpeakingPromptId,
+          audioUrl: 'https://cdn.englishweb.com/recordings/student_sample_audio.mp3',
+          durationSeconds: 95,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('submission');
+      expect(response.body.submission.status).toBe('PENDING');
+      testSpeakingSubmissionId = response.body.submission.id;
+    });
+
+    it('FR-7.4: GET /api/speaking/submissions/my as Student -> should list submissions', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/speaking/submissions/my')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.some((s: any) => s.id === testSpeakingSubmissionId)).toBeTruthy();
+    });
+
+    it('FR-7.5: POST /api/speaking/admin/submissions/:id/grade as Admin -> should grade 4 criteria & add timestamp feedback', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/speaking/admin/submissions/${testSpeakingSubmissionId}/grade`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          fluencyScore: 7.5,
+          lexicalScore: 7.0,
+          grammarScore: 7.0,
+          pronunciationScore: 7.5,
+          feedback: 'Bài nói trôi chảy, phát âm rõ ràng, nhịp điệu tự nhiên.',
+          timestampFeedback: [
+            { timestamp: '00:18', note: 'Từ vựng hay: "profound impact"' },
+            { timestamp: '00:52', note: 'Cần chú ý nối âm tại "read it"' },
+          ],
+        })
+        .expect(200);
+
+      expect(response.body.status).toBe('GRADED');
+      expect(response.body.bandScore).toBe(7.5);
+      expect(response.body.fluencyScore).toBe(7.5);
+      expect(response.body.pronunciationScore).toBe(7.5);
+      expect(response.body).toHaveProperty('gradedAt');
+    });
+  });
+
+  // ==========================================
+  // 14. QUIZ ENGINE FLOW (FR-08)
+  // ==========================================
+  describe('14. Quiz Engine Flow (FR-08)', () => {
+    let testQuizId: string;
+    let testQuestionId: string;
+    let correctOptionId: string;
+    let wrongOptionId: string;
+
+    it('FR-8.1: POST /api/quizzes as Admin -> should create quiz linked to lesson', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/quizzes')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          lessonId: 'lesson-uuid-1',
+          title: 'IELTS Academic Writing Criteria Test',
+          description: 'Kiểm tra 4 tiêu chí chấm điểm IELTS Writing',
+          timeLimitMinutes: 10,
+          passScore: 80,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      testQuizId = response.body.id;
+    });
+
+    it('FR-8.2: POST /api/quizzes/:id/questions as Admin -> should add question with options', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/quizzes/${testQuizId}/questions`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          content: 'What does TR stand for in IELTS Writing Task 2 assessment criteria?',
+          type: 'SINGLE_CHOICE',
+          points: 1.0,
+          explanation: 'TR stands for Task Response in Task 2.',
+          orderIndex: 1,
+          options: [
+            { content: 'Task Response', isCorrect: true },
+            { content: 'Topic Relevance', isCorrect: false },
+            { content: 'Text Review', isCorrect: false },
+          ],
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.options.length).toBe(3);
+      testQuestionId = response.body.id;
+      correctOptionId = response.body.options.find((o: any) => o.isCorrect).id;
+      wrongOptionId = response.body.options.find((o: any) => !o.isCorrect).id;
+    });
+
+    it('FR-8.3: GET /api/quizzes/:id as Student -> should sanitize options (hide isCorrect)', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/quizzes/${testQuizId}`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('id', testQuizId);
+      expect(response.body.questions.length).toBeGreaterThanOrEqual(1);
+      // Student cannot see isCorrect property
+      expect(response.body.questions[0].options[0]).not.toHaveProperty('isCorrect');
+    });
+
+    it('FR-8.4: POST /api/quizzes/:id/submit with wrong answer -> should fail passScore', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/quizzes/${testQuizId}/submit`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          answers: [{ questionId: testQuestionId, selectedOptionId: wrongOptionId }],
+        })
+        .expect(201);
+
+      expect(response.body.isPassed).toBe(false);
+      expect(response.body.score).toBe(0);
+    });
+
+    it('FR-8.5: POST /api/quizzes/:id/submit with correct answer -> score >= 80% should pass & unlock lesson', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/quizzes/${testQuizId}/submit`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          answers: [{ questionId: testQuestionId, selectedOptionId: correctOptionId }],
+        })
+        .expect(201);
+
+      expect(response.body.isPassed).toBe(true);
+      expect(response.body.score).toBe(100);
+      expect(response.body.correctAnswers).toBe(1);
+    });
+  });
+
+  // ==========================================
+  // 15. AUTOMATED ATTENDANCE FLOW (FR-09)
+  // ==========================================
+  describe('15. Automated Attendance Flow (FR-09)', () => {
+    let testClassroomId: string;
+    let attendanceRecordId: string;
+
+    it('FR-9.1: POST /api/attendance/classrooms as Admin -> should schedule classroom', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/attendance/classrooms')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          name: `ielts-live-session-${Date.now()}`,
+          scheduledStartTime: '2026-11-08T19:30:00.000Z',
+          scheduledEndTime: '2026-11-08T20:30:00.000Z',
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      testClassroomId = response.body.id;
+    });
+
+    it('FR-9.2: GET /api/attendance/classrooms as Admin -> should list classrooms', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/attendance/classrooms')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('FR-9.3: PUT /api/attendance/:id/override as Admin -> should manually override status with note', async () => {
+      // First ensure an attendance record exists in mock
+      const rec = await mockPrisma.attendanceRecord.upsert({
+        where: {
+          classroomId_studentId: {
+            classroomId: testClassroomId,
+            studentId: 'student-uuid-1',
+          },
+        },
+        create: {
+          classroomId: testClassroomId,
+          studentId: 'student-uuid-1',
+          totalMinutes: 10,
+          status: 'ABSENT',
+        },
+        update: {},
+      });
+      attendanceRecordId = rec.id;
+
+      const response = await request(app.getHttpServer())
+        .put(`/api/attendance/${attendanceRecordId}/override`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          status: 'PRESENT',
+          note: 'Học viên có phép vì sự cố đường truyền mạng gia đình',
+        })
+        .expect(200);
+
+      expect(response.body.status).toBe('PRESENT');
+      expect(response.body.isManualOverride).toBe(true);
+      expect(response.body.note).toContain('Học viên có phép');
+    });
+
+    it('FR-9.4: GET /api/attendance/classroom/:id/export as Admin -> should generate Excel report (.xlsx)', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/attendance/classroom/${testClassroomId}/export`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .buffer(true)
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain(
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      expect(response.headers['content-disposition']).toContain('.xlsx');
+      expect(response.body).toBeDefined();
+    });
+  });
+
+  // ==========================================
+  // 16. DASHBOARD & ANALYTICS FLOW (FR-10)
+  // ==========================================
+  describe('16. Dashboard & Analytics Flow (FR-10)', () => {
+    it('FR-10.1: GET /api/dashboard/student as Student -> should return learning overview & upcoming events', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/dashboard/student')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('overview');
+      expect(response.body.overview).toHaveProperty('enrolledCoursesCount');
+      expect(response.body.overview).toHaveProperty('averageProgress');
+      expect(response.body).toHaveProperty('recentCourses');
+      expect(Array.isArray(response.body.recentCourses)).toBeTruthy();
+      expect(response.body).toHaveProperty('upcomingClassrooms');
+      expect(response.body).toHaveProperty('recentWriting');
+      expect(response.body).toHaveProperty('recentSpeaking');
+      expect(response.body).toHaveProperty('attendanceSummary');
+      expect(response.body.attendanceSummary).toHaveProperty('present');
+    });
+
+    it('FR-10.2: GET /api/dashboard/student as Unauthenticated -> should return 401 Unauthorized', async () => {
+      await request(app.getHttpServer())
+        .get('/api/dashboard/student')
+        .expect(401);
+    });
+
+    it('FR-10.3: GET /api/dashboard/admin as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .get('/api/dashboard/admin')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(403);
+    });
+
+    it('FR-10.4: GET /api/dashboard/admin as Admin -> should return academy metrics, action items, and live classrooms', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/dashboard/admin')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('metrics');
+      expect(response.body.metrics).toHaveProperty('totalStudents');
+      expect(response.body.metrics).toHaveProperty('totalCourses');
+      expect(response.body).toHaveProperty('actionItems');
+      expect(response.body.actionItems).toHaveProperty('pendingWritingApprovals');
+      expect(response.body.actionItems).toHaveProperty('pendingSpeakingGradings');
+      expect(response.body).toHaveProperty('attendanceOverview');
+      expect(response.body).toHaveProperty('recentStudents');
+      expect(Array.isArray(response.body.recentStudents)).toBeTruthy();
+      expect(response.body).toHaveProperty('recentSubmissions');
+    });
+  });
+
+  // ==========================================
+  // 17. REALTIME CHAT & MESSAGING FLOW (FR-11)
+  // ==========================================
+  describe('17. Realtime Chat & Messaging Flow (FR-11)', () => {
+    let studentConversationId: string;
+
+    it('FR-11.1: GET /api/chat/conversations as Student -> should return or auto-create conversation with Admin', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/chat/conversations')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
+
+      const conv = response.body[0];
+      expect(conv).toHaveProperty('id');
+      expect(conv).toHaveProperty('studentId');
+      expect(conv).toHaveProperty('adminId');
+      studentConversationId = conv.id;
+    });
+
+    it('FR-11.2: POST /api/chat/conversations/:id/messages as Student -> should send message to Admin', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/chat/conversations/${studentConversationId}/messages`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          content: 'Thầy Dong ơi, em muốn hỏi bài tập Writing Task 2 nộp trước mấy giờ ạ?',
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.content).toContain('Writing Task 2');
+      expect(response.body.isRead).toBe(false);
+      expect(response.body.sender.role).toBe('STUDENT');
+    });
+
+    it('FR-11.3: GET /api/chat/conversations/:id/messages as Student -> should retrieve message history', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/chat/conversations/${studentConversationId}/messages`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('total');
+      expect(response.body.total).toBeGreaterThanOrEqual(1);
+      expect(Array.isArray(response.body.messages)).toBeTruthy();
+      expect(
+        response.body.messages.some((m: any) => m.content.includes('Writing Task 2')),
+      ).toBeTruthy();
+    });
+
+    it('FR-11.4: GET /api/chat/conversations as Admin -> should see student conversation with unread count', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/chat/conversations')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      const targetConv = response.body.find((c: any) => c.id === studentConversationId);
+      expect(targetConv).toBeDefined();
+      expect(targetConv.unreadCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('FR-11.5: POST /api/chat/conversations/:id/messages as Admin -> should reply to student', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/chat/conversations/${studentConversationId}/messages`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          content: 'Chào em, bài tập nộp trước 22:00 tối nay nhé em!',
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.content).toContain('22:00');
+      expect(response.body.sender.role).toBe('ADMIN');
+    });
+
+    it('FR-11.6: PUT /api/chat/conversations/:id/read as Student -> should mark received admin messages as read', async () => {
+      const response = await request(app.getHttpServer())
+        .put(`/api/chat/conversations/${studentConversationId}/read`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('conversationId', studentConversationId);
+      expect(response.body).toHaveProperty('markedCount');
+      expect(response.body.markedCount).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

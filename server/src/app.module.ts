@@ -7,6 +7,12 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { MaterialsModule } from './modules/materials/materials.module';
+import { WritingModule } from './modules/writing/writing.module';
+import { SpeakingModule } from './modules/speaking/speaking.module';
+import { QuizzesModule } from './modules/quizzes/quizzes.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { LivekitModule } from './core/livekit/livekit.module';
 
 @Module({
@@ -20,6 +26,12 @@ import { LivekitModule } from './core/livekit/livekit.module';
     CoursesModule,
     LessonsModule,
     MaterialsModule,
+    WritingModule,
+    SpeakingModule,
+    QuizzesModule,
+    AttendanceModule,
+    DashboardModule,
+    ChatModule,
     LivekitModule,
   ],
   controllers: [AppController],
