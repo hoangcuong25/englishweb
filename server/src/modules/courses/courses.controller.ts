@@ -8,13 +8,17 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Req,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiConsumes,
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
@@ -110,5 +114,20 @@ export class CoursesController {
   @ApiParam({ name: 'id', description: 'UUID của khóa học cần ghi danh' })
   enroll(@Param('id') id: string, @CurrentUser() user: any) {
     return this.coursesService.enrollCourse(id, user.id);
+  }
+
+  @Post(':id/thumbnail')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin upload ảnh thumbnail khóa học lên Cloudinary' })
+  @ApiParam({ name: 'id', description: 'UUID của khóa học' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadThumbnail(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.coursesService.updateThumbnail(id, file);
   }
 }

@@ -27,6 +27,7 @@ export class MockPrismaService {
   public quizAnswers: any[] = [];
   public conversations: any[] = [];
   public messages: any[] = [];
+  public blogPosts: any[] = [];
 
   constructor() {
     this.seedInitialData();
@@ -1450,6 +1451,115 @@ export class MockPrismaService {
         }
       });
       return { count };
+    },
+  };
+
+  // --- BLOG POST REPOSITORY ---
+  blogPost = {
+    create: async (args: any) => {
+      const newPost = {
+        id: randomUUID(),
+        title: args.data.title,
+        slug: args.data.slug,
+        summary: args.data.summary || null,
+        content: args.data.content,
+        coverImage: args.data.coverImage || null,
+        coverImagePublicId: args.data.coverImagePublicId || null,
+        videoUrl: args.data.videoUrl || null,
+        videoPublicId: args.data.videoPublicId || null,
+        category: args.data.category || null,
+        tags: args.data.tags || null,
+        status: args.data.status || 'DRAFT',
+        isFeatured: args.data.isFeatured || false,
+        viewCount: 0,
+        authorId: args.data.authorId,
+        publishedAt: args.data.publishedAt || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.blogPosts.push(newPost);
+      const author = this.users.find((u) => u.id === newPost.authorId);
+      return {
+        ...newPost,
+        author: author ? { id: author.id, fullName: author.fullName, avatarUrl: author.avatarUrl, role: author.role } : null,
+      };
+    },
+    findUnique: async (args: any) => {
+      const post = this.blogPosts.find((p) => {
+        if (args.where?.id) return p.id === args.where.id;
+        if (args.where?.slug) return p.slug === args.where.slug;
+        return false;
+      });
+      if (!post) return null;
+      const author = this.users.find((u) => u.id === post.authorId);
+      return {
+        ...post,
+        author: author ? { id: author.id, fullName: author.fullName, avatarUrl: author.avatarUrl, role: author.role } : null,
+      };
+    },
+    findMany: async (args?: any) => {
+      let list = [...this.blogPosts];
+      if (args?.where?.status) {
+        list = list.filter((p) => p.status === args.where.status);
+      }
+      if (args?.where?.category) {
+        list = list.filter((p) => p.category === args.where.category);
+      }
+      if (args?.where?.isFeatured !== undefined) {
+        list = list.filter((p) => p.isFeatured === args.where.isFeatured);
+      }
+      if (args?.where?.OR) {
+        const query = args.where.OR[0]?.title?.contains || '';
+        list = list.filter((p) => p.title.toLowerCase().includes(query.toLowerCase()));
+      }
+      const skip = args?.skip || 0;
+      const take = args?.take ? skip + args.take : list.length;
+      return list.slice(skip, take).map((p) => {
+        const author = this.users.find((u) => u.id === p.authorId);
+        return {
+          ...p,
+          author: author ? { id: author.id, fullName: author.fullName, avatarUrl: author.avatarUrl, role: author.role } : null,
+        };
+      });
+    },
+    count: async (args?: any) => {
+      let list = [...this.blogPosts];
+      if (args?.where?.status) {
+        list = list.filter((p) => p.status === args.where.status);
+      }
+      if (args?.where?.category) {
+        list = list.filter((p) => p.category === args.where.category);
+      }
+      if (args?.where?.isFeatured !== undefined) {
+        list = list.filter((p) => p.isFeatured === args.where.isFeatured);
+      }
+      return list.length;
+    },
+    update: async (args: any) => {
+      const idx = this.blogPosts.findIndex((p) => p.id === args.where.id);
+      if (idx === -1) return null;
+      const current = this.blogPosts[idx];
+      let viewCount = current.viewCount;
+      if (args.data?.viewCount?.increment) {
+        viewCount += args.data.viewCount.increment;
+      }
+      this.blogPosts[idx] = {
+        ...current,
+        ...args.data,
+        viewCount,
+        updatedAt: new Date(),
+      };
+      const author = this.users.find((u) => u.id === this.blogPosts[idx].authorId);
+      return {
+        ...this.blogPosts[idx],
+        author: author ? { id: author.id, fullName: author.fullName, avatarUrl: author.avatarUrl, role: author.role } : null,
+      };
+    },
+    delete: async (args: any) => {
+      const idx = this.blogPosts.findIndex((p) => p.id === args.where.id);
+      if (idx === -1) return null;
+      const deleted = this.blogPosts.splice(idx, 1)[0];
+      return deleted;
     },
   };
 

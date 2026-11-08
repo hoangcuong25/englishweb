@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
+import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -13,7 +14,10 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class LessonsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cloudinaryService: CloudinaryService,
+  ) {}
 
   // ==========================================
   // MODULES (CHƯƠNG HỌC)
@@ -326,5 +330,22 @@ export class LessonsService {
       totalLessons,
       progressPercent,
     };
+  }
+
+  async updateLessonVideo(lessonId: string, file: Express.Multer.File) {
+    const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+    if (!lesson) {
+      throw new NotFoundException(`Không tìm thấy bài học ID: ${lessonId}`);
+    }
+
+    const uploadRes = await this.cloudinaryService.uploadVideo(
+      file,
+      'teacher_dong_academy/lessons/videos',
+    );
+
+    return this.prisma.lesson.update({
+      where: { id: lessonId },
+      data: { videoUrl: uploadRes.secureUrl },
+    });
   }
 }

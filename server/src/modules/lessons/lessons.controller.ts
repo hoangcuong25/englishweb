@@ -7,13 +7,17 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Req,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiConsumes,
   ApiParam,
 } from '@nestjs/swagger';
 import { LessonsService } from './lessons.service';
@@ -144,5 +148,20 @@ export class LessonsController {
   @ApiParam({ name: 'id', description: 'UUID của bài học' })
   completeLesson(@Param('id') id: string, @CurrentUser() user: any) {
     return this.lessonsService.completeLesson(id, user.id);
+  }
+
+  @Post(':id/video')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin upload video bài giảng lên Cloudinary' })
+  @ApiParam({ name: 'id', description: 'UUID của bài học' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadVideo(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.lessonsService.updateLessonVideo(id, file);
   }
 }

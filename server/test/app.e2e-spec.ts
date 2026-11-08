@@ -1322,4 +1322,295 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
       expect(response.body).toHaveProperty('accessToken');
     });
   });
+
+  // ==========================================
+  // 19. GOOGLE GEMINI AI WRITING PIPELINE
+  // ==========================================
+  describe('19. Google Gemini AI IELTS Writing Evaluation Flow', () => {
+    it('FR-19.1: Student submits essay -> triggers Gemini AI evaluation with 4 IELTS criteria & C1/C2 suggestions', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/writing/submissions')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          promptId: 'writing-prompt-uuid-1',
+          content: 'In modern society, technological advancement has engendered notable transformation. Furthermore, remote instruction offers substantial flexibility for students across disparate geographical regions.',
+          timeSpentSeconds: 1200,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('submission');
+      const sub = response.body.submission;
+      expect(sub).toHaveProperty('taskAchievementScore');
+      expect(sub).toHaveProperty('coherenceCohesionScore');
+      expect(sub).toHaveProperty('lexicalResourceScore');
+      expect(sub).toHaveProperty('grammarScore');
+      expect(sub).toHaveProperty('overallBand');
+      expect(sub).toHaveProperty('aiFeedback');
+      expect(sub).toHaveProperty('aiSuggestions');
+      expect(Array.isArray(sub.aiSuggestions)).toBeTruthy();
+      expect(sub.aiSuggestions.length).toBeGreaterThanOrEqual(1);
+      expect(sub).toHaveProperty('sampleBand8Essay');
+    });
+  });
+
+  // ==========================================
+  // 20. 2-WAY INTERACTIVE WHITEBOARD SYNCHRONIZATION (FR-05)
+  // ==========================================
+  describe('20. 2-Way Interactive Whiteboard Synchronization Flow (FR-05)', () => {
+    const roomName = 'Classroom-IELTS-Whiteboard-Test';
+
+    it('FR-20.1: GET /api/livekit/rooms/:roomName/whiteboard -> returns initial snapshot', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/livekit/rooms/${roomName}/whiteboard`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('roomName', roomName);
+      expect(response.body).toHaveProperty('allowStudentDrawing', false);
+      expect(response.body).toHaveProperty('strokes');
+      expect(Array.isArray(response.body.strokes)).toBeTruthy();
+      expect(response.body.strokes.length).toBe(0);
+    });
+
+    it('FR-20.2: POST stroke as Student when allowStudentDrawing is false -> should return 403 (MSG-CLASS-005)', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/livekit/rooms/${roomName}/whiteboard/stroke`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          tool: 'pen',
+          color: '#0284c7',
+          size: 3,
+          points: [{ x: 10, y: 20 }, { x: 30, y: 40 }],
+        })
+        .expect(403);
+
+      expect(response.body.message).toContain('Bạn chưa được cấp quyền thao tác bảng trắng');
+    });
+
+    it('FR-20.3: POST /api/livekit/rooms/:roomName/whiteboard/permission as Admin -> grant student drawing', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/livekit/rooms/${roomName}/whiteboard/permission`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({ allowStudentDrawing: true })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('allowStudentDrawing', true);
+    });
+
+    it('FR-20.4: POST stroke as Student after permission granted -> succeeds', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/livekit/rooms/${roomName}/whiteboard/stroke`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          tool: 'pen',
+          color: '#0284c7',
+          size: 3,
+          points: [{ x: 10, y: 20 }, { x: 30, y: 40 }],
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('stroke');
+      expect(response.body.stroke).toHaveProperty('tool', 'pen');
+    });
+
+    it('FR-20.5: POST stroke as Admin (Host) -> succeeds unconditionally', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/livekit/rooms/${roomName}/whiteboard/stroke`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          tool: 'text',
+          color: '#ef4444',
+          size: 16,
+          text: 'Welcome to IELTS Class with Teacher Dong',
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.stroke).toHaveProperty('text', 'Welcome to IELTS Class with Teacher Dong');
+    });
+
+    it('FR-20.6: GET whiteboard snapshot -> reflects both strokes', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/livekit/rooms/${roomName}/whiteboard`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body.strokes.length).toBe(2);
+      expect(response.body.allowStudentDrawing).toBe(true);
+    });
+
+    it('FR-20.7: POST /api/livekit/rooms/:roomName/whiteboard/clear -> clears whiteboard', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/livekit/rooms/${roomName}/whiteboard/clear`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+
+      const check = await request(app.getHttpServer())
+        .get(`/api/livekit/rooms/${roomName}/whiteboard`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(check.body.strokes.length).toBe(0);
+    });
+  });
+
+  // ==========================================
+  // 21. CLOUDINARY MEDIA STORAGE FLOW
+  // ==========================================
+  describe('21. Cloudinary Media Storage Flow', () => {
+    it('FR-21.1: POST /api/media/upload/image -> uploads image to Cloudinary', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/media/upload/image')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .attach('file', Buffer.from('fake image binary content'), 'test-avatar.jpg')
+        .expect(201);
+
+      expect(response.body).toHaveProperty('secureUrl');
+      expect(response.body.secureUrl).toContain('cloudinary.com');
+      expect(response.body).toHaveProperty('publicId');
+      expect(response.body).toHaveProperty('resourceType', 'image');
+    });
+
+    it('FR-21.2: POST /api/media/upload/video -> uploads video to Cloudinary', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/media/upload/video')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .attach('file', Buffer.from('fake video binary content'), 'test-video.mp4')
+        .expect(201);
+
+      expect(response.body).toHaveProperty('secureUrl');
+      expect(response.body.secureUrl).toContain('cloudinary.com');
+      expect(response.body).toHaveProperty('resourceType', 'video');
+    });
+
+    it('FR-21.3: POST /api/users/:id/avatar -> updates user avatar via Cloudinary', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/users/student-uuid-1/avatar')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .attach('file', Buffer.from('new avatar binary data'), 'avatar.png')
+        .expect(201);
+
+      expect(response.body).toHaveProperty('avatarUrl');
+      expect(response.body.avatarUrl).toContain('cloudinary.com');
+    });
+
+    it('FR-21.4: POST /api/courses/:id/thumbnail -> updates course thumbnail via Cloudinary', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/courses/course-uuid-1/thumbnail')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .attach('file', Buffer.from('course thumbnail binary data'), 'thumbnail.jpg')
+        .expect(201);
+
+      expect(response.body).toHaveProperty('thumbnail');
+      expect(response.body.thumbnail).toContain('cloudinary.com');
+    });
+
+    it('FR-21.5: POST /api/lessons/:id/video -> updates lesson video via Cloudinary', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/lessons/lesson-uuid-1/video')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .attach('file', Buffer.from('lesson video binary data'), 'lesson.mp4')
+        .expect(201);
+
+      expect(response.body).toHaveProperty('videoUrl');
+      expect(response.body.videoUrl).toContain('cloudinary.com');
+    });
+  });
+
+  // ==========================================
+  // 22. BLOGS MODULE WITH CLOUDINARY MEDIA (FR-13)
+  // ==========================================
+  describe('22. Blogs Module with Cloudinary Media Flow (FR-13)', () => {
+    let createdBlogId: string;
+    let createdBlogSlug: string;
+
+    it('FR-22.1: POST /api/blogs as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/blogs')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          title: 'Student Attempting Blog Creation',
+          content: 'This should be blocked',
+        })
+        .expect(403);
+    });
+
+    it('FR-22.2: POST /api/blogs as Admin -> creates new blog with Cloudinary media & slug', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/blogs')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .field('title', 'Bi quyet dat 8.0 IELTS Writing Task 2')
+        .field('summary', 'Huong dan chi tiet cach viet mo bai, than bai va ket bai theo tieu chuan Cambridge.')
+        .field('content', '## 1. Phan tich de\nDe thi yeu cau...')
+        .field('category', 'IELTS Writing')
+        .field('tags', 'ielts,writing,band8')
+        .field('status', 'PUBLISHED')
+        .field('isFeatured', 'true')
+        .attach('coverImage', Buffer.from('blog cover image data'), 'cover.jpg')
+        .attach('video', Buffer.from('blog explanation video data'), 'video.mp4')
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('title', 'Bi quyet dat 8.0 IELTS Writing Task 2');
+      expect(response.body).toHaveProperty('slug');
+      expect(response.body).toHaveProperty('coverImage');
+      expect(response.body.coverImage).toContain('cloudinary.com');
+      expect(response.body).toHaveProperty('videoUrl');
+      expect(response.body.videoUrl).toContain('cloudinary.com');
+      expect(response.body).toHaveProperty('status', 'PUBLISHED');
+
+      createdBlogId = response.body.id;
+      createdBlogSlug = response.body.slug;
+    });
+
+    it('FR-22.3: GET /api/blogs as Public / Student -> lists published blogs', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/blogs?category=IELTS Writing')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('items');
+      expect(Array.isArray(response.body.items)).toBeTruthy();
+      expect(response.body.items.length).toBeGreaterThanOrEqual(1);
+      expect(response.body.items[0]).toHaveProperty('title');
+      expect(response.body.items[0]).toHaveProperty('coverImage');
+    });
+
+    it('FR-22.4: GET /api/blogs/:slugOrId -> returns blog details and increments viewCount', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/blogs/${createdBlogSlug}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('id', createdBlogId);
+      expect(response.body).toHaveProperty('viewCount');
+      expect(response.body.viewCount).toBeGreaterThanOrEqual(1);
+      expect(response.body).toHaveProperty('author');
+      expect(response.body.author).toHaveProperty('fullName');
+    });
+
+    it('FR-22.5: PUT /api/blogs/:id as Admin -> updates blog fields', async () => {
+      const response = await request(app.getHttpServer())
+        .put(`/api/blogs/${createdBlogId}`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          title: 'Bi quyet dat 8.5 IELTS Writing Task 2 (Updated)',
+          isFeatured: true,
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('title', 'Bi quyet dat 8.5 IELTS Writing Task 2 (Updated)');
+      expect(response.body).toHaveProperty('isFeatured', true);
+    });
+
+    it('FR-22.6: DELETE /api/blogs/:id as Admin -> deletes blog', async () => {
+      const response = await request(app.getHttpServer())
+        .delete(`/api/blogs/${createdBlogId}`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+    });
+  });
 });

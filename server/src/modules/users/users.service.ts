@@ -5,11 +5,15 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../core/prisma/prisma.service';
+import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { Role } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   async findAll(query: {
     role?: Role;
@@ -182,5 +186,29 @@ export class UsersService {
       message: 'Đặt lại mật khẩu cho học viên thành công',
       userId: id,
     };
+  }
+
+  async updateAvatar(id: string, file: Express.Multer.File) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`Không tìm thấy người dùng ID: ${id}`);
+    }
+
+    const uploadRes = await this.cloudinaryService.uploadImage(
+      file,
+      'teacher_dong_academy/avatars',
+    );
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { avatarUrl: uploadRes.secureUrl },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        avatarUrl: true,
+        updatedAt: true,
+      },
+    });
   }
 }

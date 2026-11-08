@@ -71,6 +71,12 @@ enum SubmissionStatus {
   GRADED
 }
 
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 // ==========================================
 // 1. AUTH & USER MANAGEMENT (MÔ-ĐUN 1 & 2)
 // ==========================================
@@ -102,6 +108,7 @@ model User {
   conversationsAsStudent   Conversation[]        @relation("StudentConversations")
   conversationsAsAdmin     Conversation[]        @relation("AdminConversations")
   sentMessages             Message[]             @relation("SentMessages")
+  blogPosts                BlogPost[]            @relation("UserBlogPosts")
 
   @@map("users")
 }
@@ -518,3 +525,35 @@ model Message {
   @@index([senderId])
   @@map("messages")
 }
+
+// ==========================================
+// 12. BLOGS & MEDIA (MÔ-ĐUN BLOGS)
+// ==========================================
+
+model BlogPost {
+  id                  String     @id @default(uuid())
+  title               String
+  slug                String     @unique
+  summary             String?    @db.Text
+  content             String     @db.LongText
+  coverImage          String?
+  coverImagePublicId  String?
+  videoUrl            String?
+  videoPublicId       String?
+  category            String?
+  tags                String?
+  status              BlogStatus @default(DRAFT)
+  isFeatured          Boolean    @default(false)
+  viewCount           Int        @default(0)
+  authorId            String
+  author              User       @relation("UserBlogPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  publishedAt         DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@index([authorId])
+  @@index([status])
+  @@index([category])
+  @@map("blog_posts")
+}
+

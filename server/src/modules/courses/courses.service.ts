@@ -5,13 +5,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
+import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CourseCategory, Role } from '@prisma/client';
 
 @Injectable()
 export class CoursesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cloudinaryService: CloudinaryService,
+  ) {}
 
   getCategories() {
     return [
@@ -288,5 +292,22 @@ export class CoursesService {
       message: 'Ghi danh khóa học thành công',
       enrollment,
     };
+  }
+
+  async updateThumbnail(courseId: string, file: Express.Multer.File) {
+    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) {
+      throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
+    }
+
+    const uploadRes = await this.cloudinaryService.uploadImage(
+      file,
+      'teacher_dong_academy/courses',
+    );
+
+    return this.prisma.course.update({
+      where: { id: courseId },
+      data: { thumbnail: uploadRes.secureUrl },
+    });
   }
 }

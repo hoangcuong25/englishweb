@@ -1491,6 +1491,35 @@ SRS quy định.
 
 ------------------------------------------------------------------------
 
+## 3.12. Quản lý Blog & Media Cloudinary (BLOG & MEDIA)
+
+### BLOG-SCR-001 -- Danh sách & Chi tiết bài viết Blog (STUDENT, GUEST, ADMIN)
+- **Mục tiêu:** Cung cấp kho bài viết kiến thức, phương pháp học IELTS, bí quyết luyện thi, tin tức học viện kèm hình ảnh và video minh họa.
+- **Trường dữ liệu:** Tiêu đề, slug URL thân thiện, tóm tắt, nội dung chi tiết (Markdown/HTML), ảnh bìa Cloudinary (coverImage), video Cloudinary (videoUrl), chuyên mục (category), từ khóa (tags), tác giả, ngày xuất bản, số lượt xem (viewCount), đánh dấu nổi bật (isFeatured).
+- **Phân quyền:**
+  - Khách và Học viên (`STUDENT`): Tra cứu các bài viết có trạng thái `PUBLISHED`.
+  - Quản trị viên (`ADMIN`): Tra cứu tất cả bài viết bao gồm `DRAFT`, `PUBLISHED`, `ARCHIVED`.
+- **Hành động:** Tìm kiếm bài viết theo từ khóa; lọc theo chuyên mục; xem chi tiết bài viết; tự động tăng lượt xem viewCount.
+
+### BLOG-SCR-002 -- Soạn thảo & Quản trị bài viết Blog (ADMIN)
+- **Mục tiêu:** Quản trị viên tạo mới, chỉnh sửa, xuất bản và xóa bài viết.
+- **Hành động:**
+  - Đăng bài viết mới kèm file ảnh bìa (multipart `coverImage`) và file video (multipart `video`).
+  - Cập nhật nội dung bài viết, thay đổi trạng thái (DRAFT -> PUBLISHED -> ARCHIVED).
+  - Tải lên ảnh bìa riêng (`POST /api/blogs/:id/cover`) hoặc video riêng (`POST /api/blogs/:id/video`).
+  - Xóa bài viết và tự động dọn dẹp tài nguyên tương ứng trên Cloudinary.
+
+### MEDIA-SVC-001 -- Hạ tầng Lưu trữ & Phân phối Media Cloudinary
+- **Mục tiêu:** Tập trung hóa việc xử lý và lưu trữ toàn bộ ảnh và video trên hệ thống qua dịch vụ đám mây Cloudinary.
+- **Phạm vi áp dụng:**
+  1. **Blog:** Lưu trữ ảnh bìa (`coverImage`) và video phân tích bài học (`videoUrl`).
+  2. **Người dùng:** Upload và cập nhật ảnh đại diện học viên & giảng viên (`avatarUrl` qua `POST /api/users/:id/avatar`).
+  3. **Khóa học:** Upload và quản lý ảnh thumbnail khóa học (`thumbnail` qua `POST /api/courses/:id/thumbnail`).
+  4. **Bài học:** Upload và stream video bài giảng chất lượng cao (`videoUrl` qua `POST /api/lessons/:id/video`).
+  5. **Media API chung:** Endpoint upload độc lập `POST /api/media/upload/image` và `POST /api/media/upload/video`.
+
+------------------------------------------------------------------------
+
 # 4. Đặc tả nút chức năng -- quy tắc chung
 
 ## 4.1. Các loại hành động
@@ -2092,6 +2121,24 @@ rà soát với khách hàng và bản dịch VI/EN/JA/ZH.
                                       thoại trong cơ sở  
                                       dữ liệu và phân    
                                       quyền dữ liệu      
+
+  BIZ-CLASS-004     CLASS             Bảng trắng 2 chiều SRS
+                                      hỗ trợ snapshot    
+                                      realtime và phân   
+                                      quyền vẽ học viên  
+
+  BIZ-WR-004        WR                Tích hợp model     SRS
+                                      Google Gemini AI   
+                                      chấm 4 tiêu chí và 
+                                      bài mẫu Band 8.5+  
+
+  BIZ-BLOG-001      BLOG              Quản lý bài viết   SRS
+                                      Blog, slug SEO,    
+                                      ảnh và video       
+
+  BIZ-MEDIA-001     MEDIA             Tích hợp Cloudinary SRS
+                                      lưu trữ ảnh avatar,
+                                      thumbnail và video 
   ------------------------------------------------------------------------
 
 ------------------------------------------------------------------------

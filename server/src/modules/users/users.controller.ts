@@ -1,12 +1,16 @@
 import {
   Controller,
   Get,
+  Post,
   Put,
   Param,
   Body,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -80,5 +84,17 @@ export class UsersController {
     @Body() dto: AdminResetPasswordDto,
   ) {
     return this.usersService.resetPassword(id, dto.newPassword);
+  }
+
+  @Post(':id/avatar')
+  @ApiOperation({ summary: 'Upload avatar người dùng lên Cloudinary' })
+  @ApiParam({ name: 'id', description: 'UUID của người dùng' })
+  @UseInterceptors(FileInterceptor('file'))
+  @ResponseMessage('Cập nhật avatar người dùng lên Cloudinary thành công')
+  async uploadAvatar(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.usersService.updateAvatar(id, file);
   }
 }

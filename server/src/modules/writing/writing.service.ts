@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
+import { GeminiService } from '../../core/gemini/gemini.service';
 import { CreateWritingPromptDto } from './dto/create-writing-prompt.dto';
 import { SubmitWritingDto } from './dto/submit-writing.dto';
 import { ApproveWritingDto } from './dto/approve-writing.dto';
@@ -15,7 +16,10 @@ import {
 
 @Injectable()
 export class WritingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private geminiService: GeminiService,
+  ) {}
 
   // ==========================================
   // 1. PROMPTS MANAGEMENT
@@ -92,8 +96,14 @@ export class WritingService {
     const words = dto.content.trim().split(/\s+/).filter(Boolean);
     const wordCount = words.length;
 
-    // Run AI Evaluation Pipeline (4 criteria: TR, CC, LR, GRA)
-    const evaluation = this.evaluateWritingWithAI(prompt, dto.content, wordCount);
+    // Run Google Gemini AI Evaluation Pipeline (4 criteria: TR, CC, LR, GRA)
+    const evaluation = await this.geminiService.evaluateIeltsWriting({
+      taskType: prompt.taskType,
+      topic: prompt.topic,
+      targetWords: prompt.targetWords,
+      essayContent: dto.content,
+      sampleEssay: prompt.sampleEssay,
+    });
 
     const submission = await this.prisma.writingSubmission.create({
       data: {
@@ -122,89 +132,6 @@ export class WritingService {
     return {
       message: 'Bài viết đã được nộp và phân tích bởi AI. Đang chờ Admin phê duyệt kết quả chính thức.',
       submission,
-    };
-  }
-
-  /**
-   * Pipeline phân tích 4 tiêu chí IELTS Writing và sinh bài mẫu Band 8.0+
-   */
-  private evaluateWritingWithAI(prompt: any, content: string, wordCount: number) {
-    const minWords = prompt.targetWords || 250;
-    const isUnderlength = wordCount < minWords;
-
-    // Base scores calculated dynamically from essay features
-    let tr = isUnderlength ? 6.0 : 7.5;
-    let cc = 7.0;
-    let lr = 7.0;
-    let gra = 7.0;
-
-    // Check presence of cohesive linkers
-    const cohesiveLinkers = ['furthermore', 'moreover', 'consequently', 'in contrast', 'on the other hand'];
-    const hasCohesiveLinkers = cohesiveLinkers.some((l) =>
-      content.toLowerCase().includes(l),
-    );
-    if (hasCohesiveLinkers) cc += 0.5;
-
-    // Check academic vocabulary
-    const academicWords = ['proliferation', 'imperative', 'predominant', 'substantial', 'indispensable'];
-    const hasAcademicWords = academicWords.some((w) =>
-      content.toLowerCase().includes(w),
-    );
-    if (hasAcademicWords) lr += 0.5;
-
-    // Overall Band calculation with IELTS 0.5 rounding rule
-    const rawBand = (tr + cc + lr + gra) / 4;
-    const overallBand = Math.round(rawBand * 2) / 2;
-
-    const aiFeedback = `
-### ĐÁNH GIÁ CHI TIẾT 4 TIÊU CHÍ IELTS WRITING:
-1. **Task Achievement / Response (${tr.toFixed(1)}/9.0)**:
-   - Bài viết đạt ${wordCount} từ (yêu cầu tối thiểu: ${minWords} từ).
-   - Luận điểm được phân tích tương đối rõ ràng, trả lời đúng trọng tâm câu hỏi đề bài.
-2. **Coherence & Cohesion (${cc.toFixed(1)}/9.0)**:
-   - Cấu trúc 4 đoạn văn phân chia hợp lý theo công thức PEEL (Point, Explanation, Example, Link).
-   - Sử dụng các từ nối học thuật để duy trì mạch lập luận tự nhiên.
-3. **Lexical Resource (${lr.toFixed(1)}/9.0)**:
-   - Vốn từ vựng tương đối phong phú, xuất hiện các collocations và từ vựng band 7.0+.
-4. **Grammatical Range & Accuracy (${gra.toFixed(1)}/9.0)**:
-   - Cấu trúc câu ghép và câu phức được sử dụng đan xen, tỷ lệ lỗi ngữ pháp thấp.
-`.trim();
-
-    const aiSuggestions = [
-      {
-        original: 'good for employees',
-        suggestion: 'advantageous / highly beneficial for the workforce',
-        type: 'Collocation Upgrade (Band 8.0)',
-      },
-      {
-        original: 'make people lazy',
-        suggestion: 'induce sedentary tendencies and diminish occupational productivity',
-        type: 'Academic Synonym (C1/C2)',
-      },
-      {
-        original: 'many companies use it',
-        suggestion: 'an increasing number of corporate enterprises have embraced telecommuting',
-        type: 'Sentence Architecture Refinement',
-      },
-    ];
-
-    const sampleBand8Essay =
-      prompt.sampleEssay ||
-      `In the contemporary era, the paradigm shift toward telecommuting has engendered widespread discourse regarding its ramifications on both individual workers and corporate entities. From my perspective, while remote work undeniably offers notable merits in terms of flexibility and operational cost reduction, it should be harmoniously combined with office-based collaboration to maximize productivity.
-
-To begin with, the foremost benefit of remote work lies in the optimization of time and individual autonomy. By eradicating arduous daily commutes, professionals can allocate more hours to cognitively demanding tasks and maintaining work-life equilibrium. Furthermore, modern digital collaboration tools facilitate seamless communication across geographically dispersed teams without compromising accountability.
-
-Nevertheless, continuous isolation can potentially attenuate corporate camaraderie and spontaneous creative exchange. Consequently, progressive organizations frequently institute a hybrid model that amalgamates the autonomy of remote work with the interpersonal synergy of on-site gatherings. In conclusion, telecommuting represents an evolutionary milestone in modern employment when managed judiciously.`;
-
-    return {
-      taskAchievementScore: tr,
-      coherenceCohesionScore: cc,
-      lexicalResourceScore: lr,
-      grammarScore: gra,
-      overallBand,
-      aiFeedback,
-      aiSuggestions,
-      sampleBand8Essay,
     };
   }
 

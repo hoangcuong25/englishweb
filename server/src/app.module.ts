@@ -14,7 +14,10 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { UsersModule } from './modules/users/users.module';
+import { BlogsModule } from './modules/blogs/blogs.module';
 import { LivekitModule } from './core/livekit/livekit.module';
+import { GeminiModule } from './core/gemini/gemini.module';
+import { CloudinaryModule } from './core/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -23,6 +26,8 @@ import { LivekitModule } from './core/livekit/livekit.module';
       envFilePath: ['.env', '../.env'],
     }),
     PrismaModule,
+    GeminiModule,
+    CloudinaryModule,
     AuthModule,
     CoursesModule,
     LessonsModule,
@@ -34,6 +39,7 @@ import { LivekitModule } from './core/livekit/livekit.module';
     DashboardModule,
     ChatModule,
     UsersModule,
+    BlogsModule,
     LivekitModule,
   ],
   controllers: [AppController],
