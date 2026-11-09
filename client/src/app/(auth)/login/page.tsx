@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { Mail, Lock, AlertCircle, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginDemo } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -58,26 +58,50 @@ export default function LoginPage() {
         </div>
 
         {/* Demo Fast Account Selector */}
-        <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-100 space-y-2 text-xs">
-          <p className="font-bold text-primary flex items-center space-x-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Chọn nhanh tài khoản kiểm thử (Demo):</span>
+        <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-100 space-y-2.5 text-xs">
+          <p className="font-bold text-primary flex items-center justify-between">
+            <span className="flex items-center space-x-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Vào xem trải nghiệm ngay (1-Click Demo):</span>
+            </span>
+            <span className="text-[10px] text-muted font-normal">Không cần backend DB</span>
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => handleFillDemo('STUDENT')}
-              className="py-1.5 px-2.5 rounded-xl bg-white hover:bg-sky-100/60 border border-line font-bold text-slate-700 transition"
+              onClick={() => loginDemo('STUDENT')}
+              className="py-2 px-2.5 rounded-xl bg-white hover:bg-sky-100/70 border border-sky-200 font-extrabold text-primary shadow-xs transition text-center"
+              title="Vào thẳng trang Học viên để xem khóa học, studio viết/nói và thư viện"
             >
-              🎓 Học Viên (STUDENT)
+              🎓 Cổng Học Viên
             </button>
             <button
               type="button"
-              onClick={() => handleFillDemo('ADMIN')}
-              className="py-1.5 px-2.5 rounded-xl bg-white hover:bg-sky-100/60 border border-line font-bold text-slate-700 transition"
+              onClick={() => loginDemo('ADMIN')}
+              className="py-2 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold shadow-xs transition text-center"
+              title="Vào thẳng trang Quản trị để xem dashboard, chấm bài và quản lý phòng học"
             >
-              👨‍🏫 Quản Trị (ADMIN)
+              👨‍🏫 Cổng Quản Trị
             </button>
+          </div>
+          <div className="flex items-center justify-between pt-1 text-[11px] text-muted">
+            <span>Hoặc điền form bên dưới:</span>
+            <div className="space-x-2">
+              <button
+                type="button"
+                onClick={() => handleFillDemo('STUDENT')}
+                className="hover:text-primary underline font-medium"
+              >
+                Mẫu HV
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFillDemo('ADMIN')}
+                className="hover:text-primary underline font-medium"
+              >
+                Mẫu Admin
+              </button>
+            </div>
           </div>
         </div>
 

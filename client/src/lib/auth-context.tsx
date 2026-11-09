@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   sessionTerminated: boolean;
   login: (data: LoginPayload) => Promise<void>;
+  loginDemo: (role: 'STUDENT' | 'ADMIN') => void;
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -28,6 +29,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await authService.getMe();
       setUser(userData);
     } catch {
+      // Check if demo preview cookie is present
+      if (typeof document !== 'undefined') {
+        const cookies = document.cookie;
+        if (cookies.includes('access_token=demo_token_admin')) {
+          setUser({
+            id: 'adm-teacher-dong',
+            fullName: 'Thầy Đông (IELTS 8.5)',
+            email: 'admin@dong.edu.vn',
+            role: 'ADMIN',
+            phone: '0987654321',
+          });
+          return;
+        }
+        if (cookies.includes('access_token=demo_token_student')) {
+          setUser({
+            id: 'std-tran-nam',
+            fullName: 'Trần Văn Nam',
+            email: 'student@dong.edu.vn',
+            role: 'STUDENT',
+            phone: '0912345678',
+          });
+          return;
+        }
+      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -58,7 +83,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loggedUser = res.user || res.data?.user || res.data;
     setUser(loggedUser);
     setSessionTerminated(false);
+
+    if (typeof document !== 'undefined' && loggedUser) {
+      document.cookie = `access_token=server_token; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `user_role=${loggedUser.role}; path=/; max-age=86400; SameSite=Lax`;
+    }
+
     if (loggedUser?.role === 'ADMIN') {
+      router.push('/admin/dashboard');
+    } else {
+      router.push('/student/dashboard');
+    }
+  };
+
+  const loginDemo = (role: 'STUDENT' | 'ADMIN') => {
+    const demoUser: User =
+      role === 'ADMIN'
+        ? {
+            id: 'adm-teacher-dong',
+            fullName: 'Thầy Đông (IELTS 8.5)',
+            email: 'admin@dong.edu.vn',
+            role: 'ADMIN',
+            phone: '0987654321',
+          }
+        : {
+            id: 'std-tran-nam',
+            fullName: 'Trần Văn Nam',
+            email: 'student@dong.edu.vn',
+            role: 'STUDENT',
+            phone: '0912345678',
+          };
+
+    if (typeof document !== 'undefined') {
+      document.cookie = `access_token=demo_token_${role.toLowerCase()}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `user_role=${role}; path=/; max-age=86400; SameSite=Lax`;
+    }
+
+    setUser(demoUser);
+    setSessionTerminated(false);
+    if (role === 'ADMIN') {
       router.push('/admin/dashboard');
     } else {
       router.push('/student/dashboard');
@@ -70,13 +133,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loggedUser = res.user || res.data?.user || res.data;
     setUser(loggedUser);
     setSessionTerminated(false);
+
+    if (typeof document !== 'undefined' && loggedUser) {
+      document.cookie = `access_token=server_token; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `user_role=STUDENT; path=/; max-age=86400; SameSite=Lax`;
+    }
+
     router.push('/student/dashboard');
   };
 
   const logout = async () => {
     try {
       await authService.logout();
+    } catch {
+      // Local fallback
     } finally {
+      if (typeof document !== 'undefined') {
+        document.cookie = 'access_token=; path=/; max-age=0;';
+        document.cookie = 'user_role=; path=/; max-age=0;';
+      }
       setUser(null);
       router.push('/login');
     }
@@ -89,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         sessionTerminated,
         login,
+        loginDemo,
         register,
         logout,
         refreshProfile: fetchProfile,
