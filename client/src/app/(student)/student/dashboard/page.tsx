@@ -3,176 +3,217 @@
 import React from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { BookOpen, Video, Mic, CheckCircle2, Clock, LogOut, PlayCircle } from 'lucide-react';
+import {
+  BookOpen,
+  Video,
+  PenTool,
+  Mic,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  AlertCircle,
+  FileText,
+} from 'lucide-react';
 
 export default function StudentDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Top Navbar */}
-      <header className="bg-white border-b border-sky-100 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-sky-600 text-white font-bold flex items-center justify-center shadow-sm">
-              EL
-            </div>
-            <div>
-              <span className="font-bold text-slate-800 text-lg">EnglishHub</span>
-              <span className="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full ml-2 font-medium">Học Viên</span>
-            </div>
+    <div className="space-y-6">
+      {/* Welcome Banner */}
+      <div className="rounded-2xl bg-gradient-to-r from-primary-deep via-primary to-primary-dark text-white p-6 sm:p-8 shadow-lg shadow-primary/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-2 max-w-xl">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 text-accent text-xs font-bold">
+            <span>🎓 Cổng Học Viên Chính Thức</span>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Chào mừng trở lại, {user?.fullName || 'Học viên'}!
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+            Mục tiêu của bạn là <strong>IELTS Band 7.5+</strong>. Hãy tiếp tục hoàn thành bài tập Writing và tham gia buổi học LiveKit tối nay nhé.
+          </p>
+        </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-800">{user?.fullName || 'Học viên'}</p>
-              <p className="text-xs text-slate-500">{user?.email}</p>
-            </div>
-            <button
-              onClick={logout}
-              className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-              title="Đăng xuất"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <Link
+            href="/student/classroom"
+            className="px-5 py-3 rounded-xl bg-accent hover:bg-accent-dark text-slate-900 font-bold text-xs shadow-md shadow-accent/20 flex items-center justify-center space-x-2 transition"
+          >
+            <Video className="w-4 h-4" />
+            <span>Vào Lớp Trực Tuyến LiveKit</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 4 Summary Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted">Tiến độ khóa học</span>
+            <BookOpen className="w-4 h-4 text-primary" />
+          </div>
+          <p className="text-2xl font-extrabold text-slate-900 mt-2">68%</p>
+          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+            <div className="bg-primary h-1.5 rounded-full" style={{ width: '68%' }}></div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
-        {/* Welcome Banner */}
-        <div className="rounded-2xl bg-gradient-to-r from-sky-600 to-sky-700 text-white p-6 sm:p-8 shadow-lg shadow-sky-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <span className="text-xs font-semibold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full">
-              Khóa học đang hoạt động
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold">Chào mừng trở lại, {user?.fullName}!</h1>
-            <p className="text-sky-100 text-sm leading-relaxed">
-              Buổi học trực tuyến tiếp theo sẽ diễn ra lúc 19:30 tối nay. Bạn đã sẵn sàng tham gia lớp WebRTC cùng giảng viên chưa?
-            </p>
+        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted">Chuyên cần LiveKit</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="flex-shrink-0">
+          <p className="text-2xl font-extrabold text-emerald-600 mt-2">95.4%</p>
+          <p className="text-[11px] text-muted mt-1">21/22 buổi đúng giờ (PRESENT)</p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted">Writing Band gần nhất</span>
+            <PenTool className="w-4 h-4 text-purple-600" />
+          </div>
+          <p className="text-2xl font-extrabold text-purple-600 mt-2">7.0</p>
+          <p className="text-[11px] text-muted mt-1">Task 2 • Thầy Đông đã duyệt</p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted">Speaking Band gần nhất</span>
+            <Mic className="w-4 h-4 text-amber-500" />
+          </div>
+          <p className="text-2xl font-extrabold text-amber-500 mt-2">7.5</p>
+          <p className="text-[11px] text-muted mt-1">Part 2 • 3 mốc nhận xét audio</p>
+        </div>
+      </div>
+
+      {/* Main Grid: Upcoming Classes & Tasks */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Upcoming LiveKit Room & Learning Path */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Upcoming WebRTC Classroom Card */}
+          <div className="bg-white rounded-2xl border border-line p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-sky-100 text-primary flex items-center justify-center">
+                  <Video className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Lớp Học Trực Tuyến Hôm Nay</h3>
+                  <p className="text-[11px] text-muted">Phòng học LiveKit SFU 1 Host + 8 SV</p>
+                </div>
+              </div>
+              <span className="text-[10px] bg-emerald-100 text-emerald-700 font-extrabold px-2.5 py-1 rounded-full animate-pulse">
+                SẮP DIỄN RA
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h4 className="text-sm font-bold text-slate-900">
+                  IELTS Speaking Part 2 Forecast — Intensive Mock Session
+                </h4>
+                <div className="flex items-center space-x-1.5 text-xs font-bold text-primary">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>19:30 - 21:00 (Tối nay)</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600">
+                Chủ tọa: <strong>Thầy Đông (IELTS 8.5)</strong> • Học viên tham gia: 8/8 người • Tích hợp Bảng trắng WebRTC Canvas.
+              </p>
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-medium">
+                  Vào trước 15 phút đầu để được tính PRESENT
+                </span>
+                <Link
+                  href="/student/classroom"
+                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm"
+                >
+                  Tham gia phòng học
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Access to Skills Studios */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
-              href="/student/classroom/ielts-speaking-live"
-              className="px-6 py-3 bg-white text-sky-700 hover:bg-sky-50 font-bold rounded-xl shadow-md transition flex items-center space-x-2"
+              href="/student/writing"
+              className="p-5 rounded-2xl bg-white border border-line hover:border-purple-300 shadow-sm transition group"
             >
-              <Video className="w-5 h-5 text-sky-600" />
-              <span>Vào Lớp Trực Tuyến Ngay</span>
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition">
+                  <PenTool className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">IELTS Writing Studio</h4>
+                  <span className="text-[11px] text-purple-600 font-semibold">Tích hợp AI chấm 4 tiêu chí</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500">
+                Đếm từ thời gian thực, đồng hồ 40 phút và nhận phản hồi chi tiết TR, CC, LR, GRA.
+              </p>
+            </Link>
+
+            <Link
+              href="/student/speaking"
+              className="p-5 rounded-2xl bg-white border border-line hover:border-sky-300 shadow-sm transition group"
+            >
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-9 h-9 rounded-xl bg-sky-50 text-primary flex items-center justify-center group-hover:scale-105 transition">
+                  <Mic className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">IELTS Speaking Studio</h4>
+                  <span className="text-[11px] text-primary font-semibold">Thầy Đông chấm thủ công 100%</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500">
+                Ghi âm sóng âm Web Audio API và nhận xét ghim theo mốc thời gian audio (Timestamp).
+              </p>
             </Link>
           </div>
         </div>
 
-        {/* Learning Statistics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-sky-100 shadow-sm flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Khóa học ghi danh</p>
-              <p className="text-2xl font-bold text-slate-800">1 Khóa</p>
+        {/* Right Column: Pending Tasks & Library Highlights */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-line p-5 shadow-sm space-y-4">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-amber-500" />
+              <span>Việc Cần Hoàn Thành</span>
+            </h3>
+
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-200/60 text-xs space-y-1">
+                <p className="font-bold text-slate-800">Nộp bài Writing Task 2 #W-104</p>
+                <p className="text-[11px] text-muted">Hạn chót: 23:59 ngày mai</p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-sky-50/50 border border-sky-200/60 text-xs space-y-1">
+                <p className="font-bold text-slate-800">Làm Quiz Checkpoint Module 03</p>
+                <p className="text-[11px] text-muted">Đạt $\ge 70\%$ để mở khóa Module 04</p>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-sky-100 shadow-sm flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Bài tập hoàn thành</p>
-              <p className="text-2xl font-bold text-slate-800">4 / 12</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-sky-100 shadow-sm flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
-              <Mic className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Bài Speaking đã nộp</p>
-              <p className="text-2xl font-bold text-slate-800">2 Bài</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-sky-100 shadow-sm flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Clock className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Thời gian học thực tế</p>
-              <p className="text-2xl font-bold text-slate-800">320 Phút</p>
-            </div>
+          {/* Secured Library Widget */}
+          <div className="bg-white rounded-2xl border border-line p-5 shadow-sm space-y-3">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+              <FileText className="w-4 h-4 text-primary" />
+              <span>Kho Học Liệu Mới Nhất</span>
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Tài liệu được bảo vệ bằng Signed URL 15 phút và Dynamic Watermark chống quay chụp.
+            </p>
+            <Link
+              href="/student/library"
+              className="w-full py-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-primary font-bold text-xs flex items-center justify-center space-x-1.5 transition"
+            >
+              <span>Xem Thư Viện Tài Liệu</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
-
-        {/* Current Enrolled Courses */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-800">Lộ Trình Học Của Bạn</h2>
-            <span className="text-xs text-sky-600 font-semibold cursor-pointer">Xem tất cả giáo trình →</span>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-sky-100 p-6 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-              <div>
-                <span className="text-xs font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md">
-                  IELTS MASTERCLASS
-                </span>
-                <h3 className="text-lg font-bold text-slate-800 mt-2">
-                  IELTS Comprehensive Masterclass (Target 7.0+)
-                </h3>
-                <p className="text-sm text-slate-500 mt-1">Giáo trình: Cambridge IELTS 18 & Mindset for IELTS Level 3</p>
-              </div>
-
-              <div className="w-full sm:w-48 text-right">
-                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1">
-                  <span>Tiến độ</span>
-                  <span className="text-sky-600 font-bold">25%</span>
-                </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-sky-500 h-full rounded-full transition-all duration-500" style={{ width: '25%' }}></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Lesson Quick List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl border border-sky-100 bg-sky-50/40 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <PlayCircle className="w-6 h-6 text-sky-600 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">Lesson 1: Introduction to IELTS Speaking Part 1</h4>
-                    <p className="text-xs text-slate-500">Video bài giảng + PDF Mindset + Trắc nghiệm</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => alert('Mở trình đọc tài liệu PDF và video bài giảng')}
-                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-lg transition"
-                >
-                  Học bài
-                </button>
-              </div>
-
-              <div className="p-4 rounded-xl border border-slate-100 bg-white flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Mic className="w-6 h-6 text-emerald-600 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">Speaking Practice: Hometown & Family</h4>
-                    <p className="text-xs text-slate-500">Thu âm trực tiếp trên web bằng MediaRecorder</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => alert('Mở giao diện phòng thu âm Speaking')}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition"
-                >
-                  Thu âm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
