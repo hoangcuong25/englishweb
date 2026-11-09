@@ -43,6 +43,11 @@ export const authService = {
     return response.data;
   },
 
+  async loginGoogle(payload: { idToken: string; email?: string; fullName?: string; avatarUrl?: string }) {
+    const response = await api.post('/auth/google', payload);
+    return response.data;
+  },
+
   async getMe(): Promise<User> {
     const response = await api.get('/auth/me');
     return response.data?.data || response.data;
