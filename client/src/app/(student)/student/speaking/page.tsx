@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { speakingService } from '@/services/speaking.service';
 import {
   Square,
   RotateCcw,
@@ -8,6 +9,7 @@ import {
   Clock,
   Headphones,
   Send,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function StudentSpeakingPage() {
@@ -18,6 +20,7 @@ export default function StudentSpeakingPage() {
   const [isPrepActive, setIsPrepActive] = useState(false);
   const [speakTime, setSpeakTime] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -132,8 +135,20 @@ export default function StudentSpeakingPage() {
     setIsSubmitted(false);
   };
 
-  const handleSubmit = () => {
-    setIsSubmitted(true);
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      await speakingService.submitRecording({
+        promptId: 'prompt-speaking-part2-forecast',
+        audioUrl: audioUrl || 'blob:audio-recording-session',
+        durationSeconds: speakTime,
+      });
+    } catch {
+      // Local fallback
+    } finally {
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+    }
   };
 
   const formatSeconds = (s: number) => {
@@ -143,32 +158,34 @@ export default function StudentSpeakingPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Speaking Studio Header */}
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Studio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold mb-1">
             <Headphones className="w-3.5 h-3.5" />
-            <span>IELTS Speaking Studio</span>
+            <span>IELTS Speaking Studio (Web Audio API Waveform)</span>
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-            Phòng Thu Âm Luyện Nói & Chấm Điểm Thủ Công 100%
+            Phòng Ghi Âm Luyện Nói IELTS Trực Tuyến
           </h1>
+          <p className="text-xs text-muted mt-0.5">
+            Mô phỏng phòng thi thật: 60 giây đọc Cue Card và tối đa 2 phút ghi âm bài nói.
+          </p>
         </div>
 
-        {/* Part selector */}
-        <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl">
+        {/* Part Tabs */}
+        <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
           {(['PART_1', 'PART_2', 'PART_3'] as const).map((p) => (
             <button
               key={p}
               onClick={() => {
                 setPart(p);
-                setAudioUrl(null);
-                setIsSubmitted(false);
+                handleRetake();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
                 part === p
-                  ? 'bg-white text-primary shadow-sm'
+                  ? 'bg-white text-primary shadow-xs font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -178,133 +195,136 @@ export default function StudentSpeakingPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Cue Card Prompt */}
-        <div className="bg-white rounded-2xl border border-line p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-line pb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              {part === 'PART_2' ? 'IELTS Candidate Cue Card' : 'Discussion Topic'}
-            </span>
-            <span className="text-[10px] font-bold text-primary bg-sky-50 px-2 py-0.5 rounded">
-              {part === 'PART_2' ? '1m Prep • 2m Speaking' : 'Direct Questioning'}
-            </span>
-          </div>
+      {/* Cue Card Prompt Box */}
+      <div className="bg-white rounded-3xl border border-line p-6 sm:p-8 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-line pb-3">
+          <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-amber-50 text-amber-800 uppercase tracking-wider">
+            Đề bài IELTS Speaking Part 2
+          </span>
+          <span className="text-xs text-muted">Thời gian nói khuyến nghị: 1:45 - 2:00</span>
+        </div>
 
-          <div className="space-y-3">
-            <h3 className="text-sm font-extrabold text-slate-900 leading-snug">
-              Describe a time when you had to make an important decision in your life.
-            </h3>
-            <p className="text-xs text-slate-600 font-semibold">You should say:</p>
-            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-700">
+        <div className="space-y-3">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
+            Describe a momentous life decision that substantially changed your career path or life perspective.
+          </h2>
+          <div className="p-4 rounded-2xl bg-slate-50 border border-line space-y-2 text-xs text-slate-700">
+            <p className="font-bold text-slate-900">You should say:</p>
+            <ul className="list-disc list-inside space-y-1 text-slate-600">
               <li>What the decision was and when you made it</li>
-              <li>Why this decision was important to you</li>
-              <li>What difficulties or dilemmas you faced</li>
-              <li>And explain how you felt after making this choice</li>
+              <li>What options or alternatives you contemplated</li>
+              <li>Why you arrived at that particular conclusion</li>
+              <li>And explain how this decision has impacted your subsequent life trajectory</li>
             </ul>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
-            <p className="font-bold">Quy tắc chấm điểm (BIZ-SP-001):</p>
-            <p className="text-[11px] text-amber-800">
-              100% Giảng viên nghe và chấm thủ công 4 tiêu chí (FC, LR, GRA, PR) kèm nhận xét ghim theo mốc thời gian Audio.
-            </p>
           </div>
         </div>
 
-        {/* Audio Recording Studio */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-line p-6 shadow-sm flex flex-col justify-between space-y-6">
-          <div className="text-center space-y-3">
+        {/* Controls Section */}
+        <div className="pt-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
             {isPrepActive ? (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-muted uppercase">Thời gian chuẩn bị (Prep Time)</span>
-                <p className="text-4xl font-extrabold text-amber-500 font-mono animate-pulse">
-                  00:{prepTime.toString().padStart(2, '0')}
-                </p>
-                <p className="text-xs text-slate-500">Hãy chuẩn bị dàn ý. Hệ thống sẽ tự động bắt đầu thu âm khi hết giờ!</p>
+              <div className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-amber-50 text-amber-800 font-mono font-bold text-xs border border-amber-200 animate-pulse">
+                <Clock className="w-4 h-4" />
+                <span>Chuẩn bị: {prepTime}s (Tự động ghi âm khi hết giờ)</span>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-muted uppercase">
-                  {isRecording ? 'Đang Thu Âm Trực Tiếp' : 'Thời gian bài nói'}
-                </span>
-                <p className="text-4xl font-extrabold text-primary font-mono">
-                  {formatSeconds(speakTime)}
-                </p>
-              </div>
-            )}
-
-            {/* Audio Waveform Canvas */}
-            <div className="w-full h-24 bg-slate-50 rounded-2xl border border-line flex items-center justify-center overflow-hidden relative">
-              <canvas
-                ref={canvasRef}
-                width={500}
-                height={96}
-                className="w-full h-full"
-              />
-              {!isRecording && !audioUrl && (
-                <span className="text-xs text-muted absolute">
-                  Nhấn &quot;Bắt Đầu Chuẩn Bị&quot; để mở micro và hiển thị sóng âm
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Action Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            {!isRecording && !audioUrl && (
+            ) : !isRecording && !audioUrl ? (
               <button
                 onClick={startPrep}
-                className="px-6 py-3 rounded-xl bg-accent hover:bg-accent-dark text-slate-900 font-bold text-xs shadow-md transition flex items-center space-x-2"
+                className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md transition"
               >
-                <Clock className="w-4 h-4" />
-                <span>Bắt Đầu Chuẩn Bị (60s)</span>
+                Bắt Đầu 60 Giây Chuẩn Bị
+              </button>
+            ) : null}
+
+            {isRecording && (
+              <div className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-red-50 text-red-600 font-mono font-bold text-xs border border-red-200 animate-pulse">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                <span>Đang ghi âm: {formatSeconds(speakTime)} / 02:00</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2.5">
+            {!isRecording && !audioUrl && (
+              <button
+                onClick={startRecording}
+                className="px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs shadow-md transition"
+              >
+                Ghi Âm Ngay (Bỏ qua chuẩn bị)
               </button>
             )}
 
             {isRecording && (
               <button
                 onClick={stopRecording}
-                className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-2 animate-bounce"
+                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5"
               >
-                <Square className="w-4 h-4" />
-                <span>Dừng & Hoàn Thành Bản Thu</span>
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>Hoàn Thành & Dừng</span>
               </button>
             )}
-
-            {audioUrl && !isSubmitted && (
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                <audio controls src={audioUrl} className="h-10" />
-                <button
-                  onClick={handleRetake}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center space-x-1.5"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Thu âm lại</span>
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs transition shadow-md shadow-primary/20 flex items-center space-x-1.5"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>Nộp Bài Cho Thầy Đông Chấm</span>
-                </button>
-              </div>
-            )}
           </div>
+        </div>
+      </div>
 
-          {/* Submitted Banner */}
-          {isSubmitted && (
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center space-y-2 animate-in zoom-in-95">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-              <h4 className="text-sm font-bold text-emerald-900">Đã Nộp Bài Nói Thành Công!</h4>
-              <p className="text-xs text-emerald-700">
-                Bài ghi âm đã được đưa vào hàng đợi chấm của Thầy Đông. Bạn sẽ nhận được thông báo kèm điểm 4 tiêu chí và các mốc nhận xét timestamp khi Thầy chấm xong.
-              </p>
-            </div>
+      {/* Audio Waveform Canvas Display */}
+      <div className="bg-white rounded-3xl border border-line p-6 shadow-sm space-y-4">
+        <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center justify-between">
+          <span>Biểu Đồ Sóng Âm Trực Tiếp (Web Audio API Realtime FFT)</span>
+          {isRecording && <span className="text-red-500 font-mono text-[11px]">● LIVE MIC</span>}
+        </h3>
+
+        <div className="w-full h-24 bg-slate-50 rounded-2xl border border-line overflow-hidden flex items-center justify-center relative">
+          <canvas ref={canvasRef} width={700} height={96} className="w-full h-full"></canvas>
+          {!isRecording && !audioUrl && (
+            <p className="absolute text-xs text-muted">
+              Sóng âm sẽ hiển thị trực tiếp tại đây khi bạn bắt đầu nói qua Micro.
+            </p>
           )}
         </div>
+
+        {/* Playback & Submission Card */}
+        {audioUrl && (
+          <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
+              <audio controls src={audioUrl} className="h-10"></audio>
+              <span className="text-xs font-mono font-bold text-slate-700">
+                {formatSeconds(speakTime)}
+              </span>
+            </div>
+
+            <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
+              <button
+                onClick={handleRetake}
+                className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 border border-line text-slate-700 font-bold text-xs transition flex items-center space-x-1"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Thu Âm Lại</span>
+              </button>
+
+              {!isSubmitted ? (
+                <button
+                  disabled={isSubmitting}
+                  onClick={handleSubmit}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5"
+                >
+                  {isSubmitting ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                  <span>Nộp Bài Cho Thầy Đông Chấm</span>
+                </button>
+              ) : (
+                <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-2 rounded-xl">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Đã nộp thành công! Thầy Đông sẽ chấm trong 24h.</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-

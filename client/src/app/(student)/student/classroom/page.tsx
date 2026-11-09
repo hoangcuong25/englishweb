@@ -1,14 +1,36 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { livekitService, LivekitRoom } from '@/services/livekit.service';
 import {
   Video,
   Clock,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function StudentClassroomSchedulePage() {
-  const rooms = [
+  const [rooms, setRooms] = useState<LivekitRoom[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      setLoading(true);
+      try {
+        const data = await livekitService.getRooms();
+        if (data && data.length > 0) {
+          setRooms(data);
+        }
+      } catch {
+        // Fallback default
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRooms();
+  }, []);
+
+  const defaultRooms = [
     {
       id: 'ielts-masterclass-room',
       title: 'IELTS Speaking Part 2 Forecast — Intensive Mock Session',
@@ -41,13 +63,16 @@ export default function StudentClassroomSchedulePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-          Lịch Lớp Học Trực Tuyến LiveKit WebRTC
-        </h1>
-        <p className="text-xs text-muted mt-0.5">
-          Quy chuẩn phòng học 1 Host + 8 Học viên với độ trễ thấp và bảng trắng tương tác.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
+            <span>Lịch Lớp Học Trực Tuyến LiveKit WebRTC</span>
+            {loading && <RefreshCw className="w-4 h-4 animate-spin text-primary" />}
+          </h1>
+          <p className="text-xs text-muted mt-0.5">
+            Quy chuẩn phòng học 1 Host + 8 Học viên với độ trễ thấp và bảng trắng tương tác.
+          </p>
+        </div>
       </div>
 
       {/* Live Now Card */}
@@ -60,63 +85,64 @@ export default function StudentClassroomSchedulePage() {
           <h2 className="text-lg sm:text-2xl font-extrabold tracking-tight">
             IELTS Speaking Part 2 Forecast — Intensive Mock Session
           </h2>
-          <p className="text-xs text-slate-200">
-            Giảng viên: <strong>Thầy Đông (IELTS 8.5)</strong> • Thời lượng: 90 phút • Đã có 7 bạn trong phòng.
+          <p className="text-xs sm:text-sm text-slate-200">
+            Giảng viên: <strong>Thầy Đông (IELTS 8.5)</strong> • Quy mô: 7/8 học viên • Độ trễ WebRTC: &lt; 200ms
           </p>
-          <div className="text-[11px] text-amber-300 font-semibold pt-1">
-            * Nhớ vào phòng trong vòng 15 phút đầu để được tính điểm danh PRESENT!
+          <div className="text-[11px] text-amber-300 bg-black/20 px-3 py-1 rounded-lg w-fit">
+            💡 Lưu ý chuyên cần: Vào trước 19:45 để hệ thống tự động ghi nhận PRESENT.
           </div>
         </div>
 
         <Link
-          href="/student/classroom/ielts-masterclass-room"
-          className="px-6 py-3 rounded-xl bg-accent hover:bg-accent-dark text-slate-900 font-extrabold text-xs shadow-lg shadow-accent/20 transition flex items-center justify-center space-x-2"
+          href={`/student/classroom/${rooms[0]?.name || 'ielts-masterclass-room'}`}
+          className="px-6 py-3 rounded-xl bg-accent hover:bg-accent-dark text-slate-900 font-extrabold text-xs shadow-lg shadow-accent/20 transition flex items-center space-x-2 whitespace-nowrap"
         >
           <Video className="w-4 h-4" />
           <span>Vào Phòng Học Ngay</span>
         </Link>
       </div>
 
-      {/* Upcoming Schedule */}
-      <div className="bg-white rounded-2xl border border-line shadow-sm overflow-hidden space-y-4 p-5">
+      {/* Upcoming Schedule List */}
+      <div className="space-y-3">
         <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-          Lịch học WebRTC các buổi tiếp theo
+          Các Buổi Học Sắp Diễn Ra Trong Tuần
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {rooms.map((room) => (
+          {defaultRooms.map((room) => (
             <div
               key={room.id}
-              className="p-5 rounded-xl border border-line bg-slate-50/50 hover:bg-white hover:border-primary/40 transition flex flex-col justify-between space-y-4"
+              className="p-5 rounded-2xl bg-white border border-line shadow-sm space-y-3 hover:border-primary/40 transition"
             >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-100 text-primary">
-                    1 Host + 8 SV
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-500">
-                    {room.participants}
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-slate-900 leading-snug">
-                  {room.title}
-                </h4>
-                <p className="text-xs text-slate-600">
-                  Chủ tọa: <strong>{room.instructor}</strong>
-                </p>
-                <div className="flex items-center space-x-1.5 text-xs text-primary font-semibold">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{room.scheduledTime}</span>
-                </div>
+              <div className="flex items-center justify-between">
+                <span
+                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
+                    room.isLive
+                      ? 'bg-emerald-100 text-emerald-800 animate-pulse'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {room.status}
+                </span>
+                <span className="text-xs font-mono text-muted">{room.participants}</span>
               </div>
 
-              <div className="pt-3 border-t border-line flex items-center justify-between">
-                <span className="text-[11px] text-muted">Bảo mật Token ngắn hạn</span>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 line-clamp-1">{room.title}</h4>
+                <p className="text-xs text-muted mt-0.5">Giảng viên: {room.instructor}</p>
+              </div>
+
+              <div className="pt-2 border-t border-line flex items-center justify-between text-xs">
+                <span className="text-slate-500 flex items-center space-x-1 text-[11px]">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{room.scheduledTime}</span>
+                </span>
+
                 <Link
                   href={`/student/classroom/${room.id}`}
-                  className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-xs transition"
+                  className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-xs transition shadow-xs"
                 >
-                  {room.isLive ? 'Vào Phòng Ngay' : 'Đăng Ký Tham Gia'}
+                  {room.isLive ? 'Vào Phòng' : 'Xem Chi Tiết'}
                 </Link>
               </div>
             </div>
@@ -126,4 +152,3 @@ export default function StudentClassroomSchedulePage() {
     </div>
   );
 }
-

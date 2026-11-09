@@ -1,12 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { attendanceService } from '@/services/attendance.service';
 import {
   Clock,
+  RefreshCw,
 } from 'lucide-react';
 
+interface AttendanceLogItem {
+  id: string;
+  sessionName: string;
+  date: string;
+  scheduledTime: string;
+  joinedAt: string;
+  leftAt: string;
+  actualMinutes: number;
+  percentage: string;
+  status: 'PRESENT' | 'LATE' | 'ABSENT';
+  note: string;
+}
+
 export default function StudentAttendancePage() {
-  const attendanceLogs = [
+  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLogItem[]>([
     {
       id: 'att-1',
       sessionName: 'IELTS Speaking Part 2 Forecast — Ca 1',
@@ -55,70 +70,109 @@ export default function StudentAttendancePage() {
       status: 'ABSENT',
       note: 'Vắng không phép. Đã gửi video bản ghi Cloud Recording qua email.',
     },
-  ];
+  ]);
+
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      setLoading(true);
+      try {
+        const records = await attendanceService.getMyAttendance();
+        if (records && records.length > 0) {
+          const mapped: AttendanceLogItem[] = records.map((r) => ({
+            id: r.id,
+            sessionName: 'Lớp Học Trực Tuyến WebRTC',
+            date: r.joinedAt ? new Date(r.joinedAt).toLocaleDateString('vi-VN') : '08/11/2026',
+            scheduledTime: '19:30 - 21:00 (90 phút)',
+            joinedAt: r.joinedAt ? new Date(r.joinedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
+            leftAt: r.leftAt ? new Date(r.leftAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
+            actualMinutes: r.durationMinutes || 0,
+            percentage: `${Math.round(((r.durationMinutes || 0) / 90) * 100)}%`,
+            status: r.status,
+            note: r.notes || 'Hệ thống tự động ghi nhận qua LiveKit Webhook.',
+          }));
+          setAttendanceLogs(mapped);
+        }
+      } catch {
+        // Fallback default
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAttendance();
+  }, []);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-          Lịch Sử Điểm Danh Chuyên Cần Cá Nhân
-        </h1>
-        <p className="text-xs text-muted mt-0.5">
-          Ghi nhận thời gian thực qua LiveKit Webhook và thuật toán tính phút tự động.
-        </p>
-      </div>
-
-      {/* Rules Notice Banner */}
-      <div className="p-4 rounded-2xl bg-sky-50 border border-sky-100 text-xs leading-relaxed text-slate-700 flex items-start space-x-3">
-        <Clock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+      <div className="flex items-center justify-between">
         <div>
-          <strong className="text-primary font-bold">Quy tắc tính chuyên cần chuẩn (attendance-sync):</strong>
-          <ul className="list-disc pl-4 mt-1 space-y-0.5 text-[11px] text-slate-600">
-            <li><strong>PRESENT:</strong> Tham gia phòng LiveKit trong vòng <strong>15 phút đầu</strong> và thời lượng học đạt $\ge 80\%$.</li>
-            <li><strong>LATE:</strong> Tham gia sau 15 phút đầu kể từ giờ bắt đầu buổi học.</li>
-            <li><strong>ABSENT:</strong> Không tham gia hoặc thời lượng học dưới $30\%$.</li>
-          </ul>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
+            <span>Lịch Sử Điểm Danh & Chuyên Cần</span>
+            {loading && <RefreshCw className="w-4 h-4 animate-spin text-primary" />}
+          </h1>
+          <p className="text-xs text-muted mt-0.5">
+            Dữ liệu được đồng bộ tự động từ phòng học LiveKit WebRTC qua hệ thống Webhook.
+          </p>
+        </div>
+
+        {/* Status Legend */}
+        <div className="hidden sm:flex items-center space-x-2 text-xs">
+          <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold">
+            PRESENT (≥ 80%)
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 font-bold">
+            LATE (≥ 50%)
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-red-100 text-red-800 font-bold">
+            ABSENT (&lt; 50%)
+          </span>
         </div>
       </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
-          <span className="text-xs font-semibold text-muted">Tổng buổi học</span>
-          <p className="text-2xl font-extrabold text-slate-900 mt-1">24</p>
+      {/* 3 Summary Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-5 rounded-2xl bg-white border border-line shadow-sm space-y-1">
+          <span className="text-muted text-xs font-semibold">Tỷ lệ chuyên cần tổng thể</span>
+          <p className="text-2xl font-extrabold text-slate-900">85.7%</p>
+          <p className="text-[11px] text-emerald-600 font-bold">✓ Đủ điều kiện dự thi Mock Test cuối khóa</p>
         </div>
-        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
-          <span className="text-xs font-semibold text-muted">Đúng giờ (PRESENT)</span>
-          <p className="text-2xl font-extrabold text-emerald-600 mt-1">21</p>
+
+        <div className="p-5 rounded-2xl bg-white border border-line shadow-sm space-y-1">
+          <span className="text-muted text-xs font-semibold">Tổng số buổi đã tham gia</span>
+          <p className="text-2xl font-extrabold text-slate-900">3 / 4 buổi</p>
+          <p className="text-[11px] text-muted">2 buổi Present • 1 buổi Late</p>
         </div>
-        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
-          <span className="text-xs font-semibold text-muted">Muộn (LATE)</span>
-          <p className="text-2xl font-extrabold text-amber-600 mt-1">2</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
-          <span className="text-xs font-semibold text-muted">Vắng (ABSENT)</span>
-          <p className="text-2xl font-extrabold text-red-600 mt-1">1</p>
+
+        <div className="p-5 rounded-2xl bg-white border border-line shadow-sm space-y-1">
+          <span className="text-muted text-xs font-semibold">Tổng thời lượng học trực tuyến</span>
+          <p className="text-2xl font-extrabold text-slate-900">246 phút</p>
+          <p className="text-[11px] text-primary font-bold">Tương đương ~4.1 giờ luyện tập trực tiếp</p>
         </div>
       </div>
 
-      {/* Logs Table */}
+      {/* Attendance Detail Table */}
       <div className="bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-line flex items-center justify-between">
+        <div className="p-5 border-b border-line flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-            Chi tiết các buổi học WebRTC gần nhất
+            Nhật ký các buổi học LiveKit ({attendanceLogs.length} buổi)
           </h3>
-          <span className="text-[11px] text-muted">Tự động đồng bộ LiveKit SFU</span>
+          <span className="text-xs text-muted flex items-center space-x-1">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Tự động cập nhật sau mỗi buổi học</span>
+          </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-line text-slate-500 font-bold">
+            <thead className="bg-slate-50 border-b border-line text-muted uppercase font-bold text-[10px]">
               <tr>
-                <th className="py-3 px-4">Buổi Học & Ngày</th>
-                <th className="py-3 px-4">Giờ Vào / Ra</th>
-                <th className="py-3 px-4">Thời Lượng (Phút)</th>
-                <th className="py-3 px-4">Tỷ Lệ %</th>
+                <th className="py-3 px-4">Buổi Học & Thời Gian</th>
+                <th className="py-3 px-4">Giờ Vào</th>
+                <th className="py-3 px-4">Giờ Thoát</th>
+                <th className="py-3 px-4">Thời Lượng Thực</th>
+                <th className="py-3 px-4">Tỷ Lệ</th>
                 <th className="py-3 px-4">Trạng Thái</th>
                 <th className="py-3 px-4">Ghi Chú</th>
               </tr>
@@ -127,34 +181,29 @@ export default function StudentAttendancePage() {
               {attendanceLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50/50 transition">
                   <td className="py-3.5 px-4">
-                    <p className="font-bold text-slate-800">{log.sessionName}</p>
-                    <span className="text-[11px] text-muted">{log.date} • {log.scheduledTime}</span>
+                    <p className="font-bold text-slate-900">{log.sessionName}</p>
+                    <p className="text-[11px] text-muted">{log.date} • {log.scheduledTime}</p>
                   </td>
-                  <td className="py-3.5 px-4 font-mono text-[11px]">
-                    {log.joinedAt} ➔ {log.leftAt}
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-700">
+                  <td className="py-3.5 px-4 font-mono font-semibold">{log.joinedAt}</td>
+                  <td className="py-3.5 px-4 font-mono font-semibold">{log.leftAt}</td>
+                  <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
                     {log.actualMinutes} phút
                   </td>
-                  <td className="py-3.5 px-4 font-bold text-primary">
-                    {log.percentage}
-                  </td>
+                  <td className="py-3.5 px-4 font-bold text-primary">{log.percentage}</td>
                   <td className="py-3.5 px-4">
                     <span
                       className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
                         log.status === 'PRESENT'
-                          ? 'bg-emerald-100 text-emerald-700'
+                          ? 'bg-emerald-100 text-emerald-800'
                           : log.status === 'LATE'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-red-100 text-red-800'
                       }`}
                     >
                       {log.status}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-500 max-w-xs text-[11px]">
-                    {log.note}
-                  </td>
+                  <td className="py-3.5 px-4 text-muted text-[11px] max-w-xs">{log.note}</td>
                 </tr>
               ))}
             </tbody>
@@ -164,4 +213,3 @@ export default function StudentAttendancePage() {
     </div>
   );
 }
-

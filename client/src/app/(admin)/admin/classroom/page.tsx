@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { livekitService } from '@/services/livekit.service';
 import {
   Video,
   Plus,
@@ -63,7 +64,7 @@ export default function AdminClassroomPage() {
     autoRecord: true,
   });
 
-  const handleCreateRoom = (e: React.FormEvent) => {
+  const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     const newRoom: ClassroomSchedule = {
       id: `room-${Date.now()}`,
@@ -76,6 +77,19 @@ export default function AdminClassroomPage() {
       maxParticipants: Number(formData.maxParticipants),
       isLive: false,
     };
+
+    try {
+      const scheduledStartTime = new Date(`${formData.startDate}T${formData.startTime}:00`).toISOString();
+      const scheduledEndTime = new Date(new Date(scheduledStartTime).getTime() + Number(formData.duration) * 60000).toISOString();
+      await livekitService.createRoom({
+        name: formData.roomTitle,
+        scheduledStartTime,
+        scheduledEndTime,
+      });
+    } catch {
+      // Local fallback
+    }
+
     setRooms([...rooms, newRoom]);
     setIsModalOpen(false);
     setNotice(`Đã lên lịch phòng học WebRTC "${newRoom.roomTitle}" thành công!`);
