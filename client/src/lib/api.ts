@@ -19,10 +19,11 @@ api.interceptors.response.use(
       try {
         await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
         return api(originalRequest);
-      } catch {
+      } catch (refreshError) {
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.dispatchEvent(new CustomEvent('session_terminated'));
         }
+        return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error);
