@@ -1,18 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { coursesService, Course } from '@/services/courses.service';
+import { lessonsService } from '@/services/lessons.service';
 import {
   PlayCircle,
   Lock,
   CheckCircle2,
   Clock,
   ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
+
+interface MockLesson {
+  id: string;
+  title: string;
+  duration: string;
+  isDone: boolean;
+  isLocked: boolean;
+}
+
+interface MockModule {
+  id: string;
+  title: string;
+  lessonsCount: number;
+  isCompleted: boolean;
+  isLocked?: boolean;
+  lessons: MockLesson[];
+}
 
 export default function StudentCoursesPage() {
   const [expandedModule, setExpandedModule] = useState('m1');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set(['l1', 'l2', 'l3', 'l5', 'l6', 'l7', 'l9', 'l10']));
 
-  const modules = [
+  const [modules, setModules] = useState<MockModule[]>([
     {
       id: 'm1',
       title: 'Module 01: Foundations of Academic Writing & Lexis',
@@ -22,7 +45,7 @@ export default function StudentCoursesPage() {
         { id: 'l1', title: 'Lesson 01: IELTS Band Descriptors & Assessment Criteria', duration: '45 phút', isDone: true, isLocked: false },
         { id: 'l2', title: 'Lesson 02: Academic Word List (AWL) Sublist 1 & 2', duration: '50 phút', isDone: true, isLocked: false },
         { id: 'l3', title: 'Lesson 03: Paraphrasing Techniques & Nominalisation', duration: '60 phút', isDone: true, isLocked: false },
-        { id: 'l4', title: 'Checkpoint 01: Vocabulary & Collocation Quiz', duration: '20 phút', isDone: true, isLocked: false },
+        { id: 'l4', title: 'Checkpoint 01: Vocabulary & Collocation Quiz', duration: '20 phút', isDone: false, isLocked: false },
       ],
     },
     {
@@ -34,7 +57,7 @@ export default function StudentCoursesPage() {
         { id: 'l5', title: 'Lesson 04: Idea Generation & Mind Mapping for Abstract Topics', duration: '55 phút', isDone: true, isLocked: false },
         { id: 'l6', title: 'Lesson 05: 4-Paragraph Structure for Opinion & Discussion Essays', duration: '60 phút', isDone: true, isLocked: false },
         { id: 'l7', title: 'Lesson 06: Writing High-Impact Thesis Statements', duration: '45 phút', isDone: true, isLocked: false },
-        { id: 'l8', title: 'Checkpoint 02: Essay Architecture Review Quiz', duration: '20 phút', isDone: true, isLocked: false },
+        { id: 'l8', title: 'Checkpoint 02: Essay Architecture Review Quiz', duration: '20 phút', isDone: false, isLocked: false },
       ],
     },
     {
@@ -61,18 +84,77 @@ export default function StudentCoursesPage() {
         { id: 'l15', title: 'Checkpoint 04: Comprehensive Mock Assessment', duration: '30 phút', isDone: false, isLocked: true },
       ],
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setLoading(true);
+      try {
+        const myLearning = await coursesService.getMyLearning();
+        if (myLearning && myLearning.length > 0) {
+          setCourses(myLearning);
+        } else {
+          const allCourses = await coursesService.getCourses();
+          setCourses(allCourses);
+        }
+      } catch {
+        // Fallback default
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const handleToggleLessonComplete = async (lessonId: string) => {
+    try {
+      await lessonsService.completeLesson(lessonId);
+    } catch {
+      // Local fallback
+    }
+    setCompletedLessonIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(lessonId)) {
+        next.delete(lessonId);
+      } else {
+        next.add(lessonId);
+      }
+      return next;
+    });
+
+    setModules((prev) =>
+      prev.map((mod) => ({
+        ...mod,
+        lessons: mod.lessons.map((l) =>
+          l.id === lessonId ? { ...l, isDone: !l.isDone } : l,
+        ),
+      })),
+    );
+  };
+
+  const activeCourseTitle =
+    courses[0]?.title || 'IELTS Masterclass 7.5+ Intensive (Writing & Speaking Focus)';
+  const activeCourseProgress = courses[0]?.progress || 68;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-          Lộ Trình Khóa Học (LMS 4 Cấp Độ)
-        </h1>
-        <p className="text-xs text-muted mt-0.5">
-          Cấu trúc chuẩn: Course ➔ Module ➔ Lesson ➔ Components.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+            Lộ Trình Khóa Học (LMS 4 Cấp Độ)
+          </h1>
+          <p className="text-xs text-muted mt-0.5">
+            Cấu trúc chuẩn: Course ➔ Module ➔ Lesson ➔ Components.
+          </p>
+        </div>
+        {loading && (
+          <div className="flex items-center space-x-1.5 text-xs text-muted">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />
+            <span>Đang đồng bộ...</span>
+          </div>
+        )}
       </div>
 
       {/* Active Course Banner */}
@@ -85,7 +167,7 @@ export default function StudentCoursesPage() {
             <span className="text-xs text-muted">Giảng viên: Thầy Đông (IELTS 8.5)</span>
           </div>
           <h2 className="text-lg sm:text-xl font-extrabold text-slate-900">
-            IELTS Masterclass 7.5+ Intensive (Writing & Speaking Focus)
+            {activeCourseTitle}
           </h2>
           <div className="flex items-center space-x-4 text-xs text-slate-500 pt-1">
             <span>4 Modules</span>
@@ -94,12 +176,15 @@ export default function StudentCoursesPage() {
             <span>•</span>
             <span>4 Quiz Checkpoints</span>
             <span>•</span>
-            <span className="font-bold text-primary">Tiến độ: 68%</span>
+            <span className="font-bold text-primary">Tiến độ: {activeCourseProgress}%</span>
           </div>
         </div>
 
         <div className="w-full md:w-48 bg-slate-100 rounded-full h-2">
-          <div className="bg-primary h-2 rounded-full" style={{ width: '68%' }}></div>
+          <div
+            className="bg-primary h-2 rounded-full transition-all duration-500"
+            style={{ width: `${activeCourseProgress}%` }}
+          ></div>
         </div>
       </div>
 
@@ -142,7 +227,7 @@ export default function StudentCoursesPage() {
                     <h3 className="text-sm font-bold text-slate-900">{mod.title}</h3>
                     <p className="text-[11px] text-muted">
                       {mod.lessonsCount} bài học & bài kiểm tra Checkpoint
-                      {mod.isLocked && ' • (Yêu cầu đạt $\\ge 70\\%$ Checkpoint 03 để mở khóa)'}
+                      {mod.isLocked && ' • (Yêu cầu đạt ≥ 80% Checkpoint 03 để mở khóa)'}
                     </p>
                   </div>
                 </div>
@@ -159,31 +244,41 @@ export default function StudentCoursesPage() {
               {/* Lessons List */}
               {isExpanded && !mod.isLocked && (
                 <div className="px-5 pb-5 space-y-2 border-t border-line/60 pt-3">
-                  {mod.lessons.map((lesson) => (
-                    <div
-                      key={lesson.id}
-                      className="p-3.5 rounded-xl border border-line bg-slate-50/50 hover:bg-white hover:border-primary/40 transition flex items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="flex items-center space-x-3">
-                        {lesson.isDone ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                        ) : (
-                          <PlayCircle className="w-4 h-4 text-primary flex-shrink-0" />
-                        )}
-                        <div>
-                          <p className="font-bold text-slate-800">{lesson.title}</p>
-                          <span className="text-[11px] text-muted flex items-center space-x-1 mt-0.5">
-                            <Clock className="w-3 h-3" />
-                            <span>{lesson.duration}</span>
-                          </span>
+                  {mod.lessons.map((lesson) => {
+                    const isDone = completedLessonIds.has(lesson.id) || lesson.isDone;
+                    return (
+                      <div
+                        key={lesson.id}
+                        className="p-3.5 rounded-xl border border-line bg-slate-50/50 hover:bg-white hover:border-primary/40 transition flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-center space-x-3">
+                          {isDone ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                          ) : (
+                            <PlayCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                          )}
+                          <div>
+                            <p className="font-bold text-slate-800">{lesson.title}</p>
+                            <span className="text-[11px] text-muted flex items-center space-x-1 mt-0.5">
+                              <Clock className="w-3 h-3" />
+                              <span>{lesson.duration}</span>
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      <button className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm transition">
-                        {lesson.isDone ? 'Học Lại' : 'Bắt Đầu Học'}
-                      </button>
-                    </div>
-                  ))}
+                        <button
+                          onClick={() => handleToggleLessonComplete(lesson.id)}
+                          className={`px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm transition ${
+                            isDone
+                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                              : 'bg-primary hover:bg-primary-dark text-white'
+                          }`}
+                        >
+                          {isDone ? 'Đã hoàn thành' : 'Học & Hoàn thành'}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -193,4 +288,3 @@ export default function StudentCoursesPage() {
     </div>
   );
 }
-

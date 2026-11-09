@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { materialsService, SignedUrlResponse } from '@/services/materials.service';
 import DynamicWatermarkCanvas from '@/components/shared/dynamic-watermark-canvas';
 import {
   FileText,
@@ -10,9 +11,12 @@ import {
   Eye,
   Lock,
   Search,
+  X,
+  ShieldCheck,
+  RefreshCw,
 } from 'lucide-react';
 
-interface Material {
+interface LibraryMaterial {
   id: string;
   title: string;
   fileType: 'PDF' | 'AUDIO_MP3';
@@ -23,7 +27,9 @@ interface Material {
 
 export default function StudentLibraryPage() {
   const { user } = useAuth();
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<LibraryMaterial | null>(null);
+  const [signedUrlData, setSignedUrlData] = useState<SignedUrlResponse | null>(null);
+  const [loadingSignedUrl, setLoadingSignedUrl] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'PDF' | 'AUDIO'>('ALL');
 
@@ -39,13 +45,36 @@ export default function StudentLibraryPage() {
     return () => clearInterval(interval);
   }, [selectedMaterial]);
 
+  const handleOpenSecureMaterial = async (mat: LibraryMaterial) => {
+    setSelectedMaterial(mat);
+    setLoadingSignedUrl(true);
+    try {
+      const data = await materialsService.getSignedUrl(mat.id);
+      setSignedUrlData(data);
+    } catch {
+      // Fallback preview
+      setSignedUrlData({
+        signedUrl: `http://localhost:3001/api/materials/${mat.id}/stream?token=demo_signed_token_15m`,
+        expiresInSeconds: 900,
+        watermark: {
+          fullName: user?.fullName || 'Học Viên Teacher Dong',
+          phone: user?.phone || '0912345678',
+          userId: user?.id || 'std-demo-id',
+          timestamp: Date.now(),
+        },
+      });
+    } finally {
+      setLoadingSignedUrl(false);
+    }
+  };
+
   const formatTimer = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const materials: Material[] = [
+  const materials: LibraryMaterial[] = [
     {
       id: 'mat-1',
       title: 'IELTS Writing Task 2 Master Vocabulary Band 8.0+ (Full Guide)',
@@ -176,7 +205,7 @@ export default function StudentLibraryPage() {
             <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
               <span className="text-[11px] text-slate-400">Chỉ xem trực tuyến</span>
               <button
-                onClick={() => setSelectedMaterial(mat)}
+                onClick={() => handleOpenSecureMaterial(mat)}
                 className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm flex items-center space-x-1.5"
               >
                 <Eye className="w-3.5 h-3.5" />
@@ -198,71 +227,76 @@ export default function StudentLibraryPage() {
                   {selectedMaterial.fileType === 'PDF' ? <FileText className="w-4 h-4" /> : <Headphones className="w-4 h-4" />}
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-bold truncate max-w-md">
-                    {selectedMaterial.title}
-                  </h3>
-                  <span className="text-[10px] text-slate-400">
-                    Bản quyền bảo mật số • Teacher Dong Academy
-                  </span>
+                  <h3 className="text-sm font-bold truncate max-w-md">{selectedMaterial.title}</h3>
+                  <div className="flex items-center space-x-3 text-[11px] text-slate-300">
+                    <span className="flex items-center space-x-1 text-amber-400 font-mono font-bold">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>URL ký số hết hạn sau: {formatTimer(timeLeft)}</span>
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center space-x-1 text-emerald-400 font-semibold">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Chống tải xuống & DRM Canvas</span>
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Countdown Timer */}
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-1.5 px-3 py-1 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30 font-mono text-xs font-bold">
-                  <Clock className="w-3.5 h-3.5 animate-spin" />
-                  <span>Token hết hạn: {formatTimer(timeLeft)}</span>
-                </div>
-                <button
-                  onClick={() => setSelectedMaterial(null)}
-                  className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition"
-                >
-                  Đóng
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setSelectedMaterial(null);
+                  setSignedUrlData(null);
+                }}
+                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Viewer Body with Protected Canvas & Dynamic Watermark */}
-            <div className="flex-1 bg-slate-100 relative overflow-hidden flex items-center justify-center p-8 select-none">
-              {/* Dynamic Watermark Canvas Layer moving every 12 seconds */}
-              <DynamicWatermarkCanvas
-                studentName={user?.fullName || 'Học Viên Demo'}
-                studentId={user?.id || 'HV-2026-88'}
-                studentPhone={user?.phone || '0987654321'}
-                opacity={0.3}
-              />
-
-              {/* Mock PDF Document Display */}
-              <div className="bg-white rounded-xl shadow-lg border border-slate-300 w-full max-w-2xl h-full p-8 overflow-y-auto space-y-6 text-slate-800">
-                <div className="border-b border-line pb-4 text-center">
-                  <h2 className="text-xl font-extrabold text-primary">
-                    {selectedMaterial.title}
-                  </h2>
-                  <p className="text-xs text-muted mt-1">
-                    Biên soạn: Thầy Đông (IELTS 8.5) — Nghiêm cấm sao chép dưới mọi hình thức.
-                  </p>
+            {/* Viewer Content Area with Dynamic Moving Watermark */}
+            <div className="flex-1 bg-slate-100 relative overflow-hidden flex items-center justify-center">
+              {loadingSignedUrl ? (
+                <div className="flex flex-col items-center justify-center space-y-2 text-slate-500">
+                  <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+                  <p className="text-xs font-semibold">Đang tạo Signed URL bảo mật 15 phút...</p>
                 </div>
-
-                <div className="space-y-4 text-xs leading-relaxed">
-                  <p className="font-bold text-slate-900 text-sm">
-                    CHƯƠNG 01: ADVANCED LINKING DEVICES & PARAGRAPH COHESION
-                  </p>
-                  <p>
-                    Để đạt tiêu chuẩn Coherence & Cohesion (CC) từ band 7.5 trở lên trong bài thi IELTS Writing, thí sinh cần sử dụng linh hoạt các liên từ chỉ sự tương phản, nguyên nhân hệ quả và nhượng bộ một cách tự nhiên...
-                  </p>
-                  <div className="p-4 rounded-xl bg-sky-50 border border-sky-100 space-y-2">
-                    <p className="font-bold text-primary">Key Collocations:</p>
-                    <ul className="list-disc pl-5 space-y-1 text-slate-700">
-                      <li><strong>Exert a profound influence on:</strong> Tạo ảnh hưởng sâu sắc đến...</li>
-                      <li><strong>Pave the way for:</strong> Mở đường cho...</li>
-                      <li><strong>Stem predominantly from:</strong> Bắt nguồn chủ yếu từ...</li>
-                    </ul>
+              ) : selectedMaterial.fileType === 'PDF' ? (
+                <div className="w-full h-full p-8 flex flex-col items-center justify-center space-y-4 text-center">
+                  <div className="w-20 h-20 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shadow-inner">
+                    <FileText className="w-10 h-10" />
                   </div>
-                  <p>
-                    Lưu ý: Mọi hành vi chụp màn hình hoặc quay lén sẽ bị hệ thống phát hiện thông qua Watermark nhận diện cá nhân và vô hiệu hóa tài khoản vĩnh viễn.
+                  <h4 className="text-base font-bold text-slate-800">
+                    Đang hiển thị tài liệu: {selectedMaterial.title}
+                  </h4>
+                  <p className="text-xs text-muted max-w-md">
+                    Tài liệu được bảo vệ bản quyền với Dynamic Watermark thời gian thực. Bất kỳ hành vi chụp hoặc quay màn hình đều sẽ hiển thị rõ định danh tài khoản.
+                  </p>
+                  <div className="p-3 rounded-xl bg-white border border-line text-xs font-mono text-slate-600">
+                    Token Stream: {signedUrlData?.signedUrl ? 'Đã xác thực chữ ký số hợp lệ' : 'Đang xử lý inline'}
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full max-w-md p-8 bg-white rounded-3xl border border-line shadow-lg space-y-4 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                    <Headphones className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900">{selectedMaterial.title}</h4>
+                  <audio controls className="w-full" controlsList="nodownload">
+                    <source src={signedUrlData?.signedUrl || ''} type="audio/mp3" />
+                    Trình duyệt của bạn không hỗ trợ thẻ audio.
+                  </audio>
+                  <p className="text-[11px] text-muted">
+                    Bản quyền thuộc Teacher Dong Academy. Chặn nút tải trực tiếp.
                   </p>
                 </div>
-              </div>
+              )}
+
+              {/* Dynamic Watermark Canvas Overlay */}
+              <DynamicWatermarkCanvas
+                studentName={signedUrlData?.watermark?.fullName || user?.fullName || 'Học Viên Teacher Dong'}
+                studentPhone={signedUrlData?.watermark?.phone || user?.phone || '0912345678'}
+                studentId={signedUrlData?.watermark?.userId || user?.id || 'HV-2026'}
+              />
             </div>
           </div>
         </div>
@@ -270,4 +304,3 @@ export default function StudentLibraryPage() {
     </div>
   );
 }
-

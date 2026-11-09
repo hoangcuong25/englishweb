@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { quizzesService } from '@/services/quizzes.service';
 import {
   HelpCircle,
   Clock,
@@ -9,6 +10,8 @@ import {
   XCircle,
   RotateCcw,
   Unlock,
+  RefreshCw,
+  Award,
 } from 'lucide-react';
 
 interface Question {
@@ -23,6 +26,7 @@ export default function StudentQuizPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15 * 60);
 
   useEffect(() => {
@@ -88,10 +92,27 @@ export default function StudentQuizPage() {
       }
     });
     const percentage = Math.round((correctCount / questions.length) * 100);
-    return { correctCount, percentage, isPassed: percentage >= 70 };
+    // Strict Sàn điểm >= 80% theo đặc tả BIZ-QZ-003
+    return { correctCount, percentage, isPassed: percentage >= 80 };
   };
 
   const { correctCount, percentage, isPassed } = calculateScore();
+
+  const handleSubmitQuiz = async () => {
+    setSubmitting(true);
+    try {
+      const answersPayload = questions.map((q, idx) => ({
+        questionId: `q-${q.id}`,
+        selectedOptionId: selectedAnswers[idx] || '',
+      }));
+      await quizzesService.submitQuiz('quiz-checkpoint-03', answersPayload);
+    } catch {
+      // Local evaluation fallback
+    } finally {
+      setSubmitting(false);
+      setIsSubmitted(true);
+    }
+  };
 
   const formatTimer = (sec: number) => {
     const m = Math.floor(sec / 60);
@@ -99,128 +120,87 @@ export default function StudentQuizPage() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const currentQ = questions[currentIdx];
+
   return (
-    <div className="space-y-6">
-      {/* Quiz Header */}
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-extrabold text-primary uppercase tracking-wider bg-sky-50 px-2.5 py-0.5 rounded">
-            Checkpoint 03 • Module Assessment
-          </span>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-1">
-            Kiểm Tra Kiến Thức Cuối Module 03 (Grammar & Vocabulary)
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+            Quiz Checkpoint 03: End-of-Module Mastery (BIZ-QZ-003)
           </h1>
+          <p className="text-xs text-muted mt-0.5">
+            Sàn điểm đạt: <strong>≥ 80%</strong> để mở khóa Module 04 tiếp theo.
+          </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-mono text-xs font-bold">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{formatTimer(timeLeft)}</span>
-          </div>
-
-          {!isSubmitted && (
-            <button
-              onClick={() => setIsSubmitted(true)}
-              className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm"
-            >
-              Nộp Bài Thi
-            </button>
-          )}
+        {/* Timer Badge */}
+        <div
+          className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold ${
+            timeLeft < 300
+              ? 'bg-red-50 text-red-600 border border-red-200 animate-pulse'
+              : 'bg-sky-50 text-primary border border-sky-100'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          <span>Thời gian còn: {formatTimer(timeLeft)}</span>
         </div>
       </div>
 
-      {/* Main Layout: Navigation Palette & Question Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left Palette */}
-        <div className="bg-white rounded-2xl border border-line p-5 shadow-sm space-y-4">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Bảng điều hướng câu hỏi
-          </h3>
-
-          <div className="grid grid-cols-3 gap-2">
-            {questions.map((q, idx) => {
-              const isAnswered = selectedAnswers[idx] !== undefined;
-              const isCurrent = currentIdx === idx;
-
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => setCurrentIdx(idx)}
-                  className={`py-2 rounded-xl text-xs font-bold transition ${
-                    isCurrent
-                      ? 'ring-2 ring-primary ring-offset-2'
-                      : ''
-                  } ${
-                    isSubmitted
-                      ? selectedAnswers[idx] === q.correct
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-red-100 text-red-800'
-                      : isAnswered
-                      ? 'bg-primary text-white'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  Câu {idx + 1}
-                </button>
-              );
-            })}
+      {/* Main Quiz Card */}
+      {!isSubmitted ? (
+        <div className="bg-white rounded-3xl border border-line p-6 sm:p-8 shadow-sm space-y-6">
+          {/* Question Navigation Bubbles */}
+          <div className="flex items-center justify-between border-b border-line pb-4">
+            <span className="text-xs font-bold text-slate-700">
+              Câu hỏi {currentIdx + 1} / {questions.length}
+            </span>
+            <div className="flex items-center space-x-2">
+              {questions.map((_, idx) => {
+                const isAnswered = selectedAnswers[idx] !== undefined;
+                const isCurrent = currentIdx === idx;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIdx(idx)}
+                    className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                      isCurrent
+                        ? 'bg-primary text-white shadow-sm'
+                        : isAnswered
+                        ? 'bg-sky-100 text-primary'
+                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="pt-3 border-t border-line text-[11px] text-muted space-y-1.5">
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded bg-primary"></span>
-              <span>Đã trả lời</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded bg-slate-100 border border-slate-300"></span>
-              <span>Chưa trả lời</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span>
-              <span>Đáp án đúng ($\ge 70\%$ đạt)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Question Card */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-white rounded-2xl border border-line p-6 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-line pb-3">
-              <span className="text-xs font-bold text-primary">
-                CÂU HỎI {currentIdx + 1} / {questions.length}
-              </span>
-              <span className="text-[11px] text-muted">Trắc nghiệm chọn 1 đáp án</span>
-            </div>
-
+          {/* Question Text */}
+          <div className="space-y-4">
             <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-relaxed">
-              {questions[currentIdx].text}
+              {currentQ.text}
             </h2>
 
-            {/* 4 Options */}
-            <div className="space-y-3">
-              {questions[currentIdx].options.map((opt) => {
+            {/* Options List */}
+            <div className="space-y-3 pt-2">
+              {currentQ.options.map((opt) => {
                 const isSelected = selectedAnswers[currentIdx] === opt.key;
-                const isCorrect = questions[currentIdx].correct === opt.key;
-
-                let optClass = 'bg-white border-line hover:border-slate-300';
-                if (isSubmitted) {
-                  if (isCorrect) {
-                    optClass = 'bg-emerald-50 border-emerald-300 text-emerald-900';
-                  } else if (isSelected && !isCorrect) {
-                    optClass = 'bg-red-50 border-red-300 text-red-900';
-                  }
-                } else if (isSelected) {
-                  optClass = 'bg-sky-50 border-primary text-primary font-bold';
-                }
-
                 return (
                   <button
                     key={opt.key}
                     onClick={() => handleSelectOption(opt.key)}
-                    className={`w-full text-left p-4 rounded-xl border transition flex items-start space-x-3 text-xs sm:text-sm ${optClass}`}
+                    className={`w-full p-4 rounded-2xl border text-left text-xs transition flex items-start space-x-3.5 ${
+                      isSelected
+                        ? 'bg-sky-50/70 border-primary shadow-xs font-semibold'
+                        : 'bg-white border-line hover:border-slate-300'
+                    }`}
                   >
                     <span
-                      className={`w-6 h-6 rounded-lg font-bold flex items-center justify-center text-xs flex-shrink-0 ${
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center font-extrabold text-xs flex-shrink-0 ${
                         isSelected
                           ? 'bg-primary text-white'
                           : 'bg-slate-100 text-slate-600'
@@ -228,75 +208,148 @@ export default function StudentQuizPage() {
                     >
                       {opt.key}
                     </span>
-                    <span className="flex-1 mt-0.5">{opt.text}</span>
+                    <span className="pt-0.5 text-slate-800">{opt.text}</span>
                   </button>
                 );
               })}
             </div>
-
-            {/* Explanation when submitted */}
-            {isSubmitted && (
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5 animate-in fade-in-50">
-                <p className="font-bold text-slate-900 flex items-center space-x-1.5">
-                  <HelpCircle className="w-4 h-4 text-primary" />
-                  <span>Giải thích ngữ pháp chi tiết:</span>
-                </p>
-                <p className="text-slate-600 leading-relaxed">
-                  {questions[currentIdx].explanation}
-                </p>
-              </div>
-            )}
           </div>
 
-          {/* Result Card when Submitted */}
-          {isSubmitted && (
-            <div className="bg-white rounded-2xl border border-line p-6 shadow-md flex flex-col sm:flex-row items-center justify-between gap-6 animate-in slide-in-from-bottom duration-200">
-              <div className="space-y-1 text-center sm:text-left">
-                <div className="flex items-center space-x-2 justify-center sm:justify-start">
-                  {isPassed ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  ) : (
-                    <XCircle className="w-5 h-5 text-red-600" />
-                  )}
-                  <h3 className="text-base font-extrabold text-slate-900">
-                    {isPassed ? 'Chúc Mừng! Bạn Đã Vượt Qua Checkpoint' : 'Chưa Đạt Điểm Yêu Cầu'}
-                  </h3>
-                </div>
-                <p className="text-xs text-muted">
-                  Kết quả: <strong>{correctCount}/{questions.length}</strong> câu đúng ({percentage}%).
-                  {isPassed
-                    ? ' Quy tắc BIZ-QZ-003: Module 04 đã được tự động mở khóa thành công!'
-                    : ' Bạn cần đạt tối thiểu 70% để mở khóa bài học tiếp theo.'}
-                </p>
-              </div>
+          {/* Navigation Controls */}
+          <div className="flex items-center justify-between pt-4 border-t border-line">
+            <button
+              disabled={currentIdx === 0}
+              onClick={() => setCurrentIdx(currentIdx - 1)}
+              className="px-4 py-2 rounded-xl border border-line text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            >
+              Câu Trước
+            </button>
 
-              <div className="flex items-center space-x-3">
-                {!isPassed && (
-                  <button
-                    onClick={() => {
-                      setIsSubmitted(false);
-                      setSelectedAnswers({});
-                      setTimeLeft(15 * 60);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center space-x-1"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Làm Lại Bài Thi</span>
-                  </button>
-                )}
-                <Link
-                  href="/student/courses"
-                  className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm flex items-center space-x-1.5"
-                >
-                  <Unlock className="w-4 h-4" />
-                  <span>Về Đề Cương Khóa Học</span>
-                </Link>
-              </div>
-            </div>
-          )}
+            {currentIdx < questions.length - 1 ? (
+              <button
+                onClick={() => setCurrentIdx(currentIdx + 1)}
+                className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm"
+              >
+                Câu Tiếp Theo
+              </button>
+            ) : (
+              <button
+                disabled={submitting}
+                onClick={handleSubmitQuiz}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md flex items-center space-x-1.5"
+              >
+                {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>Nộp Bài Chấm Điểm (Instant)</span>
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Result Summary Card */
+        <div className="bg-white rounded-3xl border border-line p-8 shadow-sm space-y-6 text-center">
+          <div
+            className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${
+              isPassed ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
+            }`}
+          >
+            {isPassed ? <Award className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
+          </div>
+
+          <div className="space-y-1">
+            <span
+              className={`text-xs font-extrabold uppercase px-3 py-1 rounded-full ${
+                isPassed ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+              }`}
+            >
+              {isPassed ? 'ĐÃ ĐẠT CHECKPOINT' : 'CHƯA ĐẠT SÀN ĐIỂM (CẦN LÀM LẠI)'}
+            </span>
+            <h2 className="text-2xl font-black text-slate-900 pt-2">
+              Kết Quả: {percentage}% ({correctCount}/{questions.length} Câu Đúng)
+            </h2>
+            <p className="text-xs text-muted max-w-md mx-auto pt-1">
+              {isPassed
+                ? 'Chúc mừng! Bạn đã hoàn thành yêu cầu điểm sàn ≥ 80%. Module 04 đã được tự động mở khóa.'
+                : 'Bạn cần đạt tối thiểu 80% điểm để mở khóa bài học tiếp theo. Hãy xem lại lời giải bên dưới và thử lại.'}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-center space-x-3 pt-2">
+            {!isPassed && (
+              <button
+                onClick={() => {
+                  setIsSubmitted(false);
+                  setSelectedAnswers({});
+                  setCurrentIdx(0);
+                  setTimeLeft(15 * 60);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Làm Lại Bài Thi</span>
+              </button>
+            )}
+            <Link
+              href="/student/courses"
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center space-x-1.5"
+            >
+              <Unlock className="w-3.5 h-3.5" />
+              <span>Quay Về Danh Sách Khóa Học</span>
+            </Link>
+          </div>
+
+          {/* Detailed Explanations */}
+          <div className="text-left space-y-4 pt-6 border-t border-line">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
+              <HelpCircle className="w-4 h-4 text-primary" />
+              <span>Giải Thích Đáp Án Chi Tiết:</span>
+            </h3>
+
+            {questions.map((q, idx) => {
+              const isCorrect = selectedAnswers[idx] === q.correct;
+              return (
+                <div
+                  key={q.id}
+                  className={`p-4 rounded-2xl border text-xs space-y-2 ${
+                    isCorrect ? 'bg-emerald-50/50 border-emerald-200' : 'bg-red-50/50 border-red-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-bold">
+                    <span className="text-slate-800">
+                      Câu {idx + 1}: {q.text}
+                    </span>
+                    <span
+                      className={`flex items-center space-x-1 ${
+                        isCorrect ? 'text-emerald-700' : 'text-red-600'
+                      }`}
+                    >
+                      {isCorrect ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Đúng</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Sai</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-slate-600">
+                    Đáp án của bạn:{' '}
+                    <strong>{selectedAnswers[idx] || 'Chưa chọn'}</strong> • Đáp án đúng:{' '}
+                    <strong className="text-primary">{q.correct}</strong>
+                  </p>
+                  <p className="text-slate-500 text-[11px] bg-white/70 p-2.5 rounded-xl border border-line">
+                    💡 <strong>Giải thích:</strong> {q.explanation}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

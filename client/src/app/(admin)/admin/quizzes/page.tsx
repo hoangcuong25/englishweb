@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   Plus,
   CheckCircle2,
+  Trash2,
   X,
 } from 'lucide-react';
 
@@ -72,7 +73,7 @@ export default function AdminQuizzesPage() {
             Quản Lý Bài Thi & Ngân Hàng Câu Hỏi (QZ-SCR-004, 005)
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Quy tắc BIZ-QZ-003: Học viên đạt $\ge 70\%$ sẽ tự động mở khóa Module bài học tiếp theo.
+            Quy tắc BIZ-QZ-003: Học viên đạt ≥ 80% sẽ tự động mở khóa Module bài học tiếp theo.
           </p>
         </div>
 
@@ -109,9 +110,22 @@ export default function AdminQuizzesPage() {
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-100 text-primary">
                   {q.skill}
                 </span>
-                <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  Đáp án đúng: {q.correctAnswer}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Đáp án đúng: {q.correctAnswer}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setQuestions(questions.filter((item) => item.id !== q.id));
+                      setNotice('Đã xóa câu hỏi khỏi ngân hàng đề.');
+                      setTimeout(() => setNotice(''), 3000);
+                    }}
+                    className="p-1 text-slate-400 hover:text-red-600 rounded transition"
+                    title="Xóa câu hỏi"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <p className="text-xs sm:text-sm font-bold text-slate-800">
                 Câu {idx + 1}: {q.questionText}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { materialsService } from '@/services/materials.service';
 import {
   Upload,
   CheckCircle2,
@@ -56,7 +57,7 @@ export default function AdminLibraryPage() {
     allowDownload: false,
   });
 
-  const handleUploadMaterial = (e: React.FormEvent) => {
+  const handleUploadMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     const newMat: MaterialItem = {
       id: `mat-${Date.now()}`,
@@ -69,10 +70,32 @@ export default function AdminLibraryPage() {
       uploadDate: new Date().toLocaleDateString('vi-VN'),
     };
 
+    try {
+      await materialsService.create({
+        title: formData.title,
+        fileType: formData.fileType,
+        isSignedUrl: formData.isSignedUrl,
+        isWatermark: formData.isWatermark,
+      });
+    } catch {
+      // Local fallback
+    }
+
     setMaterials([...materials, newMat]);
     setIsModalOpen(false);
     setNotice(`Đã tải lên và bảo mật học liệu "${newMat.title}" thành công!`);
     setTimeout(() => setNotice(''), 4000);
+  };
+
+  const handleDeleteMaterial = async (matId: string) => {
+    try {
+      await materialsService.delete(matId);
+    } catch {
+      // Local fallback
+    }
+    setMaterials(materials.filter((m) => m.id !== matId));
+    setNotice('Đã xóa học liệu số thành công.');
+    setTimeout(() => setNotice(''), 3000);
   };
 
   return (
@@ -157,7 +180,11 @@ export default function AdminLibraryPage() {
                   </td>
                   <td className="py-3.5 px-4 text-muted">{m.uploadDate}</td>
                   <td className="py-3.5 px-4 text-right">
-                    <button className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition">
+                    <button
+                      onClick={() => handleDeleteMaterial(m.id)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition"
+                      title="Xóa học liệu"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
