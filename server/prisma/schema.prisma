@@ -36,10 +36,41 @@ enum MaterialType {
   AUDIO
 }
 
+enum SkillType {
+  READING
+  LISTENING
+  WRITING
+  SPEAKING
+}
+
 enum QuestionType {
+  // Trắc nghiệm & cơ bản
   SINGLE_CHOICE
   MULTIPLE_CHOICE
   FILL_BLANK
+
+  // IELTS Reading sub-skills
+  TRUE_FALSE_NOT_GIVEN
+  YES_NO_NOT_GIVEN
+  MATCHING_HEADINGS
+  MATCHING_INFORMATION
+  MATCHING_FEATURES
+  SENTENCE_COMPLETION
+  SUMMARY_COMPLETION
+
+  // IELTS Listening sub-skills
+  NOTE_COMPLETION
+  FORM_COMPLETION
+  MAP_DIAGRAM_LABELING
+  FLOW_CHART_COMPLETION
+  SHORT_ANSWER
+
+  // Writing & Speaking sub-skills
+  ESSAY_TASK_1
+  ESSAY_TASK_2
+  SPEAKING_PART_1
+  SPEAKING_PART_2
+  SPEAKING_PART_3
 }
 
 enum WritingTaskType {
@@ -69,6 +100,12 @@ enum AttendanceStatus {
 enum SubmissionStatus {
   PENDING
   GRADED
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 // ==========================================
@@ -102,6 +139,7 @@ model User {
   conversationsAsStudent   Conversation[]        @relation("StudentConversations")
   conversationsAsAdmin     Conversation[]        @relation("AdminConversations")
   sentMessages             Message[]             @relation("SentMessages")
+  blogPosts                BlogPost[]            @relation("UserBlogPosts")
 
   @@map("users")
 }
@@ -353,20 +391,25 @@ model SpeakingSubmission {
 // ==========================================
 
 model Quiz {
-  id               String   @id @default(uuid())
-  lessonId         String
-  lesson           Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id               String      @id @default(uuid())
+  lessonId         String?
+  lesson           Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   title            String
-  description      String?  @db.Text
-  timeLimitMinutes Int      @default(15)
-  passScore        Float    @default(80)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  description      String?     @db.Text
+  skill            SkillType?  @default(READING)
+  testType         String?     // 'FULL_MOCK_TEST', 'PRACTICE_TEST', 'LESSON_QUIZ'
+  passage          String?     @db.LongText
+  audioUrl         String?
+  timeLimitMinutes Int         @default(15)
+  passScore        Float       @default(80)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   questions   Question[]
   submissions QuizSubmission[]
 
   @@index([lessonId])
+  @@index([skill])
   @@map("quizzes")
 }
 
@@ -375,7 +418,9 @@ model Question {
   quizId      String
   quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   content     String       @db.Text
+  skill       SkillType    @default(READING)
   type        QuestionType @default(SINGLE_CHOICE)
+  subCategory String?
   points      Float        @default(1.0)
   explanation String?      @db.Text
   orderIndex  Int          @default(0)
@@ -384,6 +429,8 @@ model Question {
   answers QuizAnswer[]
 
   @@index([quizId])
+  @@index([skill])
+  @@index([type])
   @@map("questions")
 }
 
@@ -518,3 +565,35 @@ model Message {
   @@index([senderId])
   @@map("messages")
 }
+
+// ==========================================
+// 12. BLOGS & MEDIA (MÔ-ĐUN BLOGS)
+// ==========================================
+
+model BlogPost {
+  id                  String     @id @default(uuid())
+  title               String
+  slug                String     @unique
+  summary             String?    @db.Text
+  content             String     @db.LongText
+  coverImage          String?
+  coverImagePublicId  String?
+  videoUrl            String?
+  videoPublicId       String?
+  category            String?
+  tags                String?
+  status              BlogStatus @default(DRAFT)
+  isFeatured          Boolean    @default(false)
+  viewCount           Int        @default(0)
+  authorId            String
+  author              User       @relation("UserBlogPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  publishedAt         DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@index([authorId])
+  @@index([status])
+  @@index([category])
+  @@map("blog_posts")
+}
+

@@ -101,6 +101,50 @@ export class LivekitService {
     }
   }
 
+  async listRooms() {
+    return this.prisma.classroom.findMany({
+      where: {
+        status: { in: ['SCHEDULED', 'ACTIVE'] },
+      },
+      include: {
+        host: {
+          select: { id: true, fullName: true, email: true },
+        },
+        course: {
+          select: { id: true, title: true, slug: true, thumbnail: true },
+        },
+        _count: {
+          select: { attendanceRecords: true },
+        },
+      },
+      orderBy: { scheduledStartTime: 'asc' },
+    });
+  }
+
+  async createRoom(hostId: string, data: { name: string; courseId?: string; scheduledStartTime: Date; scheduledEndTime: Date }) {
+    const existing = await this.prisma.classroom.findFirst({
+      where: { name: data.name },
+    });
+    if (existing) {
+      throw new BadRequestException('Tên phòng học đã tồn tại');
+    }
+
+    return this.prisma.classroom.create({
+      data: {
+        name: data.name,
+        courseId: data.courseId || null,
+        hostId,
+        scheduledStartTime: data.scheduledStartTime,
+        scheduledEndTime: data.scheduledEndTime,
+        status: 'SCHEDULED',
+      },
+      include: {
+        host: { select: { id: true, fullName: true, email: true } },
+        course: { select: { id: true, title: true } },
+      },
+    });
+  }
+
   async handleWebhook(body: string, authHeader: string) {
     try {
       const event = await this.webhookReceiver.receive(body, authHeader);
