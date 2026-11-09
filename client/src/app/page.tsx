@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Star,
   GraduationCap,
+  UserPlus,
 } from 'lucide-react';
 
 interface ProgramDetail {
@@ -80,11 +81,11 @@ export default function HomePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const languages: { code: Language; label: string; flag: string }[] = [
-    { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
-    { code: 'en', label: 'English', flag: '🇬🇧' },
-    { code: 'zh', label: '简体中文', flag: '🇨🇳' },
-    { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  const languages: { code: Language; label: string; tag: string; flag: string }[] = [
+    { code: 'vi', label: 'Tiếng Việt', tag: 'VN', flag: '🇻🇳' },
+    { code: 'en', label: 'English', tag: 'EN', flag: '🇬🇧' },
+    { code: 'zh', label: '简体中文', tag: 'CN', flag: '🇨🇳' },
+    { code: 'ja', label: '日本語', tag: 'JP', flag: '🇯🇵' },
   ];
 
   const currentLangObj = languages.find((l) => l.code === lang) || languages[0];
@@ -412,80 +413,80 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#F7FAFD] text-[#14263D] font-sans antialiased selection:bg-[#DDF3FC] selection:text-[#2868B2]">
-      {/* 1. TOP ANNOUNCEMENT BAR */}
-      <div className="bg-[#1E4E85] text-white py-2 px-4 text-xs sm:text-sm font-medium text-center relative z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
-          <span>{t('announcement.text')}</span>
-        </div>
-      </div>
+      {/* 1. TOP NAVY BORDER BAR (Theo chuẩn ảnh mockup) */}
+      <div className="h-2 bg-[#1B64B0] w-full"></div>
 
-      {/* 2. MAIN HEADER / NAVBAR */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-[#E1EBF5] shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1B83B6] to-[#2868B2] text-white font-extrabold text-lg flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+      {/* 2. MAIN HEADER / NAVBAR (Pixel-perfect matching user image) */}
+      <header className="sticky top-0 z-40 bg-white/98 backdrop-blur border-b border-[#E1EBF5] shadow-xs">
+        <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+          {/* Brand Logo & Title */}
+          <Link href="/" className="flex items-center gap-3.5 group shrink-0">
+            <div className="w-12 h-12 rounded-full bg-[#1B64B0] text-white font-black text-xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
               TD
             </div>
-            <div>
-              <span className="font-extrabold text-lg sm:text-xl text-[#14263D] tracking-tight block leading-tight">
+            <div className="flex flex-col">
+              <span className="font-black text-xl sm:text-2xl text-[#14263D] tracking-tight leading-none group-hover:text-[#1B64B0] transition-colors">
                 Teacher Dong
               </span>
-              <span className="text-xs text-[#55687D] font-medium tracking-wide hidden sm:block">
-                Academy • Learn. Grow. Share. Inspire.
+              <span className="text-[11.5px] text-[#55687D] font-medium leading-tight mt-1 hidden sm:block">
+                Academy • Learn. Grow. Share.<br className="lg:hidden" /> Inspire.
               </span>
             </div>
           </Link>
 
-          {/* Desktop Nav Links (Guest) */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+          {/* Desktop Nav Links (Guest) - Đặt ở giữa, canh hàng đẹp và rõ ràng */}
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             <button
               type="button"
               onClick={() => scrollToSection('home-programs-section')}
-              className="px-3 py-2 rounded-lg text-sm font-semibold text-[#55687D] hover:text-[#2868B2] hover:bg-[#F7FAFD] transition-colors cursor-pointer"
+              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer"
             >
-              {t('nav.programs')}
+              5 Trụ cột chương<br />trình
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('about-teacher-dong')}
-              className="px-3 py-2 rounded-lg text-sm font-semibold text-[#55687D] hover:text-[#2868B2] hover:bg-[#F7FAFD] transition-colors cursor-pointer"
+              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer"
             >
-              {t('nav.about')}
+              Về Teacher<br />Dong
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('tech-preview-section')}
-              className="px-3 py-2 rounded-lg text-sm font-semibold text-[#55687D] hover:text-[#2868B2] hover:bg-[#F7FAFD] transition-colors cursor-pointer"
+              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer"
             >
-              {t('nav.techPreview')}
+              Học thử WebRTC<br />& AI
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('consultation-section')}
-              className="px-3 py-2 rounded-lg text-sm font-semibold text-[#55687D] hover:text-[#2868B2] hover:bg-[#F7FAFD] transition-colors cursor-pointer"
+              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer"
             >
-              {t('nav.consultation')}
+              Liên hệ tư<br />vấn
             </button>
           </nav>
 
-          {/* Header Actions (Language & Auth) */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Language Selector Dropdown */}
+          {/* Header Right Actions (Language Pill, Login Text, Register Amber Pill) */}
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            {/* Language Selector Pill Button (Theo đúng ảnh: VN Tiếng Việt v) */}
             <div className="relative" ref={langDropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm font-semibold text-[#55687D] bg-[#F7FAFD] border border-[#E1EBF5] rounded-lg hover:border-[#1B83B6] transition-colors"
+                className="flex items-center gap-2 px-3.5 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl hover:border-[#1B64B0] transition-all cursor-pointer shadow-2xs"
                 aria-label="Language Selector"
               >
-                <span>{currentLangObj.flag}</span>
-                <span className="hidden md:inline">{currentLangObj.label}</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                <span className="text-[11.5px] font-black text-[#64748B] tracking-wider uppercase">
+                  {currentLangObj.tag}
+                </span>
+                <span className="text-[13.5px] font-bold text-[#1E293B]">
+                  {currentLangObj.label}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#64748B]" />
               </button>
 
               {isLangDropdownOpen && (
-                <div className="absolute right-0 mt-1.5 w-44 bg-white border border-[#E1EBF5] rounded-xl shadow-lg py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-[#E1EBF5] rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   {languages.map((l) => (
                     <button
                       key={l.code}
@@ -494,12 +495,15 @@ export default function HomePage() {
                         setLang(l.code);
                         setIsLangDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs sm:text-sm text-left hover:bg-[#F7FAFD] transition-colors ${
-                        lang === l.code ? 'font-bold text-[#2868B2] bg-[#DDF3FC]/40' : 'text-[#14263D]'
+                      className={`w-full flex items-center justify-between px-4 py-2.5 text-xs sm:text-sm text-left hover:bg-[#F8FAFC] transition-colors ${
+                        lang === l.code ? 'font-black text-[#1B64B0] bg-[#DDF3FC]/40' : 'text-[#1E293B] font-semibold'
                       }`}
                     >
-                      <span className="text-base">{l.flag}</span>
-                      <span>{l.label}</span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">{l.flag}</span>
+                        <span>{l.label}</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-[#64748B] uppercase">{l.tag}</span>
                     </button>
                   ))}
                 </div>
@@ -511,7 +515,7 @@ export default function HomePage() {
               <div className="flex items-center gap-2">
                 <Link
                   href={user.role === 'ADMIN' ? '/admin' : '/student'}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#DDF3FC] text-[#2868B2] text-xs sm:text-sm font-bold hover:bg-[#2868B2] hover:text-white transition-all shadow-xs"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#DDF3FC] text-[#1B64B0] text-xs sm:text-sm font-bold hover:bg-[#1B64B0] hover:text-white transition-all shadow-xs"
                 >
                   <GraduationCap className="w-4 h-4" />
                   <span className="max-w-[120px] truncate">{user.fullName || user.email}</span>
@@ -519,25 +523,28 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => logout()}
-                  className="p-2 text-[#55687D] hover:text-rose-600 rounded-lg transition-colors"
+                  className="p-2 text-[#55687D] hover:text-rose-600 rounded-full transition-colors"
                   title={t('nav.logout')}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                {/* Đăng nhập (Text Link đậm màu xanh) */}
                 <Link
                   href="/login"
-                  className="px-3.5 py-1.5 text-xs sm:text-sm font-bold text-[#2868B2] hover:bg-[#DDF3FC]/50 rounded-lg transition-colors"
+                  className="px-2 py-2 text-[14px] font-extrabold text-[#1B64B0] hover:text-[#0c4a6e] transition-colors"
                 >
                   {t('nav.login')}
                 </Link>
+
+                {/* Đăng ký học viên (Nút Amber Pill tròn viền theo ảnh) */}
                 <Link
                   href="/register"
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-bold text-[#14263D] bg-[#FFB547] hover:bg-[#ffa726] rounded-lg transition-all shadow-xs"
+                  className="flex items-center gap-2 px-5 py-2.5 text-[14px] font-extrabold text-[#14263D] bg-[#FFB547] hover:bg-[#FFA726] rounded-full transition-all shadow-sm hover:shadow hover:-translate-y-0.5 active:translate-y-0"
                 >
-                  <Users className="w-3.5 h-3.5" />
+                  <UserPlus className="w-4 h-4 text-[#14263D]" />
                   <span>{t('nav.register')}</span>
                 </Link>
               </div>
@@ -547,61 +554,61 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-[#55687D] hover:text-[#2868B2] hover:bg-[#F7FAFD] rounded-lg"
+              className="lg:hidden p-2 text-[#55687D] hover:text-[#1B64B0] hover:bg-[#F7FAFD] rounded-lg"
               aria-label="Toggle mobile menu"
             >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
         {/* Mobile Nav Drawer */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-[#E1EBF5] bg-white px-4 py-4 space-y-2 animate-in slide-in-from-top-2 duration-150">
+          <div className="lg:hidden border-t border-[#E1EBF5] bg-white px-5 py-5 space-y-3 animate-in slide-in-from-top-2 duration-150">
             <button
               type="button"
               onClick={() => scrollToSection('home-programs-section')}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-[#14263D] hover:bg-[#F7FAFD]"
+              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
             >
-              {t('nav.programs')}
+              5 Trụ cột chương trình
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('about-teacher-dong')}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-[#14263D] hover:bg-[#F7FAFD]"
+              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
             >
-              {t('nav.about')}
+              Về Teacher Dong
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('tech-preview-section')}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-[#14263D] hover:bg-[#F7FAFD]"
+              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
             >
-              {t('nav.techPreview')}
+              Học thử WebRTC & AI
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('consultation-section')}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-[#14263D] hover:bg-[#F7FAFD]"
+              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
             >
-              {t('nav.consultation')}
+              Liên hệ tư vấn
             </button>
-            <div className="pt-2 border-t border-[#E1EBF5] flex flex-col gap-2">
+            <div className="pt-3 border-t border-[#E1EBF5] flex flex-col gap-2">
               {!user && (
                 <>
                   <Link
                     href="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full text-center py-2 text-sm font-bold text-[#2868B2] bg-[#DDF3FC] rounded-lg"
+                    className="w-full text-center py-2.5 text-sm font-extrabold text-[#1B64B0] bg-[#DDF3FC] rounded-full"
                   >
-                    🔑 {t('nav.login')}
+                    🔑 Đăng nhập tài khoản
                   </Link>
                   <Link
                     href="/register"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full text-center py-2 text-sm font-bold text-[#14263D] bg-[#FFB547] rounded-lg shadow-xs"
+                    className="w-full text-center py-2.5 text-sm font-extrabold text-[#14263D] bg-[#FFB547] rounded-full shadow-sm"
                   >
-                    ✨ {t('nav.register')}
+                    ✨ Đăng ký học viên mới
                   </Link>
                 </>
               )}
@@ -610,24 +617,24 @@ export default function HomePage() {
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16 sm:space-y-20">
+      <main className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16 sm:space-y-20">
         {/* ================= 3. HERO SECTION DÀNH CHO KHÁCH MỚI ================= */}
-        <section className="relative rounded-3xl border border-[#E1EBF5] bg-white p-6 sm:p-10 lg:p-14 shadow-sm overflow-hidden bg-[radial-gradient(800px_420px_at_85%_0%,rgba(85,184,232,0.22),transparent_65%),radial-gradient(520px_320px_at_0%_40%,rgba(255,181,71,0.18),transparent_65%)]">
+        <section className="relative rounded-3xl border border-[#E1EBF5] bg-white p-6 sm:p-10 lg:p-14 shadow-sm overflow-hidden bg-[radial-gradient(800px_420px_at_85%_0%,rgba(85,184,232,0.25),transparent_65%),radial-gradient(520px_320px_at_0%_40%,rgba(255,181,71,0.2),transparent_65%)]">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
             {/* Left: Headline, Subtitle, 3 CTAs & Hashtags */}
             <div className="lg:col-span-7 space-y-6">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-[#DDF3FC] text-[#2868B2] px-4 py-1.5 rounded-full text-xs sm:text-sm font-extrabold tracking-wider uppercase">
-                <span className="w-2 h-2 rounded-full bg-[#FFB547] animate-pulse"></span>
+              <div className="inline-flex items-center gap-2 bg-[#DDF3FC] text-[#1B64B0] px-4 py-1.5 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FFB547] animate-pulse"></span>
                 <span>{t('home.badge')}</span>
               </div>
 
               {/* H1 Main Heading */}
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#14263D] tracking-tight leading-[1.18]">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#14263D] tracking-tight leading-[1.18]">
                 {lang === 'vi' ? (
                   <>
                     Học tiếng Anh để{' '}
-                    <span className="text-[#2868B2] relative inline-block">
+                    <span className="text-[#1B64B0] relative inline-block">
                       tự tin
                       <span className="absolute left-0 right-0 bottom-1 h-3.5 bg-[#FFB547]/40 rounded-sm -z-10"></span>
                     </span>{' '}
@@ -639,23 +646,23 @@ export default function HomePage() {
               </h1>
 
               {/* Subtitle */}
-              <p className="text-[#55687D] text-base sm:text-lg leading-relaxed max-w-2xl">
+              <p className="text-[#55687D] text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
                 {t('home.heroSubtitle')}
               </p>
 
               {/* 3 Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              <div className="flex flex-wrap items-center gap-3.5 pt-2">
                 <button
                   type="button"
                   onClick={() => scrollToSection('home-programs-section')}
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#2868B2] text-white font-bold text-sm sm:text-base hover:bg-[#1E4E85] transition-all shadow-md hover:shadow-lg cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#1B64B0] text-white font-extrabold text-sm sm:text-base hover:bg-[#154E8A] transition-all shadow-md hover:shadow-lg cursor-pointer"
                 >
                   <span>{t('home.exploreBtn')}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <Link
                   href="/register"
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#FFB547] text-[#14263D] font-bold text-sm sm:text-base hover:bg-[#ffa726] transition-all shadow-md hover:shadow-lg"
+                  className="flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#FFB547] text-[#14263D] font-extrabold text-sm sm:text-base hover:bg-[#FFA726] transition-all shadow-md hover:shadow-lg"
                 >
                   <Users className="w-4 h-4" />
                   <span>{t('home.registerBtn')}</span>
@@ -663,7 +670,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => scrollToSection('tech-preview-section')}
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl border border-[#E1EBF5] bg-white/80 text-[#2868B2] font-bold text-sm sm:text-base hover:bg-[#DDF3FC]/40 transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-3.5 rounded-full border border-[#E1EBF5] bg-white/90 text-[#1B64B0] font-extrabold text-sm sm:text-base hover:bg-[#DDF3FC]/50 transition-all cursor-pointer"
                 >
                   <Video className="w-4 h-4" />
                   <span>{t('home.demoBtn')}</span>
@@ -672,7 +679,7 @@ export default function HomePage() {
 
               {/* Pillar Tags */}
               <div className="flex flex-wrap gap-2 pt-2 text-xs font-bold text-[#55687D]">
-                <span className="bg-[#F7FAFD] border border-[#E1EBF5] px-3.5 py-1.5 rounded-full text-[#2868B2]">
+                <span className="bg-[#F7FAFD] border border-[#E1EBF5] px-3.5 py-1.5 rounded-full text-[#1B64B0]">
                   # English Proficiency
                 </span>
                 <span className="bg-[#F7FAFD] border border-[#E1EBF5] px-3.5 py-1.5 rounded-full text-[#1B83B6]">
@@ -692,28 +699,28 @@ export default function HomePage() {
 
             {/* Right: Hero Visual Frame & Floating Skill Chips */}
             <div className="lg:col-span-5 flex justify-center">
-              <div className="relative w-full max-w-[340px] sm:max-w-[380px]">
+              <div className="relative w-full max-w-[340px] sm:max-w-[390px]">
                 {/* Arch frame with gradient */}
-                <div className="aspect-[5/6] rounded-t-full rounded-b-3xl bg-gradient-to-br from-[#1B83B6] to-[#2868B2] flex flex-col items-center justify-center text-center p-6 text-white shadow-2xl relative overflow-hidden">
+                <div className="aspect-[5/6] rounded-t-full rounded-b-3xl bg-gradient-to-br from-[#1B83B6] via-[#1B64B0] to-[#154E8A] flex flex-col items-center justify-center text-center p-6 text-white shadow-2xl relative overflow-hidden">
                   {/* Decorative background circles */}
-                  <div className="absolute top-10 right-6 w-32 h-32 rounded-full bg-[#FFB547] opacity-80 blur-xs"></div>
-                  <div className="absolute bottom-6 left-4 w-44 h-44 rounded-full bg-white/10 blur-sm"></div>
+                  <div className="absolute top-10 right-6 w-36 h-36 rounded-full bg-[#FFB547] opacity-80 blur-xs"></div>
+                  <div className="absolute bottom-6 left-4 w-48 h-48 rounded-full bg-white/10 blur-sm"></div>
 
                   {/* Core Avatar Badge */}
                   <div className="relative z-10 space-y-3">
-                    <div className="w-24 h-24 rounded-full bg-white text-[#2868B2] font-black text-4xl flex items-center justify-center mx-auto shadow-xl ring-4 ring-white/30">
+                    <div className="w-26 h-26 rounded-full bg-white text-[#1B64B0] font-black text-4xl flex items-center justify-center mx-auto shadow-xl ring-4 ring-white/30">
                       TD
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-2xl text-white tracking-tight">Teacher Dong</h3>
-                      <p className="text-sm text-sky-100 font-medium">M.Ed • International Educator</p>
+                      <h3 className="font-black text-2xl text-white tracking-tight">Teacher Dong</h3>
+                      <p className="text-sm text-sky-100 font-semibold">M.Ed • International Educator</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Floating Skill Chips (desktop absolute, mobile friendly) */}
                 <div className="hidden sm:flex absolute top-[12%] -left-8 bg-white px-3.5 py-2 rounded-full font-bold text-xs shadow-md border border-[#E1EBF5] items-center gap-2 text-[#14263D] animate-bounce duration-1000">
-                  <span className="w-7 h-7 rounded-full bg-[#DDF3FC] text-[#2868B2] flex items-center justify-center">
+                  <span className="w-7 h-7 rounded-full bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center">
                     <Headphones className="w-4 h-4" />
                   </span>
                   <span>Listening</span>
@@ -734,7 +741,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="hidden sm:flex absolute bottom-[8%] -right-6 bg-white px-3.5 py-2 rounded-full font-bold text-xs shadow-md border border-[#E1EBF5] items-center gap-2 text-[#14263D]">
-                  <span className="w-7 h-7 rounded-full bg-[#DDF3FC] text-[#2868B2] flex items-center justify-center">
+                  <span className="w-7 h-7 rounded-full bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center">
                     <PenTool className="w-4 h-4" />
                   </span>
                   <span>Writing AI</span>
@@ -746,42 +753,42 @@ export default function HomePage() {
 
         {/* ================= 4. BỐN GIÁ TRỊ CỐT LÕI (BRAND PILLARS) ================= */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B83B6] transition-colors">
-            <div className="w-12 h-12 rounded-xl bg-[#DDF3FC] text-[#2868B2] flex items-center justify-center shrink-0">
+          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B64B0] hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-xl bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center shrink-0">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <strong className="text-base font-extrabold text-[#14263D] block">{t('values.learn.title')}</strong>
+              <strong className="text-base font-black text-[#14263D] block">{t('values.learn.title')}</strong>
               <span className="text-xs text-[#55687D] leading-tight block">{t('values.learn.desc')}</span>
             </div>
           </div>
 
-          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B83B6] transition-colors">
+          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B83B6] hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-xl bg-sky-100 text-[#1B83B6] flex items-center justify-center shrink-0">
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <strong className="text-base font-extrabold text-[#14263D] block">{t('values.grow.title')}</strong>
+              <strong className="text-base font-black text-[#14263D] block">{t('values.grow.title')}</strong>
               <span className="text-xs text-[#55687D] leading-tight block">{t('values.grow.desc')}</span>
             </div>
           </div>
 
-          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B83B6] transition-colors">
+          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#FFB547] hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <strong className="text-base font-extrabold text-[#14263D] block">{t('values.share.title')}</strong>
+              <strong className="text-base font-black text-[#14263D] block">{t('values.share.title')}</strong>
               <span className="text-xs text-[#55687D] leading-tight block">{t('values.share.desc')}</span>
             </div>
           </div>
 
-          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B83B6] transition-colors">
+          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-rose-400 hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-xl bg-rose-100 text-[#E11D48] flex items-center justify-center shrink-0">
               <Star className="w-6 h-6" />
             </div>
             <div>
-              <strong className="text-base font-extrabold text-[#14263D] block">{t('values.inspire.title')}</strong>
+              <strong className="text-base font-black text-[#14263D] block">{t('values.inspire.title')}</strong>
               <span className="text-xs text-[#55687D] leading-tight block">{t('values.inspire.desc')}</span>
             </div>
           </div>
@@ -791,11 +798,11 @@ export default function HomePage() {
         <section id="home-programs-section" className="scroll-mt-24 space-y-8">
           {/* Header */}
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <div className="inline-flex items-center gap-2 bg-[#DDF3FC] text-[#2868B2] px-4 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 bg-[#DDF3FC] text-[#1B64B0] px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-[#FFB547]"></span>
               <span>{t('pillars.headingBadge')}</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#14263D] tracking-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#14263D] tracking-tight">
               {t('pillars.title')}
             </h2>
             <p className="text-sm sm:text-base text-[#55687D] leading-relaxed">
@@ -804,13 +811,13 @@ export default function HomePage() {
           </div>
 
           {/* Filter Bar */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
             <button
               type="button"
               onClick={() => setActivePillarFilter('all')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                 activePillarFilter === 'all'
-                  ? 'bg-[#2868B2] text-white shadow-sm'
+                  ? 'bg-[#1B64B0] text-white shadow-md'
                   : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
               }`}
             >
@@ -819,9 +826,9 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setActivePillarFilter('p1')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                 activePillarFilter === 'p1'
-                  ? 'bg-[#2868B2] text-white shadow-sm'
+                  ? 'bg-[#1B64B0] text-white shadow-md'
                   : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
               }`}
             >
@@ -830,9 +837,9 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setActivePillarFilter('p2')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                 activePillarFilter === 'p2'
-                  ? 'bg-[#1B83B6] text-white shadow-sm'
+                  ? 'bg-[#1B83B6] text-white shadow-md'
                   : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
               }`}
             >
@@ -841,9 +848,9 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setActivePillarFilter('p3')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                 activePillarFilter === 'p3'
-                  ? 'bg-[#FFB547] text-[#14263D] shadow-sm'
+                  ? 'bg-[#FFB547] text-[#14263D] shadow-md'
                   : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
               }`}
             >
@@ -852,9 +859,9 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setActivePillarFilter('p4')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                 activePillarFilter === 'p4'
-                  ? 'bg-[#E11D48] text-white shadow-sm'
+                  ? 'bg-[#E11D48] text-white shadow-md'
                   : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
               }`}
             >
@@ -863,9 +870,9 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setActivePillarFilter('p5')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                 activePillarFilter === 'p5'
-                  ? 'bg-[#10B981] text-white shadow-sm'
+                  ? 'bg-[#10B981] text-white shadow-md'
                   : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
               }`}
             >
@@ -878,24 +885,24 @@ export default function HomePage() {
             {filteredPillars.map((pillar) => (
               <div
                 key={pillar.id}
-                className={`bg-white rounded-2xl border border-[#E1EBF5] border-t-4 ${pillar.borderColor} p-6 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between`}
+                className={`bg-white rounded-3xl border border-[#E1EBF5] border-t-5 ${pillar.borderColor} p-6 sm:p-7 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <span className={`text-[11px] font-extrabold tracking-wider uppercase ${pillar.tagColor}`}>
+                      <span className={`text-[11px] font-black tracking-wider uppercase ${pillar.tagColor}`}>
                         {pillar.code}
                       </span>
-                      <h3 className="text-lg font-bold text-[#14263D] mt-0.5">
+                      <h3 className="text-lg font-black text-[#14263D] mt-0.5">
                         {pillar.title}
                       </h3>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#DDF3FC] text-[#2868B2] shrink-0">
+                    <span className="px-3 py-1 rounded-full text-[11px] font-black bg-[#DDF3FC] text-[#1B64B0] shrink-0">
                       {pillar.badge}
                     </span>
                   </div>
 
-                  <p className="text-xs text-[#55687D] leading-relaxed mb-5">
+                  <p className="text-xs text-[#55687D] leading-relaxed mb-5 font-normal">
                     {pillar.desc}
                   </p>
 
@@ -907,13 +914,13 @@ export default function HomePage() {
                         <div
                           key={idx}
                           onClick={() => openProgramModalFromPillar(item)}
-                          className="flex items-center justify-between p-2.5 rounded-xl border border-[#E1EBF5] hover:border-[#1B83B6] hover:bg-[#F7FAFD] transition-all cursor-pointer group"
+                          className="flex items-center justify-between p-3 rounded-2xl border border-[#E1EBF5] hover:border-[#1B64B0] hover:bg-[#F7FAFD] transition-all cursor-pointer group shadow-2xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-7 h-7 rounded-lg bg-[#F7FAFD] text-[#2868B2] group-hover:bg-[#DDF3FC] flex items-center justify-center shrink-0">
-                              <IconComp className="w-3.5 h-3.5" />
+                            <span className="w-8 h-8 rounded-xl bg-[#F7FAFD] text-[#1B64B0] group-hover:bg-[#DDF3FC] flex items-center justify-center shrink-0 transition-colors">
+                              <IconComp className="w-4 h-4" />
                             </span>
-                            <span className="text-xs font-bold text-[#14263D] group-hover:text-[#2868B2] truncate">
+                            <span className="text-xs font-bold text-[#14263D] group-hover:text-[#1B64B0] truncate">
                               {item.title}
                             </span>
                           </div>
@@ -933,7 +940,7 @@ export default function HomePage() {
                     setFormData((prev) => ({ ...prev, interestedProgram: pillar.id }));
                     scrollToSection('consultation-section');
                   }}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#E1EBF5] text-xs font-bold text-[#2868B2] hover:bg-[#DDF3FC]/40 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-[#E1EBF5] text-xs font-extrabold text-[#1B64B0] hover:bg-[#DDF3FC]/40 transition-colors cursor-pointer"
                 >
                   <span>{t('pillars.detailBtn')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -946,10 +953,10 @@ export default function HomePage() {
         {/* ================= 6. TRẢI NGHIỆM CÔNG NGHỆ EDTECH ĐỘC QUYỀN ================= */}
         <section id="tech-preview-section" className="scroll-mt-24 rounded-3xl bg-[#F1F6FC] border border-[#E1EBF5] p-6 sm:p-10 lg:p-12 space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-[#DDF3FC] text-[#2868B2]">
+            <span className="inline-block px-4 py-1 rounded-full text-xs font-black bg-[#DDF3FC] text-[#1B64B0]">
               {t('tech.badge')}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#14263D]">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#14263D]">
               {t('tech.title')}
             </h2>
             <p className="text-xs sm:text-sm text-[#55687D] leading-relaxed">
@@ -959,68 +966,68 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {/* LiveKit SFU */}
-            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-5 text-center flex flex-col items-center justify-between shadow-xs">
+            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-6 text-center flex flex-col items-center justify-between shadow-xs hover:shadow-lg transition-all">
               <div className="flex flex-col items-center space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-[#DDF3FC] text-[#2868B2] flex items-center justify-center">
-                  <Video className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-2xl bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center">
+                  <Video className="w-7 h-7" />
                 </div>
-                <h4 className="font-bold text-sm text-[#14263D]">{t('tech.livekit.title')}</h4>
+                <h4 className="font-extrabold text-sm text-[#14263D]">{t('tech.livekit.title')}</h4>
                 <p className="text-xs text-[#55687D] leading-relaxed">{t('tech.livekit.desc')}</p>
               </div>
               <Link
                 href="/student/classroom"
-                className="mt-5 w-full py-2 rounded-xl bg-[#2868B2] text-white text-xs font-bold hover:bg-[#1E4E85] transition-colors"
+                className="mt-6 w-full py-2.5 rounded-full bg-[#1B64B0] text-white text-xs font-extrabold hover:bg-[#154E8A] transition-colors shadow-sm"
               >
                 {t('tech.livekit.btn')}
               </Link>
             </div>
 
             {/* AI Writing */}
-            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-5 text-center flex flex-col items-center justify-between shadow-xs">
+            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-6 text-center flex flex-col items-center justify-between shadow-xs hover:shadow-lg transition-all">
               <div className="flex flex-col items-center space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
-                  <PenTool className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                  <PenTool className="w-7 h-7" />
                 </div>
-                <h4 className="font-bold text-sm text-[#14263D]">{t('tech.writing.title')}</h4>
+                <h4 className="font-extrabold text-sm text-[#14263D]">{t('tech.writing.title')}</h4>
                 <p className="text-xs text-[#55687D] leading-relaxed">{t('tech.writing.desc')}</p>
               </div>
               <Link
                 href="/student/writing"
-                className="mt-5 w-full py-2 rounded-xl bg-[#FFB547] text-[#14263D] text-xs font-bold hover:bg-[#ffa726] transition-colors"
+                className="mt-6 w-full py-2.5 rounded-full bg-[#FFB547] text-[#14263D] text-xs font-extrabold hover:bg-[#FFA726] transition-colors shadow-sm"
               >
                 {t('tech.writing.btn')}
               </Link>
             </div>
 
             {/* Speaking Studio */}
-            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-5 text-center flex flex-col items-center justify-between shadow-xs">
+            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-6 text-center flex flex-col items-center justify-between shadow-xs hover:shadow-lg transition-all">
               <div className="flex flex-col items-center space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-rose-100 text-[#E11D48] flex items-center justify-center">
-                  <Mic className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-2xl bg-rose-100 text-[#E11D48] flex items-center justify-center">
+                  <Mic className="w-7 h-7" />
                 </div>
-                <h4 className="font-bold text-sm text-[#14263D]">{t('tech.speaking.title')}</h4>
+                <h4 className="font-extrabold text-sm text-[#14263D]">{t('tech.speaking.title')}</h4>
                 <p className="text-xs text-[#55687D] leading-relaxed">{t('tech.speaking.desc')}</p>
               </div>
               <Link
                 href="/student/speaking"
-                className="mt-5 w-full py-2 rounded-xl bg-[#2868B2] text-white text-xs font-bold hover:bg-[#1E4E85] transition-colors"
+                className="mt-6 w-full py-2.5 rounded-full bg-[#1B64B0] text-white text-xs font-extrabold hover:bg-[#154E8A] transition-colors shadow-sm"
               >
                 {t('tech.speaking.btn')}
               </Link>
             </div>
 
             {/* Watermark Security */}
-            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-5 text-center flex flex-col items-center justify-between shadow-xs">
+            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-6 text-center flex flex-col items-center justify-between shadow-xs hover:shadow-lg transition-all">
               <div className="flex flex-col items-center space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-sky-100 text-[#1B83B6] flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-2xl bg-sky-100 text-[#1B83B6] flex items-center justify-center">
+                  <ShieldCheck className="w-7 h-7" />
                 </div>
-                <h4 className="font-bold text-sm text-[#14263D]">{t('tech.library.title')}</h4>
+                <h4 className="font-extrabold text-sm text-[#14263D]">{t('tech.library.title')}</h4>
                 <p className="text-xs text-[#55687D] leading-relaxed">{t('tech.library.desc')}</p>
               </div>
               <Link
                 href="/student/library"
-                className="mt-5 w-full py-2 rounded-xl border border-[#E1EBF5] text-[#2868B2] text-xs font-bold hover:bg-[#DDF3FC]/40 transition-colors"
+                className="mt-6 w-full py-2.5 rounded-full border border-[#E1EBF5] text-[#1B64B0] text-xs font-extrabold hover:bg-[#DDF3FC]/50 transition-colors"
               >
                 {t('tech.library.btn')}
               </Link>
@@ -1029,48 +1036,48 @@ export default function HomePage() {
         </section>
 
         {/* ================= 7. ABOUT TEACHER DONG (GIỚI THIỆU GIẢNG VIÊN CHỦ NHIỆM) ================= */}
-        <section id="about-teacher-dong" className="scroll-mt-24 rounded-3xl bg-gradient-to-br from-[#1E4E85] to-[#2868B2] text-white p-6 sm:p-10 lg:p-14 shadow-xl">
+        <section id="about-teacher-dong" className="scroll-mt-24 rounded-3xl bg-gradient-to-br from-[#154E8A] to-[#1B64B0] text-white p-6 sm:p-10 lg:p-14 shadow-xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Avatar Column */}
             <div className="lg:col-span-4 text-center space-y-3">
-              <div className="w-36 h-36 rounded-full bg-gradient-to-br from-[#1B83B6] to-white text-[#2868B2] font-black text-5xl flex items-center justify-center mx-auto ring-6 ring-[#FFB547] shadow-xl">
+              <div className="w-38 h-38 rounded-full bg-gradient-to-br from-[#1B83B6] to-white text-[#1B64B0] font-black text-5xl flex items-center justify-center mx-auto ring-6 ring-[#FFB547] shadow-2xl">
                 TD
               </div>
               <h3 className="text-2xl font-black text-white">Teacher Dong</h3>
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-[#FFB547] text-[#14263D]">
+              <span className="inline-block px-4 py-1.5 rounded-full text-xs font-black bg-[#FFB547] text-[#14263D]">
                 {t('about.role')}
               </span>
-              <p className="text-xs text-sky-100">{t('about.degree')}</p>
+              <p className="text-xs text-sky-100 font-medium">{t('about.degree')}</p>
             </div>
 
             {/* Story & Commitments */}
             <div className="lg:col-span-8 space-y-5">
-              <div className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-xs font-bold text-white">
+              <div className="inline-flex items-center gap-2 bg-white/15 px-3.5 py-1 rounded-full text-xs font-bold text-white">
                 {t('about.badge')}
               </div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-tight">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight">
                 {t('about.quote')}
               </h2>
-              <p className="text-xs sm:text-sm text-sky-100 leading-relaxed">
+              <p className="text-xs sm:text-sm text-sky-100 leading-relaxed font-normal">
                 {t('about.bio')}
               </p>
 
               {/* 3 Pillars of Commitment */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                <div className="bg-white/10 border border-white/15 rounded-xl p-3.5">
-                  <strong className="text-sm font-extrabold text-[#FFB547] block mb-0.5">
+                <div className="bg-white/10 border border-white/15 rounded-2xl p-4">
+                  <strong className="text-sm font-black text-[#FFB547] block mb-0.5">
                     {t('about.stat1.title')}
                   </strong>
                   <span className="text-xs text-slate-200">{t('about.stat1.desc')}</span>
                 </div>
-                <div className="bg-white/10 border border-white/15 rounded-xl p-3.5">
-                  <strong className="text-sm font-extrabold text-[#FFB547] block mb-0.5">
+                <div className="bg-white/10 border border-white/15 rounded-2xl p-4">
+                  <strong className="text-sm font-black text-[#FFB547] block mb-0.5">
                     {t('about.stat2.title')}
                   </strong>
                   <span className="text-xs text-slate-200">{t('about.stat2.desc')}</span>
                 </div>
-                <div className="bg-white/10 border border-white/15 rounded-xl p-3.5">
-                  <strong className="text-sm font-extrabold text-[#FFB547] block mb-0.5">
+                <div className="bg-white/10 border border-white/15 rounded-2xl p-4">
+                  <strong className="text-sm font-black text-[#FFB547] block mb-0.5">
                     {t('about.stat3.title')}
                   </strong>
                   <span className="text-xs text-slate-200">{t('about.stat3.desc')}</span>
@@ -1078,10 +1085,10 @@ export default function HomePage() {
               </div>
 
               {/* CTAs */}
-              <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex flex-wrap gap-3.5 pt-2">
                 <Link
                   href="/register"
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFB547] text-[#14263D] font-bold text-xs sm:text-sm hover:bg-[#ffa726] transition-all shadow-md"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#FFB547] text-[#14263D] font-black text-xs sm:text-sm hover:bg-[#FFA726] transition-all shadow-md"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{t('about.ctaJoin')}</span>
@@ -1089,7 +1096,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => scrollToSection('consultation-section')}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/30 text-white font-bold text-xs sm:text-sm hover:bg-white/10 transition-colors cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full border border-white/30 text-white font-extrabold text-xs sm:text-sm hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   <span>{t('about.ctaConsult')}</span>
@@ -1104,28 +1111,28 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             {/* Left: Commitments & Value */}
             <div className="lg:col-span-6 space-y-5">
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800">
+              <span className="inline-block px-4 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800">
                 {t('consult.badge')}
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#14263D] tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#14263D] tracking-tight">
                 {t('consult.title')}
               </h2>
-              <p className="text-xs sm:text-sm text-[#55687D] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#55687D] leading-relaxed font-normal">
                 {t('consult.subtitle')}
               </p>
 
-              <ul className="space-y-3 text-xs sm:text-sm text-[#14263D]">
-                <li className="flex items-start gap-2.5">
+              <ul className="space-y-3.5 text-xs sm:text-sm text-[#14263D]">
+                <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{t('consult.benefit1')}</span>
+                  <span className="font-semibold">{t('consult.benefit1')}</span>
                 </li>
-                <li className="flex items-start gap-2.5">
+                <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{t('consult.benefit2')}</span>
+                  <span className="font-semibold">{t('consult.benefit2')}</span>
                 </li>
-                <li className="flex items-start gap-2.5">
+                <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{t('consult.benefit3')}</span>
+                  <span className="font-semibold">{t('consult.benefit3')}</span>
                 </li>
               </ul>
             </div>
@@ -1134,20 +1141,20 @@ export default function HomePage() {
             <div className="lg:col-span-6">
               <form
                 onSubmit={handleConsultSubmit}
-                className="bg-[#F7FAFD] border border-[#E1EBF5] rounded-2xl p-6 sm:p-8 space-y-4"
+                className="bg-[#F7FAFD] border border-[#E1EBF5] rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xs"
               >
-                <h3 className="text-base font-extrabold text-[#14263D] mb-1">
+                <h3 className="text-base font-black text-[#14263D] mb-1">
                   {t('consult.formTitle')}
                 </h3>
 
                 {formSubmitted && (
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold animate-in fade-in">
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold animate-in fade-in">
                     {t('consult.successMsg')}
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-bold text-[#14263D] mb-1">
+                  <label className="block text-xs font-bold text-[#14263D] mb-1.5">
                     {t('consult.nameLabel')}
                   </label>
                   <input
@@ -1156,13 +1163,13 @@ export default function HomePage() {
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     placeholder="Nguyễn Văn An"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#2868B2] focus:ring-1 focus:ring-[#2868B2]"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#1B64B0] focus:ring-1 focus:ring-[#1B64B0]"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#14263D] mb-1">
+                    <label className="block text-xs font-bold text-[#14263D] mb-1.5">
                       {t('consult.emailLabel')}
                     </label>
                     <input
@@ -1171,11 +1178,11 @@ export default function HomePage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="email@example.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#2868B2] focus:ring-1 focus:ring-[#2868B2]"
+                      className="w-full px-4 py-2.5 rounded-2xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#1B64B0] focus:ring-1 focus:ring-[#1B64B0]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#14263D] mb-1">
+                    <label className="block text-xs font-bold text-[#14263D] mb-1.5">
                       {t('consult.phoneLabel')}
                     </label>
                     <input
@@ -1184,19 +1191,19 @@ export default function HomePage() {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="0987 654 321"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#2868B2] focus:ring-1 focus:ring-[#2868B2]"
+                      className="w-full px-4 py-2.5 rounded-2xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#1B64B0] focus:ring-1 focus:ring-[#1B64B0]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#14263D] mb-1">
+                  <label className="block text-xs font-bold text-[#14263D] mb-1.5">
                     {t('consult.programLabel')}
                   </label>
                   <select
                     value={formData.interestedProgram}
                     onChange={(e) => setFormData({ ...formData, interestedProgram: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#2868B2]"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#1B64B0]"
                   >
                     <option value="p1">1. English Proficiency (IELTS, Business, Giao tiếp, Thiếu nhi)</option>
                     <option value="p2">2. Professional Development (Sư phạm AI, Lãnh đạo, Nghiên cứu)</option>
@@ -1207,7 +1214,7 @@ export default function HomePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#14263D] mb-1">
+                  <label className="block text-xs font-bold text-[#14263D] mb-1.5">
                     {t('consult.notesLabel')}
                   </label>
                   <textarea
@@ -1215,13 +1222,13 @@ export default function HomePage() {
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     placeholder={t('consult.notesPlaceholder')}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#2868B2]"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E1EBF5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#1B64B0]"
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FFB547] text-[#14263D] font-extrabold text-xs sm:text-sm hover:bg-[#ffa726] transition-all shadow-md cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full bg-[#FFB547] text-[#14263D] font-black text-xs sm:text-sm hover:bg-[#FFA726] transition-all shadow-md cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   <span>{t('consult.submitBtn')}</span>
@@ -1234,22 +1241,22 @@ export default function HomePage() {
 
       {/* ================= 9. FOOTER CHUẨN TEACHER DONG ACADEMY ================= */}
       <footer className="bg-[#14263D] text-[#C3D1E2] pt-14 pb-8 border-t border-[#E1EBF5]/20 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10">
             {/* Col 1: Brand (4 cols) */}
             <div className="lg:col-span-4 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1B83B6] to-[#2868B2] text-white font-extrabold text-lg flex items-center justify-center">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-full bg-[#1B64B0] text-white font-black text-lg flex items-center justify-center">
                   TD
                 </div>
                 <div>
-                  <strong className="text-white text-lg font-extrabold block">Teacher Dong Academy</strong>
-                  <span className="text-[10px] text-[#1B83B6] font-bold uppercase tracking-wider">
+                  <strong className="text-white text-lg font-black block">Teacher Dong Academy</strong>
+                  <span className="text-[10.5px] text-[#1B83B6] font-bold uppercase tracking-wider">
                     Learn. Grow. Share. Inspire.
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-[#94A3B8] leading-relaxed">
+              <p className="text-xs text-[#94A3B8] leading-relaxed font-normal">
                 {t('footer.desc')}
               </p>
               <div className="text-xs text-[#FFB547] font-semibold">
@@ -1259,7 +1266,7 @@ export default function HomePage() {
 
             {/* Col 2: 5 Programs (3 cols) */}
             <div className="lg:col-span-3 space-y-3">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">
+              <h4 className="text-xs font-black uppercase tracking-wider text-white">
                 {t('footer.colPrograms')}
               </h4>
               <ul className="space-y-2 text-xs text-[#94A3B8]">
@@ -1328,7 +1335,7 @@ export default function HomePage() {
 
             {/* Col 3: EdTech Ecosystem (2 cols) */}
             <div className="lg:col-span-2 space-y-3">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">
+              <h4 className="text-xs font-black uppercase tracking-wider text-white">
                 {t('footer.colTech')}
               </h4>
               <ul className="space-y-2 text-xs text-[#94A3B8]">
@@ -1362,7 +1369,7 @@ export default function HomePage() {
 
             {/* Col 4: Contact & Portal (3 cols) */}
             <div className="lg:col-span-3 space-y-3">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">
+              <h4 className="text-xs font-black uppercase tracking-wider text-white">
                 {t('footer.colContact')}
               </h4>
               <p className="text-xs text-[#94A3B8] leading-relaxed">
@@ -1374,7 +1381,7 @@ export default function HomePage() {
               </p>
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#FFB547] text-[#14263D] font-extrabold text-xs hover:bg-[#ffa726] transition-all"
+                className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-full bg-[#FFB547] text-[#14263D] font-black text-xs hover:bg-[#FFA726] transition-all shadow-sm"
               >
                 <span>Đăng nhập hệ thống học viên</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -1391,29 +1398,29 @@ export default function HomePage() {
       {/* ================= 10. PROGRAM DETAIL MODAL ================= */}
       {selectedProgram && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-[#E1EBF5] shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl border border-[#E1EBF5] shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-150">
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-xs font-extrabold px-2.5 py-1 rounded-md bg-[#DDF3FC] text-[#2868B2]">
+                <span className="text-xs font-black px-3 py-1 rounded-full bg-[#DDF3FC] text-[#1B64B0]">
                   {selectedProgram.category}
                 </span>
-                <h3 className="text-xl font-extrabold text-[#14263D] mt-2">
+                <h3 className="text-xl font-black text-[#14263D] mt-2">
                   {selectedProgram.title}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedProgram(null)}
-                className="p-1.5 rounded-lg text-[#55687D] hover:bg-[#F7FAFD] transition-colors"
+                className="p-1.5 rounded-full text-[#55687D] hover:bg-[#F7FAFD] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Description */}
-            <div className="bg-[#F7FAFD] border border-[#E1EBF5] rounded-xl p-4">
-              <h4 className="text-xs font-bold text-[#2868B2] uppercase tracking-wider mb-1">
+            <div className="bg-[#F7FAFD] border border-[#E1EBF5] rounded-2xl p-4">
+              <h4 className="text-xs font-black text-[#1B64B0] uppercase tracking-wider mb-1">
                 Mục tiêu & Nội dung trọng tâm:
               </h4>
               <p className="text-xs sm:text-sm text-[#14263D] leading-relaxed">
@@ -1423,13 +1430,13 @@ export default function HomePage() {
 
             {/* Meta tags */}
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-[#FAFDFE] border border-[#E1EBF5] rounded-xl p-3">
+              <div className="bg-[#FAFDFE] border border-[#E1EBF5] rounded-2xl p-3.5">
                 <span className="text-[#55687D] block mb-0.5">Đối tượng học viên:</span>
                 <strong className="text-[#14263D] font-bold">{selectedProgram.targetAudience}</strong>
               </div>
-              <div className="bg-[#FAFDFE] border border-[#E1EBF5] rounded-xl p-3">
+              <div className="bg-[#FAFDFE] border border-[#E1EBF5] rounded-2xl p-3.5">
                 <span className="text-[#55687D] block mb-0.5">Hình thức đào tạo:</span>
-                <strong className="text-[#2868B2] font-bold">{selectedProgram.format}</strong>
+                <strong className="text-[#1B64B0] font-bold">{selectedProgram.format}</strong>
               </div>
             </div>
 
@@ -1438,14 +1445,14 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => setSelectedProgram(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-[#55687D] hover:bg-[#F7FAFD]"
+                className="px-5 py-2.5 rounded-full text-xs font-extrabold text-[#55687D] hover:bg-[#F7FAFD]"
               >
                 Đóng
               </button>
               <button
                 type="button"
                 onClick={handleEnrollFromModal}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-[#FFB547] text-[#14263D] hover:bg-[#ffa726] shadow-sm transition-all"
+                className="px-6 py-2.5 rounded-full text-xs font-black bg-[#FFB547] text-[#14263D] hover:bg-[#FFA726] shadow-sm transition-all"
               >
                 Đăng ký tư vấn khóa học này
               </button>
