@@ -54,14 +54,26 @@ export const translations: Translations = {
   'nav.login': {
     vi: 'Đăng nhập',
     en: 'Sign In',
-    zh: '登录账号',
+    zh: '登录',
     ja: 'ログイン',
   },
   'nav.register': {
     vi: 'Đăng ký học viên',
-    en: 'Enroll as Student',
+    en: 'Register',
     zh: '注册学员',
     ja: '受講生登録',
+  },
+  'nav.loginAccount': {
+    vi: 'Đăng nhập tài khoản',
+    en: 'Sign In to Account',
+    zh: '登录账号',
+    ja: 'アカウントにログイン',
+  },
+  'nav.registerStudent': {
+    vi: 'Đăng ký học viên mới',
+    en: 'Enroll as New Student',
+    zh: '注册新学员',
+    ja: '新規受講生登録',
   },
   'nav.logout': {
     vi: 'Đăng xuất',
@@ -196,6 +208,36 @@ export const translations: Translations = {
     en: 'All (5 Pillars)',
     zh: '全部 (5大支柱)',
     ja: 'すべて (5つの柱)',
+  },
+  'pillars.filter.p1': {
+    vi: '1. English Proficiency',
+    en: '1. English Proficiency',
+    zh: '1. 英语能力',
+    ja: '1. 英語運用能力',
+  },
+  'pillars.filter.p2': {
+    vi: '2. Professional Development',
+    en: '2. Professional Development',
+    zh: '2. 专业发展',
+    ja: '2. 指導者専門開発',
+  },
+  'pillars.filter.p3': {
+    vi: '3. Life Skills',
+    en: '3. Life Skills',
+    zh: '3. 生活技能',
+    ja: '3. ライフスキル',
+  },
+  'pillars.filter.p4': {
+    vi: '4. Life Experiences',
+    en: '4. Life Experiences',
+    zh: '4. 人生阅历',
+    ja: '4. 人生経験',
+  },
+  'pillars.filter.p5': {
+    vi: '5. Travel & Culture',
+    en: '5. Travel & Culture',
+    zh: '5. 旅行文化',
+    ja: '5. 旅と文化',
   },
   'pillars.detailBtn': {
     vi: 'Xem chi tiết & Đăng ký tư vấn',
@@ -394,6 +436,36 @@ export const translations: Translations = {
   'consult.phoneLabel': { vi: 'Số điện thoại: *', en: 'Phone Number: *', zh: '联系电话：*', ja: 'お電話番号：*' },
   'consult.programLabel': { vi: 'Chương trình đào tạo quan tâm: *', en: 'Interested Program: *', zh: '感兴趣的课程领域：*', ja: 'ご希望のプログラム：*' },
   'consult.programSelectPlaceholder': { vi: '-- Chọn 1 trong 5 Trụ Cột Đào Tạo --', en: '-- Select 1 of 5 Core Pillars --', zh: '-- 选择 5 大核心支柱之一 --', ja: '-- 5つの柱から選択してください --' },
+  'consult.opt1': {
+    vi: '1. English Proficiency (IELTS, Business, Giao tiếp, Thiếu nhi)',
+    en: '1. English Proficiency (IELTS, Business, Conversational, Kids)',
+    zh: '1. 英语能力 (雅思、商务、日常口语、少儿英语)',
+    ja: '1. 英語運用能力 (IELTS、ビジネス、日常会話、キッズ)',
+  },
+  'consult.opt2': {
+    vi: '2. Professional Development (Sư phạm AI, Lãnh đạo, Nghiên cứu)',
+    en: '2. Professional Development (AI Pedagogy, Leadership, Research)',
+    zh: '2. 教师专业发展 (AI教育应用、领导力、学术研究)',
+    ja: '2. 指導者専門開発 (AI教育、リーダーシップ、研究)',
+  },
+  'consult.opt3': {
+    vi: '3. Life Skills & Personal Growth (Tư duy phản biện, Thuyết trình)',
+    en: '3. Life Skills & Personal Growth (Critical Thinking, Public Speaking)',
+    zh: '3. 生活技能与成长 (批判性思维、公众演讲、时间管理)',
+    ja: '3. ライフスキル＆自己成長 (クリティカルシンキング、スピーチ)',
+  },
+  'consult.opt4': {
+    vi: '4. Life Experiences & Inspiration (Tọa đàm, Kinh nghiệm quốc tế)',
+    en: '4. Life Experiences & Inspiration (Talkshows, Overseas Experience)',
+    zh: '4. 人生阅历与启发 (励志讲座、海外教学纪实)',
+    ja: '4. 人生経験とインスピレーション (対談、海外経験談)',
+  },
+  'consult.opt5': {
+    vi: '5. Travel & Culture Blog (Văn hóa, Khám phá Châu Á)',
+    en: '5. Travel & Culture Blog (Cultural Awareness, Discovering Asia)',
+    zh: '5. 旅行文化专栏 (跨文化理解、探索亚洲、语言人文)',
+    ja: '5. 旅と文化ブログ (異文化理解、アジア探訪、言語と人間)',
+  },
   'consult.notesLabel': { vi: 'Mục tiêu hoặc câu hỏi của bạn:', en: 'Your Goals or Questions:', zh: '学习目标或咨询问题：', ja: '学習目標またはご質問：' },
   'consult.notesPlaceholder': { vi: 'Ví dụ: Em cần đạt IELTS 7.0 trong 6 tháng tới...', en: 'e.g., I aim for IELTS 7.0 in the next 6 months...', zh: '例如：希望在未来6个月内考到雅思7.0分...', ja: '例：半年以内にIELTS 7.0の取得を目指しています...' },
   'consult.submitBtn': {
@@ -409,6 +481,38 @@ export const translations: Translations = {
     ja: '🎉 お申し込みありがとうございます。24時間以内にご連絡いたします。',
   },
 
+  // Modal Detail
+  'modal.objective': {
+    vi: 'Mục tiêu & Nội dung trọng tâm:',
+    en: 'Objectives & Core Focus:',
+    zh: '目标与核心内容：',
+    ja: '目標と主な内容：',
+  },
+  'modal.target': {
+    vi: 'Đối tượng học viên:',
+    en: 'Target Audience:',
+    zh: '适合对象：',
+    ja: '対象受講生：',
+  },
+  'modal.format': {
+    vi: 'Hình thức đào tạo:',
+    en: 'Learning Format:',
+    zh: '授课模式：',
+    ja: '受講形態：',
+  },
+  'modal.close': {
+    vi: 'Đóng',
+    en: 'Close',
+    zh: '关闭',
+    ja: '閉じる',
+  },
+  'modal.enroll': {
+    vi: 'Đăng ký tư vấn khóa học này',
+    en: 'Consult for This Course',
+    zh: '预约该课程咨询',
+    ja: 'この講座を相談予約する',
+  },
+
   // Footer
   'footer.desc': {
     vi: 'Nền tảng đào tạo tiếng Anh học thuật & phát triển năng lực toàn diện. Tiên phong ứng dụng WebRTC SFU và Trí tuệ nhân tạo AI trong giảng dạy trực tuyến.',
@@ -419,6 +523,18 @@ export const translations: Translations = {
   'footer.colPrograms': { vi: '5 TRỤ CỘT ĐÀO TẠO', en: '5 CORE PILLARS', zh: '5大核心课程', ja: '5つの主要教育柱' },
   'footer.colTech': { vi: 'HỆ SINH THÁI EDTECH', en: 'EDTECH ECOSYSTEM', zh: '教育科技生态', ja: 'EDTECHエコシステム' },
   'footer.colContact': { vi: 'KẾT NỐI VỚI CHÚNG TÔI', en: 'CONNECT WITH US', zh: '联系与支持', ja: 'お問い合わせ' },
+  'footer.support': {
+    vi: 'Hỗ trợ kỹ thuật: 24/7',
+    en: 'Technical Support: 24/7',
+    zh: '技术支持：全天候 24/7',
+    ja: 'テクニカルサポート：24/7',
+  },
+  'footer.loginPortal': {
+    vi: 'Đăng nhập hệ thống học viên',
+    en: 'Sign In to Student Portal',
+    zh: '登录学员系统',
+    ja: '受講生ポータルにログイン',
+  },
   'footer.rights': {
     vi: '© 2026 Teacher Dong Academy. Mọi quyền được bảo lưu.',
     en: '© 2026 Teacher Dong Academy. All rights reserved.',
