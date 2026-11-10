@@ -1,25 +1,115 @@
 import { api } from '../lib/api';
 
 export interface StudentDashboardData {
-  enrolledCoursesCount: number;
-  averageWritingScore: number;
-  averageSpeakingScore: number;
-  quizzesCompletedCount: number;
-  attendanceRate: number;
-  upcomingClassrooms: Record<string, unknown>[];
-  recentActivities: Record<string, unknown>[];
+  overview: {
+    enrolledCoursesCount: number;
+    averageProgress: number;
+    completedLessonsCount: number;
+    completedQuizzesCount: number;
+    writingSubmissionsCount: number;
+    speakingSubmissionsCount: number;
+  };
+  recentCourses: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    thumbnail?: string | null;
+    category?: string;
+    progressPercent?: number;
+    enrolledAt?: string;
+  }>;
+  upcomingClassrooms: Array<{
+    id: string;
+    name: string;
+    roomName: string;
+    scheduledStartTime: string;
+    durationMinutes: number;
+    status: string;
+    host?: { fullName: string };
+    course?: { title: string };
+  }>;
+  recentWriting: Array<{
+    id: string;
+    overallScore?: number | null;
+    status: string;
+    submittedAt: string;
+    feedbackSummary?: string | null;
+    prompt?: { title: string; taskType: string };
+  }>;
+  recentSpeaking: Array<{
+    id: string;
+    overallBand?: number | null;
+    status: string;
+    submittedAt: string;
+    adminFeedback?: string | null;
+    prompt?: { title: string; topic: string };
+  }>;
+  attendanceSummary: {
+    totalSessions: number;
+    present: number;
+    late: number;
+    absent: number;
+  };
 }
 
 export interface AdminDashboardData {
-  totalStudents: number;
-  activeStudentsToday: number;
-  totalCourses: number;
-  pendingWritingCount: number;
-  pendingSpeakingCount: number;
-  todayLiveClassrooms: Record<string, unknown>[];
-  revenueSummary?: {
-    monthly: number;
-    currency: string;
+  metrics: {
+    totalStudents: number;
+    totalCourses: number;
+    totalLessons: number;
+    totalClassrooms: number;
+    totalWritingSubmissions: number;
+    totalSpeakingSubmissions: number;
+  };
+  actionItems: {
+    pendingWritingApprovals: number;
+    pendingSpeakingGradings: number;
+  };
+  attendanceOverview: {
+    totalRecords: number;
+    presentCount: number;
+    lateCount: number;
+    absentCount: number;
+    presentRate: number;
+    lateRate: number;
+    absentRate: number;
+  };
+  recentStudents: Array<{
+    id: string;
+    email: string;
+    fullName: string;
+    phone?: string | null;
+    isActive: boolean;
+    createdAt: string;
+  }>;
+  activeOrUpcomingClassrooms: Array<{
+    id: string;
+    name: string;
+    roomName: string;
+    scheduledStartTime: string;
+    durationMinutes: number;
+    status: string;
+    host?: { fullName: string };
+    course?: { title: string };
+    _count?: { attendanceRecords: number };
+  }>;
+  recentSubmissions: {
+    writing: Array<{
+      id: string;
+      submittedAt: string;
+      status: string;
+      overallScore?: number | null;
+      user?: { fullName: string; email: string };
+      prompt?: { title: string; taskType: string };
+    }>;
+    speaking: Array<{
+      id: string;
+      submittedAt: string;
+      status: string;
+      overallBand?: number | null;
+      user?: { fullName: string; email: string };
+      prompt?: { title: string; topic: string };
+    }>;
   };
 }
 
@@ -34,4 +124,3 @@ export const dashboardService = {
     return response.data?.data || response.data;
   },
 };
-

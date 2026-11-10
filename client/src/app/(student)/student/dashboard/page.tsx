@@ -10,165 +10,226 @@ import {
   PenTool,
   Mic,
   CheckCircle2,
-  Clock,
   ArrowRight,
-  AlertCircle,
   FileText,
-  RefreshCw,
+  Play,
+  Award,
+  Sparkles,
+  CalendarCheck,
 } from 'lucide-react';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const [metrics, setMetrics] = useState<StudentDashboardData>({
-    enrolledCoursesCount: 1,
-    averageWritingScore: 7.0,
-    averageSpeakingScore: 7.5,
-    quizzesCompletedCount: 4,
-    attendanceRate: 95.4,
-    upcomingClassrooms: [],
-    recentActivities: [],
-  });
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<StudentDashboardData | null>(null);
 
   useEffect(() => {
     const fetchDashboard = async () => {
-      setLoading(true);
       try {
-        const data = await dashboardService.getStudentDashboard();
-        if (data) {
-          setMetrics(data);
+        const res = await dashboardService.getStudentDashboard();
+        if (res) {
+          setData(res);
         }
-      } catch {
-        // Fallback default metrics
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching student dashboard:', err);
       }
     };
     fetchDashboard();
   }, []);
 
+  // Compute stats with fallback
+  const overview = data?.overview || {
+    enrolledCoursesCount: 1,
+    averageProgress: 68,
+    completedLessonsCount: 8,
+    completedQuizzesCount: 4,
+    writingSubmissionsCount: 2,
+    speakingSubmissionsCount: 3,
+  };
+
+  const attendance = data?.attendanceSummary || {
+    totalSessions: 12,
+    present: 11,
+    late: 1,
+    absent: 0,
+  };
+
+  const attendanceRate =
+    attendance.totalSessions > 0
+      ? Math.round((attendance.present / attendance.totalSessions) * 100)
+      : 95;
+
+  const activeCourse = data?.recentCourses?.[0] || {
+    id: 'course-1',
+    title: 'IELTS Intensive 6.5 -> 7.5+ Masterclass',
+    slug: 'ielts-masterclass-band-7',
+    category: 'IELTS INTENSIVE',
+    progressPercent: 68,
+  };
+
+  const latestSpeaking = data?.recentSpeaking?.[0];
+  const latestWriting = data?.recentWriting?.[0];
+  const upcomingClass = data?.upcomingClassrooms?.[0];
+
   return (
-    <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-primary-deep via-primary to-primary-dark text-white p-6 sm:p-8 shadow-lg shadow-primary/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+    <div className="space-y-6 select-none">
+      {/* 1. Live Class Notification Banner (1-Touch Quick Join) */}
+      <div className="rounded-3xl bg-gradient-to-r from-[#153a68] via-[#1B64B0] to-[#257ad4] text-white p-6 sm:p-7 shadow-xl shadow-primary/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border border-white/10">
         <div className="space-y-2 max-w-xl">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 text-accent text-xs font-bold">
-            <span>🎓 Cổng Học Viên Chính Thức</span>
-            {loading && <RefreshCw className="w-3 h-3 animate-spin text-white" />}
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500 text-white text-[10.5px] font-black uppercase tracking-wider shadow-sm animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-white"></span>
+              ĐANG DIỄN RA
+            </span>
+            <span className="text-xs text-sky-100 font-medium">
+              Chào {user?.fullName || 'Học viên'} • Lớp học trực tiếp WebRTC LiveKit
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Chào mừng trở lại, {user?.fullName || 'Học viên'}!
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-            Mục tiêu của bạn là <strong>IELTS Band 7.5+</strong>. Hãy tiếp tục hoàn thành bài tập Writing và tham gia buổi học LiveKit tối nay nhé.
+
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+            {upcomingClass?.name || 'IELTS Speaking & Discussion — Room #101'}
+          </h2>
+
+          <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed">
+            Giảng viên Host: <strong className="text-white">Teacher Dong (IELTS 8.5)</strong> • Tích hợp bảng vẽ Canvas & Điểm danh tự động.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <Link
-            href="/student/classroom"
-            className="px-5 py-3 rounded-xl bg-accent hover:bg-accent-dark text-slate-900 font-bold text-xs shadow-md shadow-accent/20 flex items-center justify-center space-x-2 transition"
-          >
-            <Video className="w-4 h-4" />
-            <span>Vào Lớp Trực Tuyến LiveKit</span>
-          </Link>
-        </div>
+        <Link
+          href={upcomingClass?.roomName ? `/student/classroom/${upcomingClass.roomName}` : '/student/classroom'}
+          className="shrink-0 px-6 py-3.5 rounded-2xl bg-[#FFB547] hover:bg-[#FFA726] active:scale-95 text-[#14263D] font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 flex items-center gap-2.5 transition-all cursor-pointer whitespace-nowrap"
+        >
+          <Video className="w-4 h-4 text-[#14263D]" />
+          <span>Vào phòng học ngay (1 chạm)</span>
+        </Link>
       </div>
 
-      {/* 4 Summary Stats */}
+      {/* 2. Four Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
+        {/* Stat 1: Courses */}
+        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted">Khóa học ghi danh</span>
-            <BookOpen className="w-4 h-4 text-primary" />
+            <span className="text-xs font-bold text-muted">Khóa học đang học</span>
+            <div className="w-8 h-8 rounded-xl bg-sky-50 text-primary flex items-center justify-center">
+              <BookOpen className="w-4 h-4" />
+            </div>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">
-            {metrics.enrolledCoursesCount || 1} Khóa
-          </p>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-            <div className="bg-primary h-1.5 rounded-full" style={{ width: '68%' }}></div>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              {overview.enrolledCoursesCount} <span className="text-xs font-bold text-slate-400">Khóa</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div
+                className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${overview.averageProgress || 68}%` }}
+              ></div>
+            </div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
+        {/* Stat 2: Quizzes passed */}
+        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted">Chuyên cần LiveKit</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs font-bold text-muted">Quiz đã vượt qua</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
           </div>
-          <p className="text-2xl font-extrabold text-emerald-600 mt-2">
-            {metrics.attendanceRate || 95.4}%
-          </p>
-          <p className="text-[11px] text-muted mt-1">Buổi học đúng giờ (PRESENT)</p>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
+              {overview.completedQuizzesCount} <span className="text-xs font-bold text-slate-400">bài thi</span>
+            </div>
+            <p className="text-[11px] text-muted mt-1">Sàn điểm đạt chuẩn &ge; 80%</p>
+          </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
+        {/* Stat 3: Target Band */}
+        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted">Writing Band gần nhất</span>
-            <PenTool className="w-4 h-4 text-purple-600" />
+            <span className="text-xs font-bold text-muted">Điểm IELTS ước tính</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
+              <Award className="w-4 h-4" />
+            </div>
           </div>
-          <p className="text-2xl font-extrabold text-purple-600 mt-2">
-            {metrics.averageWritingScore ? metrics.averageWritingScore.toFixed(1) : '7.0'}
-          </p>
-          <p className="text-[11px] text-muted mt-1">Task 2 • Thầy Đông đã duyệt</p>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-amber-500 tracking-tight">
+              Band {latestSpeaking?.overallBand ? latestSpeaking.overallBand.toFixed(1) : '7.0+'}
+            </div>
+            <p className="text-[11px] text-muted mt-1">Mục tiêu cá nhân: <strong>7.5+</strong></p>
+          </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-line shadow-sm">
+        {/* Stat 4: Attendance */}
+        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted">Speaking Band gần nhất</span>
-            <Mic className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-bold text-muted">Chuyên cần WebRTC</span>
+            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <CalendarCheck className="w-4 h-4" />
+            </div>
           </div>
-          <p className="text-2xl font-extrabold text-amber-500 mt-2">
-            {metrics.averageSpeakingScore ? metrics.averageSpeakingScore.toFixed(1) : '7.5'}
-          </p>
-          <p className="text-[11px] text-muted mt-1">Part 2 • 3 mốc nhận xét audio</p>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-purple-600 tracking-tight">
+              {attendanceRate}%
+            </div>
+            <p className="text-[11px] text-muted mt-1">{attendance.present}/{attendance.totalSessions} buổi đúng giờ (PRESENT)</p>
+          </div>
         </div>
       </div>
 
-      {/* Main Grid: Upcoming Classes & Tasks */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Upcoming LiveKit Room & Learning Path */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Upcoming WebRTC Classroom Card */}
-          <div className="bg-white rounded-2xl border border-line p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-sky-100 text-primary flex items-center justify-center">
-                  <Video className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Lớp Học Trực Tuyến Hôm Nay</h3>
-                  <p className="text-[11px] text-muted">Phòng học LiveKit SFU 1 Host + 8 SV</p>
-                </div>
+      {/* 3. Main Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column: Active Course & Studios */}
+        <div className="space-y-6">
+          {/* Active Course Card (from Mockup) */}
+          <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                <BookOpen className="w-4 h-4" />
+                <span>Khóa học đang tiếp tục</span>
               </div>
-              <span className="text-[10px] bg-emerald-100 text-emerald-700 font-extrabold px-2.5 py-1 rounded-full animate-pulse">
-                SẮP DIỄN RA
+              <span className="px-2.5 py-1 rounded-full bg-sky-100 text-[#1B64B0] text-[10.5px] font-black uppercase">
+                {activeCourse.category || 'IELTS INTENSIVE'}
               </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h4 className="text-sm font-bold text-slate-900">
-                  IELTS Speaking Part 2 Forecast — Intensive Mock Session
-                </h4>
-                <div className="flex items-center space-x-1.5 text-xs font-bold text-primary">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>19:30 - 21:00 (Tối nay)</span>
-                </div>
-              </div>
-              <p className="text-xs text-slate-600">
-                Chủ tọa: <strong>Thầy Đông (IELTS 8.5)</strong> • Học viên tham gia: 8/8 người • Tích hợp Bảng trắng WebRTC Canvas.
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                {activeCourse.title}
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                Bài học tiếp theo: <strong className="text-slate-700">Unit 4 — Advanced Cohesion & Lexical Upgrade</strong>
               </p>
-              <div className="pt-2 flex items-center justify-between">
-                <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-medium">
-                  Vào trước 15 phút đầu để được tính PRESENT
-                </span>
-                <Link
-                  href="/student/classroom"
-                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm"
-                >
-                  Tham gia phòng học
-                </Link>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-slate-600">Tiến độ hoàn thành khóa học</span>
+                <span className="text-primary font-black">{activeCourse.progressPercent || 68}%</span>
               </div>
+              <div className="w-full bg-[#E1EBF5] h-2.5 rounded-full overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-sky-400 to-[#1B64B0] h-full rounded-full transition-all duration-500"
+                  style={{ width: `${activeCourse.progressPercent || 68}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex flex-wrap gap-2.5">
+              <Link
+                href="/student/courses"
+                className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Tiếp tục bài học</span>
+              </Link>
+              <Link
+                href="/student/library"
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
+              >
+                <FileText className="w-3.5 h-3.5 text-slate-500" />
+                <span>Tài liệu bài học</span>
+              </Link>
             </div>
           </div>
 
@@ -176,41 +237,41 @@ export default function StudentDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               href="/student/writing"
-              className="p-5 rounded-2xl bg-white border border-line hover:border-primary/50 shadow-sm transition space-y-3 group"
+              className="p-5 rounded-3xl bg-white border border-line hover:border-purple-300 shadow-xs transition space-y-3 group"
             >
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
                 <PenTool className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900 group-hover:text-primary transition">
+                <h4 className="text-sm font-bold text-slate-900 group-hover:text-purple-600 transition">
                   AI IELTS Writing Studio
                 </h4>
-                <p className="text-xs text-muted mt-1">
-                  Luyện viết Task 1 & 2 với bộ đếm từ và chấm tức thì bởi AI Google Gemini.
+                <p className="text-xs text-muted mt-1 leading-relaxed">
+                  Luyện viết Task 1 & 2 với đếm từ thời gian thực và AI Gemini chấm tức thì 4 tiêu chí.
                 </p>
               </div>
-              <div className="flex items-center text-xs font-bold text-primary pt-1">
-                <span>Vào phòng viết</span>
+              <div className="flex items-center text-xs font-bold text-purple-600 pt-1">
+                <span>Vào phòng viết bài</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
 
             <Link
               href="/student/speaking"
-              className="p-5 rounded-2xl bg-white border border-line hover:border-primary/50 shadow-sm transition space-y-3 group"
+              className="p-5 rounded-3xl bg-white border border-line hover:border-amber-300 shadow-xs transition space-y-3 group"
             >
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
                 <Mic className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900 group-hover:text-primary transition">
+                <h4 className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition">
                   IELTS Speaking Studio
                 </h4>
-                <p className="text-xs text-muted mt-1">
-                  Thu âm giọng nói với sóng âm thời gian thực, Thầy Đông trực tiếp chấm 4 tiêu chí.
+                <p className="text-xs text-muted mt-1 leading-relaxed">
+                  Ghi âm giọng nói với sóng âm Web Audio API, Thầy Đông chấm 4 tiêu chí kèm timestamp.
                 </p>
               </div>
-              <div className="flex items-center text-xs font-bold text-primary pt-1">
+              <div className="flex items-center text-xs font-bold text-amber-600 pt-1">
                 <span>Vào phòng thu âm</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -218,52 +279,93 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Right Column: Pending Actions & Notices */}
+        {/* Right Column: Pending Tasks & Teacher Feedback */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-line p-5 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Nhiệm Vụ Cần Hoàn Thành
-            </h3>
+          <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>Nhiệm vụ & Phản hồi giảng viên</span>
+              </h3>
+            </div>
 
             <div className="space-y-3">
-              <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 space-y-1.5 text-xs">
-                <div className="flex items-center space-x-2 font-bold text-amber-800">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Bài tập Writing Task 2 đang chờ nộp</span>
+              {/* Task 1: Writing Task Pending */}
+              <div className="p-4 rounded-2xl bg-[#F7FAFD] border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">
+                    {latestWriting?.prompt?.title || 'Bài viết IELTS Writing Task 2'}
+                  </h4>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    Hạn nộp: <strong className="text-slate-700">Tối nay 23:59</strong> • {latestWriting?.overallScore ? `Band ${latestWriting.overallScore}` : 'Trí tuệ nhân tạo & Giáo dục'}
+                  </p>
                 </div>
-                <p className="text-slate-600">
-                  Chủ đề: &ldquo;University Education: Free vs Tuition Fees&rdquo; — Hạn nộp 23:59 hôm nay.
-                </p>
+                <Link
+                  href="/student/writing"
+                  className="px-3.5 py-1.5 rounded-xl bg-[#FFB547] hover:bg-[#FFA726] text-[#14263D] font-bold text-xs self-start sm:self-auto transition shadow-xs text-center"
+                >
+                  {latestWriting?.overallScore ? 'Xem bài viết' : 'Làm bài AI'}
+                </Link>
               </div>
 
-              <div className="p-3.5 rounded-xl border border-sky-200 bg-sky-50/50 space-y-1.5 text-xs">
-                <div className="flex items-center space-x-2 font-bold text-primary">
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                  <span>Quiz Checkpoint 03 đã mở</span>
+              {/* Feedback 2: Speaking Audio Feedback */}
+              <div className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#FFE4B5] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#b26a00]">
+                    Phản hồi Speaking Part 2 từ Teacher Dong
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-extrabold text-[10px]">
+                    {latestSpeaking?.overallBand ? `BAND ${latestSpeaking.overallBand.toFixed(1)}` : 'BAND 7.5'}
+                  </span>
                 </div>
-                <p className="text-slate-600">
-                  Đạt sàn ≥ 80% để tự động mở khóa Module 04 tiếp theo.
+                <p className="text-xs text-slate-600 italic">
+                  &ldquo;{latestSpeaking?.adminFeedback || 'Ngữ điệu rất tự nhiên, phát âm rõ ràng. Thầy đã để lại 3 ghi chú chi tiết tại các mốc thời gian trong audio.'}&rdquo;
                 </p>
+                <div className="pt-1">
+                  <Link
+                    href="/student/speaking"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                  >
+                    <span>Nghe nhận xét âm thanh →</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Checkpoint Quiz */}
+              <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">
+                    Quiz Checkpoint: Speaking Fluency Rules
+                  </h4>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    Đạt &ge; 80% để tự động mở khóa Module bài học kế tiếp.
+                  </p>
+                </div>
+                <Link
+                  href="/student/quizzes"
+                  className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs self-start sm:self-auto transition shadow-xs text-center"
+                >
+                  Làm Quiz
+                </Link>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-line p-5 shadow-sm space-y-3">
+          {/* Secured Library Highlight */}
+          <div className="bg-white rounded-3xl border border-line p-5 shadow-xs space-y-3">
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Học Liệu Mới Được Cập Nhật
+              Học Liệu Mới Được Phát Hành
             </h3>
-            <div className="space-y-2">
-              <Link
-                href="/student/library"
-                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition flex items-center justify-between text-xs font-semibold text-slate-800"
-              >
-                <div className="flex items-center space-x-2 truncate">
-                  <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
-                  <span className="truncate">IELTS Writing Task 2 Master Vocabulary (PDF)</span>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-muted flex-shrink-0" />
-              </Link>
-            </div>
+            <Link
+              href="/student/library"
+              className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 transition flex items-center justify-between text-xs font-semibold text-slate-800 group"
+            >
+              <div className="flex items-center space-x-2.5 truncate">
+                <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <span className="truncate">Cambridge IELTS 18 Academic Vocabulary & Model Essays (PDF)</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-muted flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
         </div>
       </div>
