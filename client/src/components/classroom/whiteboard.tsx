@@ -15,7 +15,7 @@ import {
   Check,
 } from 'lucide-react';
 
-interface Point {
+export interface Point {
   x: number;
   y: number;
 }
@@ -62,202 +62,325 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   remoteStrokes = [],
   allowStudentDrawing = true,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Dual-Canvas Architecture
+  // 1. bgCanvas: Background layer (grid + committed permanent strokes)
+  // 2. fgCanvas: Active foreground scratchpad (current active drawing stroke only, 60fps)
+  const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fgCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Active tool settings
   const [tool, setTool] = useState<'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'line'>('pen');
   const [color, setColor] = useState<string>('#0284c7');
   const [width, setWidth] = useState<number>(4);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [strokes, setStrokes] = useState<WhiteboardStroke[]>([]);
-  const [currentStroke, setCurrentStroke] = useState<WhiteboardStroke | null>(null);
+
+  // High performance drawing refs (outside React State to avoid re-renders)
+  const isDrawingRef = useRef(false);
+  const currentPointsRef = useRef<Point[]>([]);
+  const animFrameIdRef = useRef<number | null>(null);
 
   const isDrawingAllowed = isHost || (canDraw && allowStudentDrawing);
 
-  // Sync with remote strokes
-  useEffect(() => {
-    if (remoteStrokes && remoteStrokes.length > 0) {
-      setStrokes(remoteStrokes);
-    }
-  }, [remoteStrokes]);
-
-  // Redraw entire canvas
-  const redrawCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw white background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw grid pattern (subtle graph paper for classroom)
-    ctx.strokeStyle = '#f1f5f9';
-    ctx.lineWidth = 1;
-    const gridSize = 30;
-    for (let x = 0; x < canvas.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    for (let y = 0; y < canvas.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-
-    const allStrokes = currentStroke ? [...strokes, currentStroke] : strokes;
-
-    allStrokes.forEach((st) => {
-      if (st.points.length === 0) return;
+  // Helper: Draw a single stroke with Quadratic Bézier smoothing
+  const drawStrokeToContext = useCallback(
+    (ctx: CanvasRenderingContext2D, stroke: WhiteboardStroke) => {
+      const { tool: stTool, color: stColor, width: stWidth, points: pts } = stroke;
+      if (!pts || pts.length === 0) return;
 
       ctx.save();
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
-      if (st.tool === 'eraser') {
+      if (stTool === 'eraser') {
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = st.width * 3;
-      } else if (st.tool === 'highlighter') {
-        ctx.strokeStyle = st.color;
+        ctx.lineWidth = stWidth * 3.5;
+      } else if (stTool === 'highlighter') {
+        ctx.strokeStyle = stColor;
         ctx.globalAlpha = 0.35;
-        ctx.lineWidth = st.width * 2.5;
+        ctx.lineWidth = stWidth * 2.5;
       } else {
-        ctx.strokeStyle = st.color;
-        ctx.lineWidth = st.width;
+        ctx.strokeStyle = stColor;
+        ctx.globalAlpha = 1.0;
+        ctx.lineWidth = stWidth;
       }
 
-      if (st.tool === 'rectangle' && st.points.length >= 2) {
-        const start = st.points[0];
-        const end = st.points[st.points.length - 1];
+      if (stTool === 'rectangle' && pts.length >= 2) {
+        const start = pts[0];
+        const end = pts[pts.length - 1];
         ctx.beginPath();
         ctx.strokeRect(start.x, start.y, end.x - start.x, end.y - start.y);
-      } else if (st.tool === 'line' && st.points.length >= 2) {
-        const start = st.points[0];
-        const end = st.points[st.points.length - 1];
+      } else if (stTool === 'line' && pts.length >= 2) {
+        const start = pts[0];
+        const end = pts[pts.length - 1];
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
         ctx.stroke();
-      } else {
+      } else if (pts.length === 1) {
+        // Single tap dot
         ctx.beginPath();
-        ctx.moveTo(st.points[0].x, st.points[0].y);
-        for (let i = 1; i < st.points.length; i++) {
-          ctx.lineTo(st.points[i].x, st.points[i].y);
+        ctx.arc(pts[0].x, pts[0].y, stWidth / 2, 0, Math.PI * 2);
+        ctx.fillStyle = stColor;
+        ctx.fill();
+      } else if (pts.length === 2) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.stroke();
+      } else {
+        // Quadratic Bézier curve smoothing for 60fps natural handwriting
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+
+        for (let i = 1; i < pts.length - 1; i++) {
+          const midX = (pts[i].x + pts[i + 1].x) / 2;
+          const midY = (pts[i].y + pts[i + 1].y) / 2;
+          ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
         }
+
+        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
         ctx.stroke();
       }
 
       ctx.restore();
-    });
-  }, [strokes, currentStroke]);
+    },
+    []
+  );
 
-  // Adjust canvas size to parent container
+  // Redraw the entire background canvas (only on resize, clear, or remote sync)
+  const redrawBackground = useCallback(
+    (strokeList: WhiteboardStroke[]) => {
+      const bgCanvas = bgCanvasRef.current;
+      if (!bgCanvas) return;
+      const ctx = bgCanvas.getContext('2d');
+      if (!ctx) return;
+
+      // 1. Clear & draw background
+      ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+      // 2. Subtle classroom grid
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 1;
+      const gridSize = 32;
+      ctx.beginPath();
+      for (let x = 0; x < bgCanvas.width; x += gridSize) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, bgCanvas.height);
+      }
+      for (let y = 0; y < bgCanvas.height; y += gridSize) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(bgCanvas.width, y);
+      }
+      ctx.stroke();
+
+      // 3. Draw all committed strokes
+      strokeList.forEach((st) => drawStrokeToContext(ctx, st));
+    },
+    [drawStrokeToContext]
+  );
+
+  // Synchronize remote strokes from LiveKit DataChannel
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (remoteStrokes) {
+      setStrokes(remoteStrokes);
+      redrawBackground(remoteStrokes);
+    }
+  }, [remoteStrokes, redrawBackground]);
+
+  // Handle Resize: match container size
+  useEffect(() => {
+    const bgCanvas = bgCanvasRef.current;
+    const fgCanvas = fgCanvasRef.current;
+    if (!bgCanvas || !fgCanvas) return;
 
     const updateSize = () => {
-      const parent = canvas.parentElement;
-      if (parent) {
-        canvas.width = parent.clientWidth;
-        canvas.height = parent.clientHeight;
-        redrawCanvas();
+      const parent = bgCanvas.parentElement;
+      if (!parent) return;
+
+      const width = parent.clientWidth;
+      const height = parent.clientHeight;
+
+      if (bgCanvas.width !== width || bgCanvas.height !== height) {
+        bgCanvas.width = width;
+        bgCanvas.height = height;
+        fgCanvas.width = width;
+        fgCanvas.height = height;
+        redrawBackground(strokes);
       }
     };
 
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
-  }, [redrawCanvas]);
+  }, [strokes, redrawBackground]);
 
-  useEffect(() => {
-    redrawCanvas();
-  }, [redrawCanvas]);
-
+  // Coordinate helper
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>): Point | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
+    const fgCanvas = fgCanvasRef.current;
+    if (!fgCanvas) return null;
+    const rect = fgCanvas.getBoundingClientRect();
     return {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     };
   };
 
+  // Render the current stroke on the active foreground scratchpad canvas
+  const renderActiveStroke = () => {
+    const fgCanvas = fgCanvasRef.current;
+    if (!fgCanvas) return;
+    const ctx = fgCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, fgCanvas.width, fgCanvas.height);
+
+    if (currentPointsRef.current.length > 0) {
+      const tempStroke: WhiteboardStroke = {
+        id: 'active',
+        tool,
+        color,
+        width,
+        points: currentPointsRef.current,
+      };
+      drawStrokeToContext(ctx, tempStroke);
+    }
+  };
+
+  // Mouse Down: Start drawing
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawingAllowed) return;
-    const point = getCanvasCoordinates(e);
-    if (!point) return;
+    const pt = getCanvasCoordinates(e);
+    if (!pt) return;
 
-    setIsDrawing(true);
-    const newStroke: WhiteboardStroke = {
-      id: `${Date.now()}-${Math.random()}`,
-      tool,
-      color,
-      width,
-      points: [point],
-    };
-    setCurrentStroke(newStroke);
+    isDrawingRef.current = true;
+    currentPointsRef.current = [pt];
+    renderActiveStroke();
   };
 
+  // Mouse Move: Throttled by Distance (>= 3px) & requestAnimationFrame
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !currentStroke || !isDrawingAllowed) return;
-    const point = getCanvasCoordinates(e);
-    if (!point) return;
+    if (!isDrawingRef.current || !isDrawingAllowed) return;
+    const pt = getCanvasCoordinates(e);
+    if (!pt) return;
 
-    setCurrentStroke((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        points: [...prev.points, point],
-      };
-    });
-  };
+    const pts = currentPointsRef.current;
+    const lastPt = pts[pts.length - 1];
 
-  const stopDrawing = () => {
-    if (!isDrawing || !currentStroke) return;
-    setIsDrawing(false);
-
-    if (currentStroke.points.length > 1) {
-      setStrokes((prev) => [...prev, currentStroke]);
-      onStrokeComplete?.(currentStroke);
+    if (lastPt) {
+      // Distance thresholding: skip redundant points within 3 pixels
+      const dx = pt.x - lastPt.x;
+      const dy = pt.y - lastPt.y;
+      if (dx * dx + dy * dy < 9 && tool !== 'rectangle' && tool !== 'line') {
+        return;
+      }
     }
-    setCurrentStroke(null);
+
+    if (tool === 'rectangle' || tool === 'line') {
+      // Shape tools only keep start point and current point
+      currentPointsRef.current = [pts[0], pt];
+    } else {
+      currentPointsRef.current.push(pt);
+    }
+
+    // Schedule 60fps render on scratchpad canvas via requestAnimationFrame
+    if (!animFrameIdRef.current) {
+      animFrameIdRef.current = requestAnimationFrame(() => {
+        renderActiveStroke();
+        animFrameIdRef.current = null;
+      });
+    }
   };
 
+  // Mouse Up: Commit stroke to Background Canvas & notify LiveKit DataChannel
+  const stopDrawing = () => {
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
+
+    if (animFrameIdRef.current) {
+      cancelAnimationFrame(animFrameIdRef.current);
+      animFrameIdRef.current = null;
+    }
+
+    const pts = [...currentPointsRef.current];
+    currentPointsRef.current = [];
+
+    // Clear active scratchpad canvas
+    const fgCanvas = fgCanvasRef.current;
+    if (fgCanvas) {
+      const fgCtx = fgCanvas.getContext('2d');
+      fgCtx?.clearRect(0, 0, fgCanvas.width, fgCanvas.height);
+    }
+
+    if (pts.length > 0) {
+      const newStroke: WhiteboardStroke = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        tool,
+        color,
+        width,
+        points: pts,
+      };
+
+      // 1. Immediately paint onto background canvas
+      const bgCanvas = bgCanvasRef.current;
+      if (bgCanvas) {
+        const bgCtx = bgCanvas.getContext('2d');
+        if (bgCtx) {
+          drawStrokeToContext(bgCtx, newStroke);
+        }
+      }
+
+      // 2. Update state for history / undo
+      setStrokes((prev) => [...prev, newStroke]);
+
+      // 3. Broadcast to LiveKit DataChannel
+      onStrokeComplete?.(newStroke);
+    }
+  };
+
+  // Actions
   const handleClear = () => {
     setStrokes([]);
-    setCurrentStroke(null);
+    currentPointsRef.current = [];
+
+    const fgCanvas = fgCanvasRef.current;
+    if (fgCanvas) {
+      const fgCtx = fgCanvas.getContext('2d');
+      fgCtx?.clearRect(0, 0, fgCanvas.width, fgCanvas.height);
+    }
+
+    redrawBackground([]);
     onClearBoard?.();
   };
 
   const handleUndo = () => {
-    setStrokes((prev) => prev.slice(0, prev.length - 1));
+    if (strokes.length === 0) return;
+    const newStrokes = strokes.slice(0, strokes.length - 1);
+    setStrokes(newStrokes);
+    redrawBackground(newStrokes);
   };
 
   const handleDownload = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const image = canvas.toDataURL('image/png');
+    const bgCanvas = bgCanvasRef.current;
+    if (!bgCanvas) return;
+    const image = bgCanvas.toDataURL('image/png');
     const link = document.createElement('a');
-    link.download = `whiteboard-${Date.now()}.png`;
+    link.download = `teacher-dong-whiteboard-${Date.now()}.png`;
     link.href = image;
     link.click();
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+    <div className="relative w-full h-full flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 select-none">
       {/* Top Floating Whiteboard Toolbar */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-2.5 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-sky-100">
+      <div className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-2.5 bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-sky-100">
         {/* Tool Selector */}
         <div className="flex items-center space-x-1 border-r border-slate-200 pr-3">
           <button
+            type="button"
             onClick={() => setTool('pen')}
-            className={`p-2 rounded-lg text-sm font-medium transition ${
+            className={`p-2 rounded-xl text-sm font-medium transition cursor-pointer ${
               tool === 'pen' ? 'bg-sky-100 text-sky-700 shadow-inner' : 'text-slate-600 hover:bg-slate-100'
             }`}
             title="Bút vẽ (Pen)"
@@ -266,8 +389,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             <Pen className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => setTool('highlighter')}
-            className={`p-2 rounded-lg text-sm font-medium transition ${
+            className={`p-2 rounded-xl text-sm font-medium transition cursor-pointer ${
               tool === 'highlighter' ? 'bg-sky-100 text-sky-700 shadow-inner' : 'text-slate-600 hover:bg-slate-100'
             }`}
             title="Bút dạ quang (Highlighter)"
@@ -276,8 +400,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             <Highlighter className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => setTool('rectangle')}
-            className={`p-2 rounded-lg text-sm font-medium transition ${
+            className={`p-2 rounded-xl text-sm font-medium transition cursor-pointer ${
               tool === 'rectangle' ? 'bg-sky-100 text-sky-700 shadow-inner' : 'text-slate-600 hover:bg-slate-100'
             }`}
             title="Hình chữ nhật"
@@ -286,8 +411,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             <Square className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => setTool('line')}
-            className={`p-2 rounded-lg text-sm font-medium transition ${
+            className={`p-2 rounded-xl text-sm font-medium transition cursor-pointer ${
               tool === 'line' ? 'bg-sky-100 text-sky-700 shadow-inner' : 'text-slate-600 hover:bg-slate-100'
             }`}
             title="Đường thẳng"
@@ -296,8 +422,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             <Minus className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => setTool('eraser')}
-            className={`p-2 rounded-lg text-sm font-medium transition ${
+            className={`p-2 rounded-xl text-sm font-medium transition cursor-pointer ${
               tool === 'eraser' ? 'bg-amber-100 text-amber-700 shadow-inner' : 'text-slate-600 hover:bg-slate-100'
             }`}
             title="Tẩy xóa (Eraser)"
@@ -311,9 +438,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         <div className="flex items-center space-x-1.5 border-r border-slate-200 pr-3">
           {COLORS.map((c) => (
             <button
+              type="button"
               key={c}
               onClick={() => setColor(c)}
-              className="w-6 h-6 rounded-full border-2 transition relative flex items-center justify-center"
+              className="w-6 h-6 rounded-full border-2 transition relative flex items-center justify-center cursor-pointer"
               style={{
                 backgroundColor: c,
                 borderColor: color === c ? '#0284c7' : 'transparent',
@@ -330,10 +458,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         <div className="flex items-center space-x-1 border-r border-slate-200 pr-3">
           {STROKE_WIDTHS.map((sw) => (
             <button
+              type="button"
               key={sw.value}
               onClick={() => setWidth(sw.value)}
-              className={`px-2 py-1 text-xs rounded-md transition font-medium ${
-                width === sw.value ? 'bg-sky-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+              className={`px-2.5 py-1 text-xs rounded-lg transition font-medium cursor-pointer ${
+                width === sw.value ? 'bg-sky-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'
               }`}
               disabled={!isDrawingAllowed}
             >
@@ -342,37 +471,41 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           ))}
         </div>
 
-        {/* Actions */}
+        {/* Actions (Undo, Clear, Download, Host Lock) */}
         <div className="flex items-center space-x-1">
           <button
+            type="button"
             onClick={handleUndo}
             disabled={strokes.length === 0 || !isDrawingAllowed}
-            className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition disabled:opacity-40"
+            className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition disabled:opacity-40 cursor-pointer"
             title="Hoàn tác (Undo)"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={handleClear}
             disabled={strokes.length === 0 || !isDrawingAllowed}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-40"
+            className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition disabled:opacity-40 cursor-pointer"
             title="Xóa trắng bảng"
           >
             <Trash2 className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={handleDownload}
-            className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
-            title="Lưu ảnh bảng trắng"
+            className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+            title="Lưu ảnh bảng trắng (.png)"
           >
             <Download className="w-4 h-4" />
           </button>
 
-          {/* Admin host control for student drawing */}
+          {/* Admin Host control for student drawing */}
           {isHost && (
             <button
+              type="button"
               onClick={() => onToggleStudentDraw?.(!allowStudentDrawing)}
-              className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition ${
+              className={`ml-2 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer ${
                 allowStudentDrawing
                   ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                   : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
@@ -403,15 +536,22 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         </div>
       )}
 
-      {/* Canvas Area */}
-      <div className="flex-1 w-full h-full cursor-crosshair">
+      {/* Dual-Canvas Container: 100% Hardware Accelerated */}
+      <div className="relative flex-1 w-full h-full cursor-crosshair overflow-hidden">
+        {/* Layer 1: Persistent Background Canvas (grid + committed strokes) */}
         <canvas
-          ref={canvasRef}
+          ref={bgCanvasRef}
+          className="absolute inset-0 w-full h-full block pointer-events-none"
+        />
+
+        {/* Layer 2: Transparent Interactive Scratchpad Canvas (active stroke only, 60fps) */}
+        <canvas
+          ref={fgCanvasRef}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
           onMouseLeave={stopDrawing}
-          className="w-full h-full block"
+          className="absolute inset-0 w-full h-full block"
         />
       </div>
     </div>
