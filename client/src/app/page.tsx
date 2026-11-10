@@ -1585,6 +1585,14 @@ export default function HomePage() {
                 <span>{t('footer.loginPortal')}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </Link>
+              <div className="pt-1 text-center">
+                <Link
+                  href="/admin/login"
+                  className="text-[11px] text-[#94A3B8] hover:text-[#FFB547] transition-colors underline"
+                >
+                  Cổng Quản Trị & Giảng Viên →
+                </Link>
+              </div>
             </div>
           </div>
 

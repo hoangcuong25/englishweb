@@ -8,8 +8,16 @@ export function middleware(request: NextRequest) {
 
   // Protect Admin routes
   if (pathname.startsWith('/admin')) {
+    // Whitelist Admin Login page
+    if (pathname === '/admin/login') {
+      if (token && role === 'ADMIN') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      }
+      return NextResponse.next();
+    }
+
     if (!token) {
-      const loginUrl = new URL('/login', request.url);
+      const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }

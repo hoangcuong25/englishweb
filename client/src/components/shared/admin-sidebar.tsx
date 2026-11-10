@@ -23,17 +23,17 @@ export default function AdminSidebar() {
   const { t } = useI18n();
 
   const navItems = [
-    { href: '/admin/dashboard', label: 'Tổng quan quản trị', icon: LayoutDashboard },
-    { href: '/admin/courses', label: 'Quản lý Đào tạo', icon: GraduationCap },
-    { href: '/admin/library', label: 'Học liệu số & Bảo mật', icon: FolderLock },
-    { href: '/admin/classroom', label: 'Lên lịch WebRTC', icon: Video },
-    { href: '/admin/writing-review', label: 'Duyệt bài Writing AI', icon: FileCheck },
-    { href: '/admin/speaking-grading', label: 'Chấm bài Speaking', icon: Headphones },
-    { href: '/admin/quizzes', label: 'Ngân hàng đề & Quiz', icon: FileQuestion },
-    { href: '/admin/attendance', label: 'Báo cáo Điểm danh', icon: CalendarCheck },
+    { href: '/admin/dashboard', label: t('nav_admin_dashboard'), icon: LayoutDashboard },
+    { href: '/admin/courses', label: t('nav_admin_courses'), icon: GraduationCap },
+    { href: '/admin/library', label: t('nav_admin_library'), icon: FolderLock },
+    { href: '/admin/classroom', label: t('nav_admin_classroom'), icon: Video },
+    { href: '/admin/writing-review', label: t('nav_writing_review'), icon: FileCheck },
+    { href: '/admin/speaking-grading', label: t('nav_speaking_grading'), icon: Headphones },
+    { href: '/admin/quizzes', label: t('nav_admin_quizzes'), icon: FileQuestion },
+    { href: '/admin/attendance', label: t('nav_admin_attendance'), icon: CalendarCheck },
     { href: '/admin/users', label: t('nav_users'), icon: Users },
     { href: '/admin/messages', label: t('nav_messages'), icon: MessageSquare },
-    { href: '/admin/account', label: 'Cài đặt hệ thống', icon: Settings },
+    { href: '/admin/account', label: t('nav_system_settings'), icon: Settings },
   ];
 
   return (

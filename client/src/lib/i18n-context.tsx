@@ -82,6 +82,128 @@ export const translations: Translations = {
     ja: 'ログアウト',
   },
 
+  // Student & Admin Sidebar Navigation
+  nav_dashboard: {
+    vi: 'Tổng quan học tập',
+    en: 'Dashboard Overview',
+    zh: '学习总览',
+    ja: 'ダッシュボード',
+  },
+  nav_courses: {
+    vi: 'Khóa học của tôi',
+    en: 'My Courses',
+    zh: '我的课程',
+    ja: 'マイコース',
+  },
+  nav_library: {
+    vi: 'Học liệu số & Bảo mật',
+    en: 'Digital Library',
+    zh: '数字图书馆',
+    ja: 'デジタル資料館',
+  },
+  nav_classroom: {
+    vi: 'Phòng học trực tuyến',
+    en: 'LiveKit Classroom',
+    zh: '在线互动教室',
+    ja: 'オンライン教室',
+  },
+  nav_writing: {
+    vi: 'Luyện viết IELTS AI',
+    en: 'AI Writing Studio',
+    zh: '雅思AI写作工坊',
+    ja: 'AIライティング演習',
+  },
+  nav_speaking: {
+    vi: 'Studio luyện nói IELTS',
+    en: 'Speaking Studio',
+    zh: '雅思口语录音室',
+    ja: 'スピーキング録音室',
+  },
+  nav_quiz: {
+    vi: 'Ngân hàng bài tập Quiz',
+    en: 'Quizzes & Exercises',
+    zh: '测验与随堂练习',
+    ja: 'クイズ・演習問題',
+  },
+  nav_attendance: {
+    vi: 'Điểm danh & Chuyên cần',
+    en: 'Attendance & Progress',
+    zh: '出勤与出勤记录',
+    ja: '出席・出欠管理',
+  },
+  nav_messages: {
+    vi: 'Tin nhắn & Thảo luận',
+    en: 'Messages & Chat',
+    zh: '消息与实时沟通',
+    ja: 'メッセージ・連絡',
+  },
+  nav_account: {
+    vi: 'Tài khoản cá nhân',
+    en: 'Personal Account',
+    zh: '个人账户设置',
+    ja: 'アカウント設定',
+  },
+  nav_users: {
+    vi: 'Quản lý học viên',
+    en: 'Users Management',
+    zh: '学员与用户管理',
+    ja: '受講生・ユーザー管理',
+  },
+  nav_admin_dashboard: {
+    vi: 'Tổng quan quản trị',
+    en: 'Admin Dashboard',
+    zh: '管理后台总览',
+    ja: '管理者ダッシュボード',
+  },
+  nav_admin_courses: {
+    vi: 'Quản lý Đào tạo',
+    en: 'Courses Management',
+    zh: '课程与教学管理',
+    ja: '講座・カリキュラム管理',
+  },
+  nav_admin_library: {
+    vi: 'Học liệu số & Bảo mật',
+    en: 'Secured Library',
+    zh: '数字资料与安全',
+    ja: '資料ライブラリ管理',
+  },
+  nav_admin_classroom: {
+    vi: 'Lên lịch WebRTC',
+    en: 'WebRTC Classrooms',
+    zh: '实时课堂排课',
+    ja: 'WebRTC教室スケジュール',
+  },
+  nav_writing_review: {
+    vi: 'Duyệt bài Writing AI',
+    en: 'AI Writing Review',
+    zh: '审核AI写作评分',
+    ja: 'AIライティング採点承認',
+  },
+  nav_speaking_grading: {
+    vi: 'Chấm bài Speaking',
+    en: 'Speaking Assessment',
+    zh: '口语评分与批注',
+    ja: 'スピーキング評価・採点',
+  },
+  nav_admin_quizzes: {
+    vi: 'Ngân hàng đề & Quiz',
+    en: 'Quiz Bank & Tests',
+    zh: '题库与在线测验',
+    ja: '問題バンク・小テスト',
+  },
+  nav_admin_attendance: {
+    vi: 'Báo cáo Điểm danh',
+    en: 'Attendance Reports',
+    zh: '出勤考勤报表',
+    ja: '出席レポート出力',
+  },
+  nav_system_settings: {
+    vi: 'Cài đặt hệ thống',
+    en: 'System Settings',
+    zh: '系统设置',
+    ja: 'システム設定',
+  },
+
   // Announcement Bar
   'announcement.text': {
     vi: '✨ Khám phá phòng học trực tuyến LiveKit WebRTC & Trợ lý chấm IELTS Writing AI độc quyền tại Teacher Dong Academy!',

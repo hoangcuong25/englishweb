@@ -40,10 +40,10 @@ export default function LoginPage() {
             </div>
           </Link>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            Teacher Dong Academy
+            Đăng Nhập Cổng Học Viên
           </h1>
           <p className="text-xs text-muted">
-            Đăng nhập hệ thống đào tạo (Cổng Học Viên hoặc Quản Trị Viên)
+            Truy cập hệ thống đào tạo, luyện thi IELTS & phòng học WebRTC
           </p>
         </div>
 
@@ -71,15 +71,15 @@ export default function LoginPage() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          <span className="group-hover:text-slate-900">Đăng nhập bằng Google</span>
+          <span className="group-hover:text-slate-900">Đăng nhập nhanh bằng Google</span>
         </button>
 
-        <div className="relative flex items-center justify-center">
-          <div className="border-t border-line w-full"></div>
-          <span className="bg-white px-3 text-[11px] font-bold text-muted uppercase">
-            hoặc bằng email
+        <div className="relative flex items-center justify-center py-1">
+          <div className="flex-1 border-t border-line"></div>
+          <span className="shrink-0 bg-white px-3 text-[11px] font-bold text-muted uppercase tracking-wider whitespace-nowrap">
+            Hoặc bằng email
           </span>
-          <div className="border-t border-line w-full"></div>
+          <div className="flex-1 border-t border-line"></div>
         </div>
 
         {error && (
@@ -148,6 +148,16 @@ export default function LoginPage() {
           Chưa có tài khoản học viên?{' '}
           <Link href="/register" className="font-bold text-primary hover:underline">
             Đăng ký tham gia ngay
+          </Link>
+        </div>
+
+        <div className="pt-3 border-t border-line/70 text-center">
+          <Link
+            href="/admin/login"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-primary transition group"
+          >
+            <span>Bạn là Quản trị viên & Giảng viên?</span>
+            <span className="font-bold text-primary group-hover:underline">Vào Cổng Admin →</span>
           </Link>
         </div>
       </div>

@@ -88,12 +88,12 @@ export default function RegisterPage() {
           <span className="group-hover:text-slate-900">Đăng ký nhanh bằng Google</span>
         </button>
 
-        <div className="relative flex items-center justify-center">
-          <div className="border-t border-line w-full"></div>
-          <span className="bg-white px-3 text-[11px] font-bold text-muted uppercase">
-            hoặc điền thông tin bên dưới
+        <div className="relative flex items-center justify-center py-1">
+          <div className="flex-1 border-t border-line"></div>
+          <span className="shrink-0 bg-white px-3 text-[11px] font-bold text-muted uppercase tracking-wider whitespace-nowrap">
+            Hoặc điền thông tin bên dưới
           </span>
-          <div className="border-t border-line w-full"></div>
+          <div className="flex-1 border-t border-line"></div>
         </div>
 
         {error && (

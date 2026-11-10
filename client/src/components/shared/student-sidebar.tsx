@@ -22,7 +22,7 @@ export default function StudentSidebar() {
   const { t } = useI18n();
 
   const navItems = [
-    { href: '/student/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+    { href: '/student/dashboard', label: t('nav_dashboard'), icon: LayoutDashboard },
     { href: '/student/courses', label: t('nav_courses'), icon: BookOpen },
     { href: '/student/library', label: t('nav_library'), icon: FolderLock },
     { href: '/student/classroom', label: t('nav_classroom'), icon: Video },

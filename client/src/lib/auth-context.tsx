@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   sessionTerminated: boolean;
-  login: (data: LoginPayload) => Promise<void>;
+  login: (data: LoginPayload, requiredRole?: 'STUDENT' | 'ADMIN') => Promise<void>;
   loginDemo: (role: 'STUDENT' | 'ADMIN') => void;
   loginWithGoogle: (profile?: { email?: string; fullName?: string; avatarUrl?: string }) => Promise<void>;
   register: (data: RegisterPayload) => Promise<void>;
@@ -79,9 +79,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = async (credentials: LoginPayload) => {
+  const login = async (credentials: LoginPayload, requiredRole?: 'STUDENT' | 'ADMIN') => {
     const res = await authService.login(credentials);
     const loggedUser = res.user || res.data?.user || res.data;
+
+    if (requiredRole && loggedUser?.role !== requiredRole) {
+      await authService.logout().catch(() => {});
+      throw new Error(
+        requiredRole === 'ADMIN'
+          ? 'Tài khoản này không có quyền truy cập Cổng Quản Trị (Role ADMIN). Vui lòng đăng nhập tại Cổng Học Viên.'
+          : 'Tài khoản Quản Trị Viên vui lòng đăng nhập tại Cổng Quản Trị.'
+      );
+    }
+
     setUser(loggedUser);
     setSessionTerminated(false);
 
