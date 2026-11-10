@@ -57,7 +57,10 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
 
         // Fetch LiveKit Token from NestJS Backend
         const res = await api.post('/livekit/token', { roomName: roomId });
-        const { token } = res.data;
+        const token = res.data?.data?.token || res.data?.token;
+        if (!token) {
+          throw new Error('Failed to retrieve LiveKit token from server response');
+        }
 
         // Try to connect to LiveKit SFU server
         const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880';

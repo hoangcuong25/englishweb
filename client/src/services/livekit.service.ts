@@ -3,10 +3,13 @@ import { api } from '../lib/api';
 export interface LivekitRoom {
   id?: string;
   name: string;
-  courseId?: string;
+  courseId?: string | null;
   scheduledStartTime?: string;
   scheduledEndTime?: string;
-  activeParticipants?: number;
+  status?: string;
+  host?: { id: string; fullName: string; email: string };
+  course?: { id: string; title: string; slug: string; thumbnail?: string | null } | null;
+  _count?: { attendanceRecords: number };
 }
 
 export const livekitService = {

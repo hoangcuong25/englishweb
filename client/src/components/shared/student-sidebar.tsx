@@ -22,16 +22,16 @@ export default function StudentSidebar() {
   const { t } = useI18n();
 
   const navItems = [
-    { href: '/student/dashboard', label: t('nav_dashboard'), icon: LayoutDashboard },
-    { href: '/student/courses', label: t('nav_courses'), icon: BookOpen },
-    { href: '/student/library', label: t('nav_library'), icon: FolderLock },
-    { href: '/student/classroom', label: t('nav_classroom'), icon: Video },
-    { href: '/student/writing', label: t('nav_writing'), icon: PenTool },
-    { href: '/student/speaking', label: t('nav_speaking'), icon: Mic },
-    { href: '/student/quizzes', label: t('nav_quiz'), icon: HelpCircle },
-    { href: '/student/attendance', label: t('nav_attendance'), icon: CalendarCheck },
-    { href: '/student/messages', label: t('nav_messages'), icon: MessageSquare },
-    { href: '/student/account', label: t('nav_account'), icon: UserCheck },
+    { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
+    { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen },
+    { href: '/student/library', label: t('nav_library', 'Học liệu số & Bảo mật'), icon: FolderLock },
+    { href: '/student/classroom', label: t('nav_classroom', 'Phòng học trực tuyến'), icon: Video },
+    { href: '/student/writing', label: t('nav_writing', 'Luyện viết IELTS AI'), icon: PenTool },
+    { href: '/student/speaking', label: t('nav_speaking', 'Studio luyện nói IELTS'), icon: Mic },
+    { href: '/student/quizzes', label: t('nav_quiz', 'Ngân hàng bài tập Quiz'), icon: HelpCircle },
+    { href: '/student/attendance', label: t('nav_attendance', 'Điểm danh & Chuyên cần'), icon: CalendarCheck },
+    { href: '/student/messages', label: t('nav_messages', 'Tin nhắn & Thảo luận'), icon: MessageSquare },
+    { href: '/student/account', label: t('nav_account', 'Tài khoản cá nhân'), icon: UserCheck },
   ];
 
   return (

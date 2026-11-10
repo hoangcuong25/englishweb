@@ -23,17 +23,17 @@ export default function AdminSidebar() {
   const { t } = useI18n();
 
   const navItems = [
-    { href: '/admin/dashboard', label: t('nav_admin_dashboard'), icon: LayoutDashboard },
-    { href: '/admin/courses', label: t('nav_admin_courses'), icon: GraduationCap },
-    { href: '/admin/library', label: t('nav_admin_library'), icon: FolderLock },
-    { href: '/admin/classroom', label: t('nav_admin_classroom'), icon: Video },
-    { href: '/admin/writing-review', label: t('nav_writing_review'), icon: FileCheck },
-    { href: '/admin/speaking-grading', label: t('nav_speaking_grading'), icon: Headphones },
-    { href: '/admin/quizzes', label: t('nav_admin_quizzes'), icon: FileQuestion },
-    { href: '/admin/attendance', label: t('nav_admin_attendance'), icon: CalendarCheck },
-    { href: '/admin/users', label: t('nav_users'), icon: Users },
-    { href: '/admin/messages', label: t('nav_messages'), icon: MessageSquare },
-    { href: '/admin/account', label: t('nav_system_settings'), icon: Settings },
+    { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
+    { href: '/admin/courses', label: t('nav_admin_courses', 'Quản lý khóa học'), icon: GraduationCap },
+    { href: '/admin/library', label: t('nav_admin_library', 'Kho học liệu số'), icon: FolderLock },
+    { href: '/admin/classroom', label: t('nav_admin_classroom', 'Quản trị phòng học LiveKit'), icon: Video },
+    { href: '/admin/writing-review', label: t('nav_writing_review', 'Duyệt bài viết IELTS AI'), icon: FileCheck },
+    { href: '/admin/speaking-grading', label: t('nav_speaking_grading', 'Chấm bài nói Speaking'), icon: Headphones },
+    { href: '/admin/quizzes', label: t('nav_admin_quizzes', 'Ngân hàng câu hỏi Quiz'), icon: FileQuestion },
+    { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },
+    { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
+    { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },
+    { href: '/admin/account', label: t('nav_system_settings', 'Cài đặt hệ thống'), icon: Settings },
   ];
 
   return (

@@ -69,6 +69,10 @@ export default function StudentDashboard() {
   const latestSpeaking = data?.recentSpeaking?.[0];
   const latestWriting = data?.recentWriting?.[0];
   const upcomingClass = data?.upcomingClassrooms?.[0];
+  const targetRoomName = upcomingClass?.name || upcomingClass?.id;
+  const targetRoomUrl = targetRoomName
+    ? `/student/classroom/${encodeURIComponent(targetRoomName)}`
+    : '/student/classroom';
 
   return (
     <div className="space-y-6 select-none">
@@ -78,7 +82,7 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500 text-white text-[10.5px] font-black uppercase tracking-wider shadow-sm animate-pulse">
               <span className="w-2 h-2 rounded-full bg-white"></span>
-              ĐANG DIỄN RA
+              {upcomingClass ? 'ĐANG DIỄN RA' : 'SẮP DIỄN RA'}
             </span>
             <span className="text-xs text-sky-100 font-medium">
               Chào {user?.fullName || 'Học viên'} • Lớp học trực tiếp WebRTC LiveKit
@@ -90,12 +94,12 @@ export default function StudentDashboard() {
           </h2>
 
           <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed">
-            Giảng viên Host: <strong className="text-white">Teacher Dong (IELTS 8.5)</strong> • Tích hợp bảng vẽ Canvas & Điểm danh tự động.
+            Giảng viên Host: <strong className="text-white">{upcomingClass?.host?.fullName || 'Teacher Dong (IELTS 8.5)'}</strong> • Tích hợp bảng vẽ Canvas & Điểm danh tự động.
           </p>
         </div>
 
         <Link
-          href={upcomingClass?.roomName ? `/student/classroom/${upcomingClass.roomName}` : '/student/classroom'}
+          href={targetRoomUrl}
           className="shrink-0 px-6 py-3.5 rounded-2xl bg-[#FFB547] hover:bg-[#FFA726] active:scale-95 text-[#14263D] font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 flex items-center gap-2.5 transition-all cursor-pointer whitespace-nowrap"
         >
           <Video className="w-4 h-4 text-[#14263D]" />

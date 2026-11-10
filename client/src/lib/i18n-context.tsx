@@ -678,7 +678,7 @@ export const translations: Translations = {
 interface I18nContextType {
   lang: Language;
   setLang: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, fallback?: string) => string;
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -700,11 +700,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     document.cookie = `preferred_lang=${newLang}; path=/; max-age=31536000`;
   };
 
-  const t = (key: string): string => {
+  const t = (key: string, fallback?: string): string => {
     if (translations[key] && translations[key][lang]) {
       return translations[key][lang];
     }
-    return key;
+    if (translations[key] && translations[key]['vi']) {
+      return translations[key]['vi'];
+    }
+    return fallback || key;
   };
 
   return (
