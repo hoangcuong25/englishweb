@@ -78,6 +78,11 @@ Hệ thống được thiết kế theo nguyên tắc tối giản, phân quyề
 | **IELTS GRA** | Grammatical Range and Accuracy (Ngữ pháp đa dạng và chính xác) |
 | **IELTS FC / PR** | Fluency and Coherence / Pronunciation (Trôi chảy & Phát âm) |
 
+### 1.5 Tài liệu tham chiếu
+- Đặc tả chi tiết màn hình & trường dữ liệu: [docs/Teacher_Dong_Academy_Chi_Tiet_Dac_Ta.md](file:///D:/Project/englishweb/docs/Teacher_Dong_Academy_Chi_Tiet_Dac_Ta.md)
+- Đặc tả RESTful API & WebSocket: [docs/API_DOCUMENTATION.md](file:///D:/Project/englishweb/docs/API_DOCUMENTATION.md) (Swagger UI: `http://localhost:3001/api/docs`)
+- Interactive Prototype: [docs/mock_test.html](file:///D:/Project/englishweb/docs/mock_test.html)
+
 ---
 
 ## 2. MÔ TẢ TỔNG QUAN HỆ THỐNG (OVERALL DESCRIPTION)

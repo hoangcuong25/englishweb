@@ -28,6 +28,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "docx": "^9.15.2"
+    "docx": "^9.15.3"
   }
 }
