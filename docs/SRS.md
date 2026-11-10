@@ -3,7 +3,8 @@
 ### Standard: IEEE 830 / ISO/IEC/IEEE 29148 Compliant
 
 > Bản sao đồng bộ từ gốc dự án: [SRS.md](file:///D:/Project/englishweb/SRS.md).  
-> Tham chiếu chi tiết đặc tả tại [docs/spec_content.txt](file:///D:/Project/englishweb/docs/spec_content.txt) và Interactive Prototype tại [docs/mockup-test.html](file:///D:/Project/englishweb/docs/mockup-test.html).
+> Tham chiếu chi tiết đặc tả tại [docs/Pham_Vi_Chuc_Nang_Teacher_Dong_Academy.docx](file:///D:/Project/englishweb/docs/Pham_Vi_Chuc_Nang_Teacher_Dong_Academy.docx), [docs/Teacher_Dong_Academy_Chi_Tiet_Dac_Ta.md](file:///D:/Project/englishweb/docs/Teacher_Dong_Academy_Chi_Tiet_Dac_Ta.md) và Interactive Prototype tại [docs/mock_test.html](file:///D:/Project/englishweb/docs/mock_test.html).  
+> Tài liệu đặc tả RESTful API & WebSocket: [docs/API_DOCUMENTATION.md](file:///D:/Project/englishweb/docs/API_DOCUMENTATION.md) (Swagger UI: `http://localhost:3001/api/docs`).
 
 ---
 

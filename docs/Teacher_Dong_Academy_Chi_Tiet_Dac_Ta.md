@@ -2476,7 +2476,7 @@ thành nhóm kiểm thử. Không thay thế tiêu chí nghiệm thu chính th�
 
 ## 13.3. Backend
 
--   [ ] Mapping trường giao diện với API/DTO/Database.
+-   [x] Mapping trường giao diện với API/DTO/Database (Đã hoàn thiện đặc tả chi tiết toàn bộ các Endpoints tại [docs/API_DOCUMENTATION.md](file:///D:/Project/englishweb/docs/API_DOCUMENTATION.md)).
 -   [ ] Validation phía server.
 -   [ ] Kiểm tra quyền và trạng thái.
 -   [ ] Chuẩn hóa mã lỗi/message code.
@@ -2585,3 +2585,33 @@ trạng thái. 5. QA dùng mã màn hình, field, validation, message và rule
 **Nguyên tắc:** Không tự coi các đề xuất trong tài liệu này là yêu cầu
 đã được khách hàng phê duyệt. Mọi giới hạn, công thức, trạng thái và
 hành vi chưa có trong SRS nguồn phải được xác nhận trước khi triển khai.
+
+------------------------------------------------------------------------
+
+# 16. Danh mục RESTful Endpoints & WebSocket APIs của Backend
+
+Toàn bộ hệ thống Backend NestJS của Teacher Dong Academy đã được chuẩn hóa RESTful và tài liệu hóa chi tiết tại file:  
+👉 **[docs/API_DOCUMENTATION.md](file:///D:/Project/englishweb/docs/API_DOCUMENTATION.md)**
+
+### Tóm tắt kiến trúc API & Phân hệ:
+- **Global Prefix**: `/api`
+- **Swagger OpenAPI Docs**: `http://localhost:3001/api/docs`
+- **Mô hình bảo mật**: Strict 2-Role RBAC (`STUDENT` & `ADMIN`), Single Concurrent Session cho học viên, Presigned Signed URLs 15m với Dynamic Watermark cho học liệu số.
+- **Envelope Response chuẩn**: `StandardSuccessResponse<T>` và `StandardErrorResponse`.
+
+### Ma trận 14 phân hệ Endpoints chính:
+1. **AUTH & SESSIONS (`/api/auth`)**: 13 endpoints (Đăng ký, Đăng nhập Single Session, Google OAuth 2.0, Refresh token, Thu hồi phiên, Đổi mật khẩu, Ngôn ngữ giao diện).
+2. **USERS MANAGEMENT (`/api/users`)**: 5 endpoints ADMIN (Quản lý hồ sơ học viên, Khóa/Mở tài khoản, Cấp lại mật khẩu, Upload avatar Cloudinary).
+3. **COURSES CATALOG (`/api/courses`)**: 9 endpoints (5 trụ cột danh mục đào tạo, Ghi danh học viên, Quản trị khóa học, Thumbnail Cloudinary).
+4. **CURRICULUM & LESSONS (`/api/lessons`)**: 11 endpoints (Quản lý Chương học Module, Bài học Lesson, Kéo thả Reorder, Đánh dấu hoàn thành tính tiến độ %, Upload Video Cloudinary).
+5. **SECURED DIGITAL LIBRARY (`/api/materials`)**: 7 endpoints (Kho tài liệu số PDF/MP3, Cấp Signed URL 15 phút, Inline Stream DRM chống tải lậu, Dynamic Watermark payload).
+6. **QUIZ ENGINE & DIAGNOSTICS (`/api/quizzes`)**: 11 endpoints (Đề thi 4 kỹ năng IELTS, Chấm điểm tức thì, Sàn đạt >= 80%, Báo cáo AI chẩn đoán điểm yếu dạng bài của từng học viên và toàn học viện).
+7. **AI IELTS WRITING STUDIO (`/api/writing`)**: 10 endpoints (Đề Task 1 & 2, Đếm từ thời gian thực, AI chấm 4 tiêu chí Cambridge, Sinh bài mẫu Band 8.5+, Admin override & phê duyệt).
+8. **IELTS SPEAKING STUDIO (`/api/speaking`)**: 10 endpoints (Đề Speaking Part 1-3, Nộp audio Web Audio API sóng âm, Audio Player +/- 5s, Giáo viên chấm 4 tiêu chí + Timestamp Comments).
+9. **LIVEKIT WEBRTC CLASSROOM (`/api/livekit`)**: 10 endpoints + Whiteboard Gateway `/whiteboard` (Cấp WebRTC Token Host/Student 1+8, Tắt mic/cam từ xa, LiveKit Webhook, Bảng trắng 2 chiều realtime).
+10. **AUTOMATED ATTENDANCE (`/api/attendance`)**: 6 endpoints (Tự động ghi nhận giờ vào/ra và số phút từ Webhook, Phân loại PRESENT/LATE/ABSENT, Điều chỉnh thủ công, Xuất báo cáo Excel `.xlsx`).
+11. **REALTIME CHAT & MESSAGING (`/api/chat`)**: 4 endpoints + Chat Gateway `/chat` (Nhắn tin thời gian thực giữa Học viên và Giáo viên qua Socket.IO, HTTP fallback, Đánh dấu đã đọc).
+12. **DASHBOARD & ANALYTICS (`/api/dashboard`)**: 2 endpoints (Thống kê học tập học viên & Báo cáo tổng quan học viện cho Admin).
+13. **BLOGS & CONTENT (`/api/blogs`)**: 7 endpoints (Quản trị bài viết chia sẻ, Đính kèm ảnh bìa & video Cloudinary, Tự động tăng lượt xem).
+14. **MEDIA STORAGE (`/api/media`)**: 3 endpoints (Upload hình ảnh, video chung lên Cloudinary CDN và dọn dẹp asset).
+
