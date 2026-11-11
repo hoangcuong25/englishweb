@@ -16,7 +16,11 @@
    - 2.2. Phân hệ Luyện Nói IELTS Speaking Studio (`SPK-SCR-001` → `003`)
    - 2.3. Kho Học Liệu Số & Bảo Mật Chống Quay Chụp (`LIB-SCR-001` → `003`)
    - 2.4. LMS Course Engine & Quản Lý Tiến Trình Bài Học (`CRS-SCR-001` → `004`)
-   - 2.5. Hệ Thống Thi Trắc Nghiệm Quiz Engine (`QZ-SCR-001` → `003`)
+   - 2.5. Hệ Thống Thi Trắc Nghiệm Quiz Engine & Xử Lý Bài Đọc Reading (`QZ-SCR-001` → `005`)
+     - 2.5.1. Kiến Trúc Dữ Liệu & Quy Trình Xử Lý Quiz ở Backend
+     - 2.5.2. Cách Xử Lý Bài Đọc (Reading Passage) Kèm Nhiều Câu Hỏi Con
+     - 2.5.3. Trải Nghiệm Làm Bài Trực Tuyến & Hiển Thị Đề Thi 1 Trong 4 Đáp Án
+     - 2.5.4. Đề Xuất Nâng Cấp Hoàn Thiện Trải Nghiệm (UX Action Plan)
    - 2.6. Điểm Danh Tự Động & Báo Cáo Chuyên Cần (`ATT-SCR-001` → `003`)
    - 2.7. Kênh Nhắn Tin Hỗ Trợ Trực Tuyến Thời Gian Thực (`MSG-SCR-001`)
    - 2.8. Quản Lý Tài Khoản, Học Viên & Phiên Đơn Concurrent Session (`AUTH-SCR-004, 005`, `ADM-SCR-002`)
@@ -182,32 +186,122 @@ Hệ thống mã nguồn hiện tại được phân tích đối chiếu giữa
 
 ---
 
-## 2.5. Hệ Thống Thi Trắc Nghiệm Quiz Engine (`QZ-SCR-001` → `003`)
+## 2.5. Hệ Thống Thi Trắc Nghiệm Quiz Engine & Xử Lý Bài Đọc Reading (`QZ-SCR-001` → `005`)
 
-### 📋 Đặc tả SRS
-- Hỗ trợ 3 dạng câu hỏi: Trắc nghiệm 1 đáp án, nhiều đáp án, True / False / Not Given chuẩn IELTS.
-- **Sàn điểm nghiêm ngặt $\ge 80\%$**: Nếu điểm $< 80\%$, không mở khóa bài tiếp theo, yêu cầu làm lại.
-- Chấm điểm tức thì kèm giải thích chi tiết đáp án.
+### 📋 Đặc tả SRS & Quy tắc nghiệp vụ cốt lõi
+- Hỗ trợ các dạng câu hỏi chuẩn Cambridge IELTS & LMS hiện đại:
+  - `SINGLE_CHOICE`: Trắc nghiệm 1 đáp án đúng (A, B, C, D).
+  - `MULTIPLE_CHOICE`: Trắc nghiệm nhiều đáp án đúng.
+  - `TRUE_FALSE_NOT_GIVEN` / `YES_NO_NOT_GIVEN`: Dạng đặc thù kiểm tra đọc hiểu IELTS Reading.
+  - `FILL_BLANK`: Điền từ vào chỗ trống.
+  - `MATCHING_HEADINGS` / `MATCHING_INFORMATION`: Nối tiêu đề / thông tin đoạn văn.
+- **Sàn điểm nghiêm ngặt $\ge 80\%$ (`BIZ-QZ-003`)**: Học viên phải đạt $\ge 80\%$ để được công nhận hoàn thành Checkpoint và kích hoạt mở khóa bài học / Module kế tiếp (`Sequential Unlocking`).
+- Tự động chấm điểm tức thì (Instant Automated Grading), lưu vết toàn bộ câu trả lời và hiển thị giải thích chi tiết (`explanation`) sau khi nộp bài.
 
-### 🔍 Hiện trạng trong code
-- Đã có logic kiểm tra `percentage >= 80`.
-- **Điểm còn hạn chế**:
-  1. Chưa có ma trận điều hướng nhanh danh sách câu hỏi (Question Navigation Palette).
-  2. Dạng câu hỏi True/False/Not Given chưa có thiết kế giao diện đặc thù bài đọc Academic.
-  3. Màn hình kết thúc bài thi hiển thị còn đơn giản, chưa làm nổi bật điều kiện đạt/chưa đạt.
+---
 
-### 💡 Đề xuất nâng cấp trải nghiệm (UX Upgrades)
-1. **Question Navigation Palette (Ma trận câu hỏi)**:
-   - Cột cố định bên phải liệt kê các ô số từ 1 đến 20:
-     - Ô màu xám: Chưa trả lời.
-     - Ô màu xanh dương: Đã chọn đáp án.
-     - Cờ màu vàng: Đánh dấu cần xem lại (Flag for Review).
-   - Giúp học sinh kiểm soát toàn diện trạng thái làm bài trước khi bấm nộp.
-2. **Giao diện bài đọc Reading chia đôi màn hình (Split View)**:
-   - Nửa trái là đoạn văn bài đọc (Reading Passage), nửa phải là danh sách câu hỏi True/False/Not Given, cuộn độc lập giúp học viên không phải cuộn lên cuộn xuống liên tục.
-3. **Celebration Modal & Action Flow**:
-   - Đạt $\ge 80\%$: Hiệu ứng Confetti (pháo hoa chúc mừng) kèm nút *"Tiếp tục bài học tiếp theo"*.
-   - Dưới $80\%$: Bảng phân tích câu sai màu đỏ kèm lời khuyên ôn tập và nút to nổi bật *"Làm lại bài kiểm tra"*.
+### 🗄️ 2.5.1. Kiến Trúc Dữ Liệu & Quy Trình Xử Lý Quiz ở Backend
+Mô hình cơ sở dữ liệu (Prisma Schema - MySQL) được cấu trúc thành 5 thực thể liên kết chặt chẽ:
+1. **Model `Quiz` (Đề thi / Bài kiểm tra)**:
+   - `id`: UUID định danh duy nhất.
+   - `lessonId`: Liên kết khóa ngoại với bài học cụ thể (hoặc `null` nếu là bài thi thử độc lập).
+   - `title`: Tiêu đề bài thi (ví dụ: *"Checkpoint 03: End-of-Module Mastery Quiz"*).
+   - `skill`: Phân loại kỹ năng (`READING`, `LISTENING`, `GRAMMAR`, `VOCABULARY`).
+   - `testType`: Loại bài thi (`LESSON_QUIZ`, `PRACTICE_TEST`, `FULL_MOCK_TEST`).
+   - `passage`: Lưu trữ bài đọc dài học thuật (`@db.LongText`), chứa toàn bộ văn bản đọc hiểu hàng nghìn từ.
+   - `audioUrl`: Đường dẫn file âm thanh cho bài thi Listening.
+   - `timeLimitMinutes`: Thời gian làm bài tính bằng phút (mặc định 15 phút).
+   - `passScore`: Điểm sàn đạt chuẩn (mặc định 80.0%).
+2. **Model `Question` (Câu hỏi trong đề thi)**:
+   - `quizId`: Khóa ngoại trỏ về `Quiz`.
+   - `content`: Nội dung câu hỏi.
+   - `type`: Dạng câu hỏi (`SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `TRUE_FALSE_NOT_GIVEN`,...).
+   - `points`: Trọng số điểm của câu (mặc định 1.0).
+   - `explanation`: Lời giải thích cặn kẽ tại sao đáp án đó đúng, trích dẫn dòng/đoạn trong bài đọc.
+   - `orderIndex`: Thứ tự hiển thị câu hỏi (1, 2, 3...).
+3. **Model `QuestionOption` (Phương án lựa chọn A, B, C, D)**:
+   - `questionId`: Khóa ngoại trỏ về `Question`.
+   - `content`: Nội dung phương án (A, B, C, D).
+   - `isCorrect`: Cờ Boolean xác định đáp án đúng (`true`/`false`).
+4. **Model `QuizSubmission` & `QuizAnswer` (Lịch sử làm bài & Bài nộp)**:
+   - Lưu thời điểm nộp bài (`submittedAt`), điểm số `%`, tổng số câu, số câu đúng.
+   - Cờ `isPassed`: `score >= passScore` (điều kiện kích hoạt mở khóa bài học tiếp theo).
+   - Lưu từng phương án học viên đã chọn (`selectedOptionId`), câu trả lời tự luận (`textAnswer`), và kết quả đúng/sai của từng câu.
+
+#### 🛡️ Cơ chế Chống gian lận (Anti-Cheat Sanitization) tại Backend
+- Khi học viên gọi API lấy đề thi (`GET /quizzes/:id` hoặc `GET /quizzes/lesson/:lessonId`), hàm `sanitizeQuizForRole` tại `quizzes.service.ts` **tự động bóc tách và ẩn triệt để trường `isCorrect`** khỏi tất cả các `options`.
+- Nhờ cơ chế này, học viên dù có mở DevTools (F12) hay kiểm tra Network Payload cũng **hoàn toàn không thể xem trước đáp án đúng**.
+- Khi nộp bài (`POST /quizzes/:id/submit`), Backend thực hiện so khớp server-side độc lập và bảo mật, đảm bảo tính công bằng và toàn vẹn của kết quả thi.
+
+---
+
+### 📖 2.5.2. Cách Xử Lý Bài Đọc (Reading Passage) Kèm Nhiều Câu Hỏi Con
+
+Trong các bài thi IELTS Reading hoặc bài đọc hiểu học thuật, một đoạn văn lớn thường đi kèm một nhóm từ 5 đến 13 câu hỏi con bên dưới. Hệ thống xử lý trường hợp này như sau:
+
+#### A. Cấu trúc quan hệ Dữ liệu
+- Toàn bộ bài đọc dài được lưu tại trường `passage` của bảng `quizzes` dưới dạng `@db.LongText`. Văn bản có thể chứa các ký tự xuống dòng, đánh số đoạn văn [A], [B], [C], [D] chuẩn IELTS.
+- Một bản ghi `Quiz` liên kết với mảng các `questions` (`1 Quiz -> N Questions`). Mỗi `Question` đại diện cho một câu hỏi con liên quan đến nội dung bài đọc `passage`.
+
+#### B. So sánh 2 cơ chế hiển thị trên giao diện Học sinh
+1. **Dạng Cuộn truyền thống (Stacked View - Cuộn dọc)**:
+   - Bài đọc nằm ở nửa trên màn hình, danh sách các câu hỏi con nằm ở nửa dưới.
+   - *Bất cập*: Học viên phải cuộn trang lên xuống liên tục (cuộn lên để đọc đoạn văn, cuộn xuống để chọn đáp án A/B/C/D), dễ gây mất dấu vị trí thông tin, mỏi mắt và giảm tốc độ làm bài.
+2. **Dạng Chia đôi màn hình độc lập (Split-View IELTS Computer-delivered - Khuyên dùng & Chuẩn hóa)**:
+   - **Cột bên trái (chiếm 50% độ rộng màn hình)**: Hiển thị toàn văn bài đọc `passage`.
+     - Có thanh cuộn độc lập (Independent Scrollbar).
+     - Tích hợp công cụ Highlight text: Học viên dùng chuột bôi đen các từ khóa hoặc câu chứa bằng chứng, đoạn văn bản sẽ được highlight màu vàng/xanh để ghi nhớ.
+     - Tích hợp điều chỉnh kích thước chữ (Font Size: Nhỏ / Vừa / Lớn).
+   - **Cột bên phải (chiếm 50% độ rộng màn hình)**: Hiển thị các câu hỏi con.
+     - Cuộn độc lập với cột bài đọc bên trái.
+     - Có thanh chỉ mục câu hỏi (ví dụ: Questions 1 – 5).
+     - Học viên vừa nhìn đoạn văn bên trái, vừa chọn phương án A, B, C, D bên phải song song mà không cần cuộn trang lên xuống.
+
+---
+
+### 📝 2.5.3. Trải Nghiệm Làm Bài Trực Tuyến & Hiển Thị Đề Thi 1 Trong 4 Đáp Án
+
+Hệ thống đã có **chức năng làm bài trực tuyến hoàn chỉnh** cho học viên tại `/student/quizzes` và trong trang bài học `/student/courses`.
+
+#### A. Các thành phần giao diện khi Học sinh làm bài trực tuyến
+1. **Đồng hồ đếm ngược thông minh (Smart Countdown Timer)**:
+   - Hiển thị cố định ở thanh trạng thái (ví dụ: `Thời gian còn: 14:59`).
+   - Cảnh báo trực quan: Khi thời gian làm bài còn dưới 5 phút, thanh thời gian đổi sang màu đỏ nhấp nháy (`animate-pulse`) để nhắc nhở học viên tăng tốc độ.
+   - Khi hết giờ (00:00): Hệ thống tự động thu bài và gửi bài thi lên Backend để chấm điểm.
+2. **Thanh điều hướng số câu hỏi nhanh (Question Bubbles Palette)**:
+   - Một hàng nút bấm số thứ tự câu hỏi: `[1] [2] [3] ... [10]`.
+   - Mã màu trạng thái nhận diện ngay lập tức:
+     - 🟦 **Màu xanh dương đậm (Primary)**: Câu hỏi hiện tại đang xem.
+     - 🟩 **Màu xanh nhạt (Answered)**: Câu hỏi đã được chọn đáp án.
+     - ⬜ **Màu xám nhạt (Unanswered)**: Câu hỏi chưa trả lời.
+     - 🟨 **Màu vàng (Flagged)**: Câu hỏi học sinh đánh dấu cần kiểm tra lại trước khi nộp.
+   - Học sinh có thể click vào bất kỳ nút số nào để nhảy thẳng đến câu hỏi đó mà không cần bấm Next liên tiếp.
+3. **Cách hiển thị câu hỏi trắc nghiệm chọn 1 trong 4 đáp án (A, B, C, D)**:
+   - Câu hỏi được trình bày dạng **Thẻ tập trung (Focus Question Card)**:
+     - Tiêu đề câu hỏi in đậm, cỡ chữ chuẩn dễ đọc.
+     - 4 phương án A, B, C, D hiển thị thành 4 nút bấm bản to, có bo góc viền hiện đại.
+     - Khi học sinh click chọn: Nút lập tức đổi nền sang màu xanh nhạt (`bg-sky-50`), viền xanh đậm (`border-primary`), chữ in đậm, và chữ cái A/B/C/D đổi thành icon chọn tích xanh.
+     - Dữ liệu lựa chọn được lưu ngay vào bộ nhớ đệm (State) nên chuyển qua lại giữa các câu không bao giờ bị mất đáp án đã chọn.
+4. **Quy trình nộp bài & Nghiệm thu kết quả tức thì (Instant Grading Flow)**:
+   - Ở câu hỏi cuối cùng, nút điều hướng chuyển thành nút nổi bật màu xanh ngọc: **"Nộp Bài Chấm Điểm (Instant)"**.
+   - Bấm nộp bài, hệ thống hiển thị màn hình nghiệm thu chi tiết:
+     - **Hiển thị điểm tổng**: Phần trăm điểm đạt được + Số câu đúng (ví dụ: `80% - 8/10 Câu đúng`).
+     - **Phân nhánh kết quả theo sàn điểm $\ge 80\%$**:
+       - 🎉 **Đạt $\ge 80\%$**: Hiện huy hiệu xanh lá *"ĐÃ ĐẠT CHECKPOINT"*, thông báo chúc mừng và hiển thị nút *"Quay về Khóa học (Module tiếp theo đã mở khóa)"*.
+       - ⚠️ **Dưới $80\%$**: Hiện huy hiệu đỏ *"CHƯA ĐẠT SÀN ĐIỂM"*, hiển thị nút *"Làm Lại Bài Thi"* để học sinh ôn tập và làm lại.
+     - **Xem lại đáp án và giải thích (Review Mode)**: Sau khi nộp, hệ thống mở khóa toàn bộ phần giải thích (`explanation`) của từng câu hỏi để học sinh biết chính xác lý do đúng/sai.
+
+---
+
+### 💡 2.5.4. Đề Xuất Nâng Cấp Hoàn Thiện Trải Nghiệm (UX Action Plan)
+1. **Bổ sung chế độ chuyển đổi linh hoạt (Toggle View Mode)**:
+   - Cho phép học viên chọn giữa 2 chế độ hiển thị:
+     - **Chế độ Từng câu một (Focus Mode)**: Thích hợp khi luyện tập cẩn thận từng câu.
+     - **Chế độ Danh sách cuộn toàn bộ (All-in-one Sheet View)**: Hiển thị cả 10-20 câu trên 1 trang dài, thích hợp cho học viên muốn nhìn tổng thể toàn bộ đề thi để làm nhanh.
+2. **Kích hoạt Split-View tự động khi đề có bài đọc `passage`**:
+   - Nếu bài thi có dữ liệu trường `passage`, giao diện tự động bật layout 2 cột chia đôi màn hình chuẩn thi quốc tế.
+3. **Hiệu ứng chúc mừng Confetti**:
+   - Kích hoạt hiệu ứng pháo hoa chúc mừng sinh động khi học sinh vượt qua bài kiểm tra với điểm số cao ($\ge 80\%$), tạo cảm giác chinh phục và động lực học tập.
 
 ---
 
