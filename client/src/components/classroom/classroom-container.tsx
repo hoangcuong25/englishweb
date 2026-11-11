@@ -39,10 +39,14 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
-  // Collaborative Whiteboard strokes
+  // Collaborative Whiteboard strokes & Exam Sheet background
   const [strokes, setStrokes] = useState<WhiteboardStroke[]>([]);
   const strokesRef = useRef<WhiteboardStroke[]>([]);
   strokesRef.current = strokes;
+
+  const [wbBgImage, setWbBgImage] = useState<string | null>(null);
+  const wbBgImageRef = useRef<string | null>(null);
+  wbBgImageRef.current = wbBgImage;
 
   // Leave / End room confirmation modal
   const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -86,18 +90,24 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
               setStrokes([]);
             } else if (data.type === 'WB_UNDO') {
               setStrokes((prev) => (prev.length > 0 ? prev.slice(0, prev.length - 1) : []));
+            } else if (data.type === 'WB_BG_IMAGE') {
+              setWbBgImage(data.image || null);
             } else if (data.type === 'WB_SYNC_REQ' && isHost) {
               // Host receives catchup request from late joiner
-              const currentStrokes = strokesRef.current;
-              if (currentStrokes.length > 0) {
-                const packet = new TextEncoder().encode(
-                  JSON.stringify({ type: 'WB_SYNC_RES', strokes: currentStrokes }),
-                );
-                roomRef.current?.localParticipant?.publishData(packet, { reliable: true });
-              }
+              const packet = new TextEncoder().encode(
+                JSON.stringify({
+                  type: 'WB_SYNC_RES',
+                  strokes: strokesRef.current,
+                  bgImage: wbBgImageRef.current,
+                }),
+              );
+              roomRef.current?.localParticipant?.publishData(packet, { reliable: true });
             } else if (data.type === 'WB_SYNC_RES' && !isHost) {
               if (Array.isArray(data.strokes)) {
                 setStrokes(data.strokes);
+              }
+              if (data.bgImage !== undefined) {
+                setWbBgImage(data.bgImage);
               }
             } else if (data.type === 'CLASS_ENDED') {
               alert('Giảng viên đã kết thúc buổi học trực tuyến. Bạn sẽ được chuyển về Dashboard.');
@@ -259,6 +269,11 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
     broadcastData({ type: 'WB_CLEAR' });
   };
 
+  const handleWhiteboardImageUpload = (dataUrl: string | null) => {
+    setWbBgImage(dataUrl);
+    broadcastData({ type: 'WB_BG_IMAGE', image: dataUrl });
+  };
+
   const handleUndoStroke = () => {
     setStrokes((prev) => (prev.length > 0 ? prev.slice(0, prev.length - 1) : []));
     broadcastData({ type: 'WB_UNDO' });
@@ -408,6 +423,8 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
                     onToggleStudentDraw={handleToggleStudentDraw}
                     remoteStrokes={strokes}
                     allowStudentDrawing={allowStudentDrawing}
+                    backgroundImage={wbBgImage}
+                    onImageUpload={handleWhiteboardImageUpload}
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 p-8 text-center space-y-3">

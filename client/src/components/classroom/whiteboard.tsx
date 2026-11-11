@@ -8,6 +8,8 @@ import {
   Square,
   Minus,
   Type,
+  ImagePlus,
+  ImageOff,
   RotateCcw,
   Trash2,
   Download,
@@ -42,6 +44,8 @@ interface WhiteboardProps {
   onToggleStudentDraw?: (allowed: boolean) => void;
   remoteStrokes?: WhiteboardStroke[];
   allowStudentDrawing?: boolean;
+  backgroundImage?: string | null;
+  onImageUpload?: (dataUrl: string | null) => void;
 }
 
 const COLORS = [
@@ -68,18 +72,23 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   onToggleStudentDraw,
   remoteStrokes = [],
   allowStudentDrawing = true,
+  backgroundImage = null,
+  onImageUpload,
 }) => {
   // Dual-Canvas Architecture
   // 1. bgCanvas: Background layer (grid + committed permanent strokes)
   // 2. fgCanvas: Active foreground scratchpad (current active drawing stroke only, 60fps)
   const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fgCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bgImageElementRef = useRef<HTMLImageElement | null>(null);
 
   // Active tool settings
   const [tool, setTool] = useState<'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'line' | 'text'>('pen');
   const [color, setColor] = useState<string>('#0284c7');
   const [width, setWidth] = useState<number>(4);
   const [strokes, setStrokes] = useState<WhiteboardStroke[]>([]);
+  const [bgImage, setBgImage] = useState<string | null>(backgroundImage || null);
 
   // High performance drawing refs (outside React State to avoid re-renders)
   const isDrawingRef = useRef(false);
@@ -87,6 +96,28 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   const animFrameIdRef = useRef<number | null>(null);
 
   const isDrawingAllowed = isHost || (canDraw && allowStudentDrawing);
+
+  // Load and cache background image element
+  useEffect(() => {
+    if (backgroundImage !== undefined) {
+      setBgImage(backgroundImage);
+    }
+  }, [backgroundImage]);
+
+  useEffect(() => {
+    if (bgImage) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        bgImageElementRef.current = img;
+        redrawBackground(strokes);
+      };
+      img.src = bgImage;
+    } else {
+      bgImageElementRef.current = null;
+      redrawBackground(strokes);
+    }
+  }, [bgImage]);
 
   // Helper: Draw a single stroke with Quadratic Bézier smoothing and normalized coordinate scaling
   const drawStrokeToContext = useCallback(
@@ -192,27 +223,48 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       const ctx = bgCanvas.getContext('2d');
       if (!ctx) return;
 
-      // 1. Clear & draw background
+      // 1. Clear & draw background base
       ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
-      // 2. Subtle classroom grid
-      ctx.strokeStyle = '#f1f5f9';
-      ctx.lineWidth = 1;
-      const gridSize = 32;
-      ctx.beginPath();
-      for (let x = 0; x < bgCanvas.width; x += gridSize) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, bgCanvas.height);
+      // 2. Draw background exam sheet image if uploaded
+      if (bgImageElementRef.current) {
+        const img = bgImageElementRef.current;
+        const hRatio = bgCanvas.width / img.width;
+        const vRatio = bgCanvas.height / img.height;
+        const ratio = Math.min(hRatio, vRatio);
+        const centerShiftX = (bgCanvas.width - img.width * ratio) / 2;
+        const centerShiftY = (bgCanvas.height - img.height * ratio) / 2;
+        ctx.drawImage(
+          img,
+          0,
+          0,
+          img.width,
+          img.height,
+          centerShiftX,
+          centerShiftY,
+          img.width * ratio,
+          img.height * ratio,
+        );
+      } else {
+        // Subtle classroom grid when no exam sheet
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.lineWidth = 1;
+        const gridSize = 32;
+        ctx.beginPath();
+        for (let x = 0; x < bgCanvas.width; x += gridSize) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, bgCanvas.height);
+        }
+        for (let y = 0; y < bgCanvas.height; y += gridSize) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(bgCanvas.width, y);
+        }
+        ctx.stroke();
       }
-      for (let y = 0; y < bgCanvas.height; y += gridSize) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(bgCanvas.width, y);
-      }
-      ctx.stroke();
 
-      // 3. Draw all committed strokes
+      // 3. Draw all committed strokes (annotations overlay the exam sheet)
       strokeList.forEach((st) => drawStrokeToContext(ctx, st));
     },
     [drawStrokeToContext]
@@ -446,6 +498,32 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     link.click();
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file hình ảnh (PNG, JPG, WebP) của đề bài hoặc tài liệu.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setBgImage(dataUrl);
+        onImageUpload?.(dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveImage = () => {
+    setBgImage(null);
+    onImageUpload?.(null);
+  };
+
   return (
     <div className="relative w-full h-full flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 select-none">
       {/* Top Floating Whiteboard Toolbar */}
@@ -585,6 +663,45 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           >
             <Download className="w-4 h-4" />
           </button>
+
+          {/* Host Import Exam Sheet / Document */}
+          {isHost && (
+            <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={`p-2 rounded-xl transition cursor-pointer flex items-center space-x-1 ${
+                  bgImage
+                    ? 'bg-sky-100 text-sky-700 font-bold border border-sky-300 shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+                title="Tải đề thi / Tài liệu lên bảng trắng (PNG, JPG)"
+              >
+                <ImagePlus className="w-4 h-4" />
+                <span className="hidden xl:inline text-xs font-semibold">
+                  {bgImage ? 'Đổi đề thi' : 'Tải đề thi'}
+                </span>
+              </button>
+
+              {bgImage && (
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                  title="Gỡ ảnh đề thi khỏi bảng"
+                >
+                  <ImageOff className="w-4 h-4" />
+                </button>
+              )}
+            </>
+          )}
 
           {/* Admin Host control for student drawing */}
           {isHost && (
