@@ -7,6 +7,7 @@ import {
   Eraser,
   Square,
   Minus,
+  Type,
   RotateCcw,
   Trash2,
   Download,
@@ -18,14 +19,18 @@ import {
 export interface Point {
   x: number;
   y: number;
+  nx?: number; // Normalized coordinate X (0.0 -> 1.0) for cross-resolution scaling
+  ny?: number; // Normalized coordinate Y (0.0 -> 1.0)
 }
 
 export interface WhiteboardStroke {
   id: string;
-  tool: 'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'line';
+  tool: 'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'line' | 'text';
   color: string;
   width: number;
   points: Point[];
+  text?: string;
+  fontSize?: number;
 }
 
 interface WhiteboardProps {
@@ -33,6 +38,7 @@ interface WhiteboardProps {
   canDraw?: boolean;
   onStrokeComplete?: (stroke: WhiteboardStroke) => void;
   onClearBoard?: () => void;
+  onUndoStroke?: () => void;
   onToggleStudentDraw?: (allowed: boolean) => void;
   remoteStrokes?: WhiteboardStroke[];
   allowStudentDrawing?: boolean;
@@ -58,6 +64,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   canDraw = true,
   onStrokeComplete,
   onClearBoard,
+  onUndoStroke,
   onToggleStudentDraw,
   remoteStrokes = [],
   allowStudentDrawing = true,
@@ -69,7 +76,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   const fgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Active tool settings
-  const [tool, setTool] = useState<'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'line'>('pen');
+  const [tool, setTool] = useState<'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'line' | 'text'>('pen');
   const [color, setColor] = useState<string>('#0284c7');
   const [width, setWidth] = useState<number>(4);
   const [strokes, setStrokes] = useState<WhiteboardStroke[]>([]);
@@ -81,64 +88,94 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
 
   const isDrawingAllowed = isHost || (canDraw && allowStudentDrawing);
 
-  // Helper: Draw a single stroke with Quadratic Bézier smoothing
+  // Helper: Draw a single stroke with Quadratic Bézier smoothing and normalized coordinate scaling
   const drawStrokeToContext = useCallback(
     (ctx: CanvasRenderingContext2D, stroke: WhiteboardStroke) => {
       const { tool: stTool, color: stColor, width: stWidth, points: pts } = stroke;
       if (!pts || pts.length === 0) return;
 
+      const canvasWidth = ctx.canvas.width;
+      const canvasHeight = ctx.canvas.height;
+
+      // Convert normalized point to screen coordinates
+      const toScreen = (p: Point): { x: number; y: number } => {
+        if (p.nx !== undefined && p.ny !== undefined) {
+          return {
+            x: p.nx * canvasWidth,
+            y: p.ny * canvasHeight,
+          };
+        }
+        return { x: p.x, y: p.y };
+      };
+
       ctx.save();
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
+      // 1. Text tool rendering
+      if (stTool === 'text' && stroke.text) {
+        const pt = toScreen(pts[0]);
+        const fSize = stroke.fontSize || Math.max(14, stWidth * 4);
+        ctx.font = `600 ${fSize}px Inter, -apple-system, sans-serif`;
+        ctx.fillStyle = stColor;
+        ctx.textBaseline = 'top';
+        ctx.fillText(stroke.text, pt.x, pt.y);
+        ctx.restore();
+        return;
+      }
+
       if (stTool === 'eraser') {
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = stWidth * 3.5;
+        ctx.lineWidth = stWidth * 4;
       } else if (stTool === 'highlighter') {
         ctx.strokeStyle = stColor;
         ctx.globalAlpha = 0.35;
-        ctx.lineWidth = stWidth * 2.5;
+        ctx.lineWidth = stWidth * 3;
       } else {
         ctx.strokeStyle = stColor;
         ctx.globalAlpha = 1.0;
         ctx.lineWidth = stWidth;
       }
 
+      const p0 = toScreen(pts[0]);
+
       if (stTool === 'rectangle' && pts.length >= 2) {
-        const start = pts[0];
-        const end = pts[pts.length - 1];
+        const pEnd = toScreen(pts[pts.length - 1]);
         ctx.beginPath();
-        ctx.strokeRect(start.x, start.y, end.x - start.x, end.y - start.y);
+        ctx.strokeRect(p0.x, p0.y, pEnd.x - p0.x, pEnd.y - p0.y);
       } else if (stTool === 'line' && pts.length >= 2) {
-        const start = pts[0];
-        const end = pts[pts.length - 1];
+        const pEnd = toScreen(pts[pts.length - 1]);
         ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(pEnd.x, pEnd.y);
         ctx.stroke();
       } else if (pts.length === 1) {
         // Single tap dot
         ctx.beginPath();
-        ctx.arc(pts[0].x, pts[0].y, stWidth / 2, 0, Math.PI * 2);
+        ctx.arc(p0.x, p0.y, stWidth / 2, 0, Math.PI * 2);
         ctx.fillStyle = stColor;
         ctx.fill();
       } else if (pts.length === 2) {
+        const p1 = toScreen(pts[1]);
         ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
         ctx.stroke();
       } else {
         // Quadratic Bézier curve smoothing for 60fps natural handwriting
         ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.moveTo(p0.x, p0.y);
 
         for (let i = 1; i < pts.length - 1; i++) {
-          const midX = (pts[i].x + pts[i + 1].x) / 2;
-          const midY = (pts[i].y + pts[i + 1].y) / 2;
-          ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+          const curr = toScreen(pts[i]);
+          const next = toScreen(pts[i + 1]);
+          const midX = (curr.x + next.x) / 2;
+          const midY = (curr.y + next.y) / 2;
+          ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
         }
 
-        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+        const pLast = toScreen(pts[pts.length - 1]);
+        ctx.lineTo(pLast.x, pLast.y);
         ctx.stroke();
       }
 
@@ -199,14 +236,14 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       const parent = bgCanvas.parentElement;
       if (!parent) return;
 
-      const width = parent.clientWidth;
-      const height = parent.clientHeight;
+      const w = parent.clientWidth;
+      const h = parent.clientHeight;
 
-      if (bgCanvas.width !== width || bgCanvas.height !== height) {
-        bgCanvas.width = width;
-        bgCanvas.height = height;
-        fgCanvas.width = width;
-        fgCanvas.height = height;
+      if (bgCanvas.width !== w || bgCanvas.height !== h) {
+        bgCanvas.width = w;
+        bgCanvas.height = h;
+        fgCanvas.width = w;
+        fgCanvas.height = h;
         redrawBackground(strokes);
       }
     };
@@ -216,15 +253,18 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     return () => window.removeEventListener('resize', updateSize);
   }, [strokes, redrawBackground]);
 
-  // Coordinate helper
-  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>): Point | null => {
+  // Coordinate helper: computes both screen pixel and normalized (0..1) coords
+  const getCanvasCoordinates = (
+    e: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
+  ): Point | null => {
     const fgCanvas = fgCanvasRef.current;
     if (!fgCanvas) return null;
     const rect = fgCanvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const nx = rect.width > 0 ? Math.max(0, Math.min(1, x / rect.width)) : 0;
+    const ny = rect.height > 0 ? Math.max(0, Math.min(1, y / rect.height)) : 0;
+    return { x, y, nx, ny };
   };
 
   // Render the current stroke on the active foreground scratchpad canvas
@@ -248,19 +288,52 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     }
   };
 
-  // Mouse Down: Start drawing
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Pointer Down: Start drawing (works seamlessly for mouse, touch, and stylus)
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingAllowed) return;
+
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } catch {}
+
     const pt = getCanvasCoordinates(e);
     if (!pt) return;
+
+    // Handle Text tool
+    if (tool === 'text') {
+      const textInput = window.prompt('Nhập văn bản cần ghi lên bảng:');
+      if (textInput && textInput.trim()) {
+        const textStroke: WhiteboardStroke = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          tool: 'text',
+          color,
+          width,
+          points: [pt],
+          text: textInput.trim(),
+          fontSize: Math.max(16, width * 4),
+        };
+
+        const bgCanvas = bgCanvasRef.current;
+        if (bgCanvas) {
+          const bgCtx = bgCanvas.getContext('2d');
+          if (bgCtx) {
+            drawStrokeToContext(bgCtx, textStroke);
+          }
+        }
+
+        setStrokes((prev) => [...prev, textStroke]);
+        onStrokeComplete?.(textStroke);
+      }
+      return;
+    }
 
     isDrawingRef.current = true;
     currentPointsRef.current = [pt];
     renderActiveStroke();
   };
 
-  // Mouse Move: Throttled by Distance (>= 3px) & requestAnimationFrame
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Pointer Move: Distance thresholding + 60fps requestAnimationFrame
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || !isDrawingAllowed) return;
     const pt = getCanvasCoordinates(e);
     if (!pt) return;
@@ -269,7 +342,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     const lastPt = pts[pts.length - 1];
 
     if (lastPt) {
-      // Distance thresholding: skip redundant points within 3 pixels
       const dx = pt.x - lastPt.x;
       const dy = pt.y - lastPt.y;
       if (dx * dx + dy * dy < 9 && tool !== 'rectangle' && tool !== 'line') {
@@ -278,13 +350,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     }
 
     if (tool === 'rectangle' || tool === 'line') {
-      // Shape tools only keep start point and current point
       currentPointsRef.current = [pts[0], pt];
     } else {
       currentPointsRef.current.push(pt);
     }
 
-    // Schedule 60fps render on scratchpad canvas via requestAnimationFrame
     if (!animFrameIdRef.current) {
       animFrameIdRef.current = requestAnimationFrame(() => {
         renderActiveStroke();
@@ -293,8 +363,12 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     }
   };
 
-  // Mouse Up: Commit stroke to Background Canvas & notify LiveKit DataChannel
-  const stopDrawing = () => {
+  // Pointer Up: Commit stroke & broadcast via LiveKit DataChannel
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    try {
+      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    } catch {}
+
     if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
 
@@ -331,7 +405,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         }
       }
 
-      // 2. Update state for history / undo
+      // 2. Update state
       setStrokes((prev) => [...prev, newStroke]);
 
       // 3. Broadcast to LiveKit DataChannel
@@ -359,6 +433,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     const newStrokes = strokes.slice(0, strokes.length - 1);
     setStrokes(newStrokes);
     redrawBackground(newStrokes);
+    onUndoStroke?.();
   };
 
   const handleDownload = () => {
@@ -423,6 +498,17 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setTool('text')}
+            className={`p-2 rounded-xl text-sm font-medium transition cursor-pointer ${
+              tool === 'text' ? 'bg-sky-100 text-sky-700 shadow-inner' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+            title="Nhập văn bản (Text tool)"
+            disabled={!isDrawingAllowed}
+          >
+            <Type className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
             onClick={() => setTool('eraser')}
             className={`p-2 rounded-xl text-sm font-medium transition cursor-pointer ${
               tool === 'eraser' ? 'bg-amber-100 text-amber-700 shadow-inner' : 'text-slate-600 hover:bg-slate-100'
@@ -478,7 +564,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
             onClick={handleUndo}
             disabled={strokes.length === 0 || !isDrawingAllowed}
             className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition disabled:opacity-40 cursor-pointer"
-            title="Hoàn tác (Undo)"
+            title="Hoàn tác nét vẽ (Undo)"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -536,8 +622,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         </div>
       )}
 
-      {/* Dual-Canvas Container: 100% Hardware Accelerated */}
-      <div className="relative flex-1 w-full h-full cursor-crosshair overflow-hidden">
+      {/* Dual-Canvas Container: 100% Hardware Accelerated with touch-action: none */}
+      <div
+        className="relative flex-1 w-full h-full cursor-crosshair overflow-hidden"
+        style={{ touchAction: 'none' }}
+      >
         {/* Layer 1: Persistent Background Canvas (grid + committed strokes) */}
         <canvas
           ref={bgCanvasRef}
@@ -547,11 +636,12 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
         {/* Layer 2: Transparent Interactive Scratchpad Canvas (active stroke only, 60fps) */}
         <canvas
           ref={fgCanvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           className="absolute inset-0 w-full h-full block"
+          style={{ touchAction: 'none' }}
         />
       </div>
     </div>

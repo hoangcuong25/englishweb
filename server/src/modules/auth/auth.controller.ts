@@ -156,6 +156,14 @@ export class AuthController {
       path: '/api/auth',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+    if ((tokens as any).role) {
+      res.cookie('user_role', (tokens as any).role, {
+        httpOnly: false,
+        secure: isProd,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+    }
 
     return tokens;
   }

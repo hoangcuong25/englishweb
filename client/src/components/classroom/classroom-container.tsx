@@ -8,7 +8,7 @@ import { Whiteboard, WhiteboardStroke } from './whiteboard';
 import { VideoGrid, ClassroomParticipant } from './video-grid';
 import { ClassroomControls } from './classroom-controls';
 import { ClassroomSidebar, ChatMessage } from './classroom-sidebar';
-import { Loader2, Wifi, Monitor } from 'lucide-react';
+import { Loader2, Wifi, Monitor, PhoneOff, AlertTriangle, X, LogOut } from 'lucide-react';
 import { Room, RoomEvent } from 'livekit-client';
 
 interface ClassroomContainerProps {
@@ -41,6 +41,12 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
 
   // Collaborative Whiteboard strokes
   const [strokes, setStrokes] = useState<WhiteboardStroke[]>([]);
+  const strokesRef = useRef<WhiteboardStroke[]>([]);
+  strokesRef.current = strokes;
+
+  // Leave / End room confirmation modal
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [isEndingClass, setIsEndingClass] = useState(false);
 
   // Participants List (1 Host + Students)
   const [participants, setParticipants] = useState<ClassroomParticipant[]>([]);
@@ -78,6 +84,25 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
               setStrokes((prev) => [...prev, data.stroke]);
             } else if (data.type === 'WB_CLEAR') {
               setStrokes([]);
+            } else if (data.type === 'WB_UNDO') {
+              setStrokes((prev) => (prev.length > 0 ? prev.slice(0, prev.length - 1) : []));
+            } else if (data.type === 'WB_SYNC_REQ' && isHost) {
+              // Host receives catchup request from late joiner
+              const currentStrokes = strokesRef.current;
+              if (currentStrokes.length > 0) {
+                const packet = new TextEncoder().encode(
+                  JSON.stringify({ type: 'WB_SYNC_RES', strokes: currentStrokes }),
+                );
+                roomRef.current?.localParticipant?.publishData(packet, { reliable: true });
+              }
+            } else if (data.type === 'WB_SYNC_RES' && !isHost) {
+              if (Array.isArray(data.strokes)) {
+                setStrokes(data.strokes);
+              }
+            } else if (data.type === 'CLASS_ENDED') {
+              alert('Giảng viên đã kết thúc buổi học trực tuyến. Bạn sẽ được chuyển về Dashboard.');
+              roomRef.current?.disconnect();
+              router.push('/student/dashboard');
             } else if (data.type === 'WB_PERMS') {
               setAllowStudentDrawing(data.allow);
             } else if (data.type === 'CHAT') {
@@ -102,6 +127,13 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
         await room.connect(livekitUrl, token);
         if (isMounted) {
           setIsConnected(true);
+          // If student, request catchup whiteboard strokes from Host
+          if (!isHost) {
+            setTimeout(() => {
+              const reqPacket = new TextEncoder().encode(JSON.stringify({ type: 'WB_SYNC_REQ' }));
+              roomRef.current?.localParticipant?.publishData(reqPacket, { reliable: true });
+            }, 1000);
+          }
         }
       } catch (err: unknown) {
         console.warn('LiveKit SFU not reachable on ws://localhost:7880. Entering Interactive Preview Sandbox Mode.', err);
@@ -227,6 +259,11 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
     broadcastData({ type: 'WB_CLEAR' });
   };
 
+  const handleUndoStroke = () => {
+    setStrokes((prev) => (prev.length > 0 ? prev.slice(0, prev.length - 1) : []));
+    broadcastData({ type: 'WB_UNDO' });
+  };
+
   const handleToggleStudentDraw = (allowed: boolean) => {
     setAllowStudentDrawing(allowed);
     broadcastData({ type: 'WB_PERMS', allow: allowed });
@@ -280,20 +317,34 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
     broadcastData({ type: 'MUTE_ALL' });
   };
 
-  const handleEndClass = async () => {
-    if (confirm('Bạn có chắc chắn muốn kết thúc buổi học cho toàn bộ học viên không?')) {
-      try {
-        await api.post('/livekit/end-room', { roomName: roomId });
-      } catch {
-        // Continue redirect
-      }
-      router.push(isHost ? '/admin/dashboard' : '/student/dashboard');
-    }
+  // Leave / End Class flow
+  const handleOpenLeaveModal = () => {
+    setShowLeaveModal(true);
   };
 
-  const handleLeaveRoom = () => {
-    roomRef.current?.disconnect();
+  const handleConfirmTemporaryLeave = () => {
+    try {
+      roomRef.current?.disconnect();
+    } catch {}
+    setShowLeaveModal(false);
     router.push(isHost ? '/admin/dashboard' : '/student/dashboard');
+  };
+
+  const handleConfirmEndClass = async () => {
+    setIsEndingClass(true);
+    try {
+      broadcastData({ type: 'CLASS_ENDED' });
+      await api.post('/livekit/end-room', { roomName: roomId }).catch(() => {});
+    } catch (e) {
+      console.warn('Error ending room on server:', e);
+    } finally {
+      try {
+        roomRef.current?.disconnect();
+      } catch {}
+      setIsEndingClass(false);
+      setShowLeaveModal(false);
+      router.push(isHost ? '/admin/dashboard' : '/student/dashboard');
+    }
   };
 
   if (loading) {
@@ -353,6 +404,7 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
                     canDraw={true}
                     onStrokeComplete={handleStrokeComplete}
                     onClearBoard={handleClearBoard}
+                    onUndoStroke={handleUndoStroke}
                     onToggleStudentDraw={handleToggleStudentDraw}
                     remoteStrokes={strokes}
                     allowStudentDrawing={allowStudentDrawing}
@@ -441,9 +493,84 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
           }
         }}
         onMuteAllStudents={handleMuteAllStudents}
-        onEndClass={handleEndClass}
-        onLeaveRoom={handleLeaveRoom}
+        onEndClass={handleConfirmEndClass}
+        onLeaveRoom={handleOpenLeaveModal}
       />
+
+      {/* Confirmation Dialog: Leave Room / End Class */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-md p-6 shadow-2xl text-white space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2 text-amber-400">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                <h3 className="text-sm sm:text-base font-bold text-white">
+                  {isHost ? 'Quản Lý Rời Phòng Học (Host)' : 'Rời Khỏi Buổi Học'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLeaveModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {isHost
+                ? 'Bạn đang giảng dạy với vai trò Host. Bạn có thể tạm thời rời phòng hoặc kết thúc hoàn toàn buổi học cho tất cả học viên.'
+                : 'Bạn có chắc chắn muốn rời khỏi phòng học trực tuyến này không? Hệ thống sẽ ghi nhận thời gian tham gia của bạn.'}
+            </p>
+
+            <div className="space-y-2 pt-2">
+              {isHost ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleConfirmTemporaryLeave}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition flex items-center justify-center space-x-2 border border-slate-700"
+                  >
+                    <LogOut className="w-4 h-4 text-sky-400" />
+                    <span>Tạm rời phòng (Vẫn giữ phòng mở cho học sinh)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleConfirmEndClass}
+                    disabled={isEndingClass}
+                    className="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 active:scale-98 text-white font-bold text-xs transition flex items-center justify-center space-x-2 shadow-lg shadow-red-900/30"
+                  >
+                    {isEndingClass ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <PhoneOff className="w-4 h-4" />
+                    )}
+                    <span>Kết thúc ca học cho toàn bộ lớp</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConfirmTemporaryLeave}
+                  className="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 active:scale-98 text-white font-bold text-xs transition flex items-center justify-center space-x-2 shadow-lg shadow-red-900/30"
+                >
+                  <PhoneOff className="w-4 h-4" />
+                  <span>Xác nhận rời lớp</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowLeaveModal(false)}
+                className="w-full py-2.5 px-4 rounded-xl bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition"
+              >
+                Hủy bỏ &amp; Ở lại lớp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

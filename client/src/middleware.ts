@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
-    if (role !== 'ADMIN') {
+    if (role && role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/student/dashboard', request.url));
     }
   }
