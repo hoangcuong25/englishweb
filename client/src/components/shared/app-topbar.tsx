@@ -17,8 +17,7 @@ import {
   Mic, 
   CheckCircle2, 
   Clock, 
-  Sparkles,
-  X 
+  Sparkles
 } from 'lucide-react';
 
 interface AppTopbarProps {
