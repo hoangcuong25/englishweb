@@ -9,7 +9,14 @@
 1. [BẢNG TỔNG HỢP KẾT NỐI API GIỮA BACKEND & FRONTEND](#1-bảng-tổng-hợp-kết-nối-api-giữa-backend--frontend)
    - 1.1. Các phân hệ đã kết nối hoàn chỉnh (BE ↔ FE)
    - 1.2. BE đã xây dựng API nhưng FE chưa kết nối (Đang dùng dữ liệu tĩnh Mock/Local State)
-   - 1.3. FE cần nhưng BE đang thiếu API
+   - 1.3. Danh Mục Chi Tiết Các API Cần Thêm & Còn Thiếu So Với Tài Liệu SRS (Phạm Vi, Mô Tả & Cách Triển Khai)
+     - 1.3.1. Phân hệ Thông Báo Thời Gian Thực (Notifications System - FR-10 & Topbar UI)
+     - 1.3.2. Phân hệ Quản Lý Học Viên - Admin Tạo Tài Khoản Thủ Công (Users Management - ADM-REQ-001)
+     - 1.3.3. Phân hệ Kho Học Liệu Số Toàn Hệ Thống (Digital Library - FR-04 & LIB-SCR-001/002)
+     - 1.3.4. Phân hệ Ngân Hàng Đề Thi & Quản Trị Quiz (Quiz Engine - FR-08 & QZ-SCR-004)
+     - 1.3.5. Phân hệ Tự Động Lưu Bản Nháp Bài Viết (Writing Auto-Save Drafts - WR-REQ-002)
+     - 1.3.6. Phân hệ Upload File Âm Thanh Bài Nói Speaking Lên Cloudinary (Speaking Audio Storage - SPK-REQ-002)
+     - 1.3.7. Phân hệ Xuất Báo Cáo Chuyên Cần Theo Khoảng Thời Gian (Attendance Date-Range Export - ATT-REQ-005)
    - 1.4. Các API BE nâng cao đã sẵn sàng nhưng chưa có màn hình giao diện FE
 2. [BÁO CÁO ĐỐI CHIẾU HỆ THỐNG VỚI SRS & ĐỀ XUẤT NÂNG CẤP TRẢI NGHIỆM](#2-báo-cáo-đối-chiếu-hệ-thống-với-srs--đề-xuất-nâng-cấp-trải-nghiệm)
    - 2.1. Phân hệ Luyện Viết AI IELTS Writing Studio (`WR-SCR-001` → `003`)
@@ -58,12 +65,190 @@ Hệ thống mã nguồn hiện tại được phân tích đối chiếu giữa
 
 ---
 
-### 1.3. FE cần nhưng BE đang thiếu API
+### 1.3. Danh Mục Chi Tiết Các API Cần Thêm & Còn Thiếu So Với Tài Liệu SRS (Phạm Vi, Mô Tả & Cách Triển Khai)
 
-| STT | Nhu cầu chức năng | Vấn đề hiện tại | API Backend cần bổ sung |
-|:---:|:---|:---|:---|
-| **1** | **Lấy toàn bộ tài liệu Thư viện số** (`student/library` & `admin/library`) | Hiện tại `materials.controller.ts` chỉ có `@Get('lesson/:lessonId')` (lấy tài liệu của 1 bài học), **chưa có endpoint lấy tất cả tài liệu chung của thư viện** kèm lọc theo PDF / Audio MP3. Khiến cả 2 trang thư viện đang phải gán cứng 4 tài liệu mẫu. | Bổ sung endpoint `@Get('/materials')` trong `materials.controller.ts` hỗ trợ Query params (`fileType`, `category`, `search`, `page`, `limit`). |
-| **2** | **Upload file Audio ghi âm bài thi Speaking** | Khi học viên ghi âm xong, trình duyệt tạo ra Blob URL nội bộ (`blob:http://...`). Học viên nộp bài thì URL này chỉ có hiệu lực trên máy học viên, Admin mở máy khác nghe sẽ không có tiếng. | Bổ sung `media.service.ts` ở FE để upload file âm thanh lên `@Post('/media/upload/video')` (hoặc Audio) của Cloudinary lấy link tĩnh trước khi nộp bài. |
+Sau khi rà soát toàn bộ tài liệu đặc tả SRS (`docs/SRS.md`, `docs/Teacher_Dong_Academy_Chi_Tiet_Dac_Ta.md`), mã nguồn Backend NestJS (`server/src/modules/`) và mã nguồn Frontend Next.js (`client/src/`), dưới đây là bảng ma trận chi tiết các API còn thiếu kèm đầy đủ: **Phạm vi nghiệp vụ, Đặc tả Endpoint, Input/Output, Phân quyền RBAC và Cách triển khai kỹ thuật**:
+
+---
+
+#### 1.3.1. Phân hệ Thông Báo Thời Gian Thực (Notifications System - FR-10 & Topbar UI)
+- **Vấn đề thực tế**: Frontend Topbar (`client/src/components/shared/app-topbar.tsx`) đã thiết kế hoàn chỉnh giao diện chuông báo, phân loại thông báo (Writing đã duyệt, Speaking cần chấm, LiveKit sắp diễn ra, Quiz đạt sàn) nhưng Backend **chưa có bảng Notification** và **chưa có bất kỳ API nào**.
+- **Danh sách Endpoint cần bổ sung**:
+  1. `GET /api/notifications`
+     - **Mô tả**: Lấy danh sách thông báo của người dùng hiện tại (kèm phân trang, lọc theo trạng thái `isRead`).
+     - **Quyền hạn (RBAC)**: `STUDENT`, `ADMIN`.
+     - **Query Params**: `page?: number`, `limit?: number`, `unreadOnly?: boolean`.
+     - **Response**: `{ items: NotificationItem[], total: number, unreadCount: number }`.
+  2. `GET /api/notifications/unread-count`
+     - **Mô tả**: Lấy nhanh số lượng thông báo chưa đọc để hiển thị chấm đỏ trên icon chuông Topbar mà không cần tải toàn bộ danh sách.
+     - **Quyền hạn**: `STUDENT`, `ADMIN`.
+     - **Response**: `{ unreadCount: number }`.
+  3. `PUT /api/notifications/:id/read`
+     - **Mô tả**: Đánh dấu 1 thông báo cụ thể là đã đọc (`isRead: true`).
+     - **Quyền hạn**: `STUDENT`, `ADMIN`.
+  4. `PUT /api/notifications/read-all`
+     - **Mô tả**: Đánh dấu tất cả thông báo của người dùng hiện tại là đã đọc.
+     - **Quyền hạn**: `STUDENT`, `ADMIN`.
+  5. `DELETE /api/notifications/:id`
+     - **Mô tả**: Xóa 1 thông báo khỏi danh sách.
+     - **Quyền hạn**: `STUDENT`, `ADMIN`.
+  6. `POST /api/notifications` (Internal Service API)
+     - **Mô tả**: Hàm nghiệp vụ nội bộ `NotificationsService.createNotification(...)` tự động kích hoạt tạo thông báo khi:
+       - Học viên nộp bài Writing / Speaking ➔ Tự động tạo thông báo gửi tới Admin.
+       - Admin duyệt điểm bài Writing / Speaking ➔ Tự động tạo thông báo gửi tới Học viên nộp bài.
+       - Học viên làm Quiz đạt $\ge 80\%$ ➔ Tạo thông báo chúc mừng mở khóa bài học kế tiếp.
+       - Phòng học LiveKit được mở (`room.isLive = true`) ➔ Bắn thông báo nhắc học viên vào lớp.
+- **Cách triển khai Backend**:
+  - Thêm model `Notification` vào `server/prisma/schema.prisma`:
+    ```prisma
+    model Notification {
+      id        String           @id @default(uuid())
+      userId    String
+      user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+      title     String
+      content   String           @db.Text
+      type      NotificationType @default(SYSTEM) // 'WRITING', 'SPEAKING', 'LIVE', 'QUIZ', 'SYSTEM'
+      link      String?
+      isRead    Boolean          @default(false)
+      createdAt DateTime         @default(now())
+      @@index([userId, isRead])
+      @@map("notifications")
+    }
+    ```
+  - Tạo module mới: `server/src/modules/notifications/` (`notifications.controller.ts`, `notifications.service.ts`, `notifications.module.ts`).
+
+---
+
+#### 1.3.2. Phân hệ Quản Lý Học Viên - Admin Tạo Tài Khoản Thủ Công (Users Management - ADM-REQ-001)
+- **Vấn đề thực tế**: Trong trang Admin Quản lý học viên (`client/src/app/(admin)/admin/users/page.tsx`), có modal *"Thêm Học Viên Mới"* (`#addUserModal` gồm Họ tên, Email, Số điện thoại, Khóa học kích hoạt ngay, Target Band). Tuy nhiên Backend `users.controller.ts` **chỉ có API xem, khóa, đổi pass mà THIẾU API tạo học viên mới**.
+- **Endpoint cần bổ sung**:
+  - `POST /api/users`
+    - **Mô tả**: Admin tạo trực tiếp tài khoản học viên, sinh mật khẩu mặc định (hoặc nhập mật khẩu), tự động kích hoạt ghi danh vào khóa học chỉ định (`enrolledCourseId`) và thiết lập mục tiêu Band điểm (`targetBand`).
+    - **Quyền hạn**: `ADMIN`.
+    - **Request Body (DTO)**:
+      ```typescript
+      {
+        fullName: string;      // Họ và tên học viên
+        email: string;         // Email đăng nhập duy nhất
+        phone?: string;        // Số điện thoại (dùng để vẽ Dynamic Watermark)
+        password?: string;     // Mật khẩu khởi tạo (nếu bỏ trống tự sinh "DongAcademy@2026")
+        courseId?: string;     // Khóa học kích hoạt ghi danh ngay
+        targetBand?: string;   // Mục tiêu: "6.5", "7.0", "7.5", "8.0+"
+      }
+      ```
+    - **Response**: Trả về thông tin User vừa tạo kèm thông tin Enrollment tương ứng.
+- **Cách triển khai Backend**:
+  - Thêm phương thức `createStudent(dto: CreateUserDto)` trong `server/src/modules/users/users.service.ts`:
+    - Băm mật khẩu bằng Bcrypt (`saltRounds = 10`).
+    - Tạo `User` với role `Role.STUDENT`.
+    - Nếu có `courseId`, tự động tạo bản ghi `Enrollment` liên kết `userId` với `courseId`.
+  - Thêm `@Post()` trong `server/src/modules/users/users.controller.ts` bảo vệ bởi `JwtAuthGuard` và `Roles(Role.ADMIN)`.
+
+---
+
+#### 1.3.3. Phân hệ Kho Học Liệu Số Toàn Hệ Thống (Digital Library - FR-04 & LIB-SCR-001/002)
+- **Vấn đề thực tế**: Hiện tại `materials.controller.ts` chỉ có `@Get('lesson/:lessonId')` (chỉ lấy tài liệu thuộc về một bài học cụ thể). Cả trang học viên (`/student/library`) và Admin (`/admin/library`) đều là màn hình Thư viện số độc lập, cần danh sách toàn bộ tài liệu PDF và Audio trong hệ thống để tìm kiếm và lọc, dẫn đến việc FE phải dùng mảng tĩnh.
+- **Endpoint cần bổ sung**:
+  - `GET /api/materials`
+    - **Mô tả**: Lấy danh sách toàn bộ tài liệu số trong Thư viện số bảo mật (cho phép tìm kiếm, lọc theo loại file, lọc theo khóa học, phân trang).
+    - **Quyền hạn**: `STUDENT`, `ADMIN` (Học viên chỉ thấy tài liệu thuộc các khóa học đã ghi danh hoặc tài liệu công khai).
+    - **Query Params**:
+      - `search?: string`: Tìm theo tên tài liệu hoặc mô tả.
+      - `fileType?: 'PDF' | 'AUDIO_MP3'`: Lọc định dạng tài liệu.
+      - `courseId?: string`: Lọc theo khóa học áp dụng.
+      - `page?: number`, `limit?: number`: Phân trang dữ liệu.
+    - **Response**: Danh sách `materials: Material[]`, `total: number`.
+- **Cách triển khai Backend**:
+  - Cập nhật `materials.service.ts`: Viết hàm `findAllMaterials(query, userId, userRole)`:
+    - Nếu là `STUDENT`: Chỉ truy vấn các tài liệu thuộc khóa học mà học viên đã ghi danh (`Enrollment`) hoặc tài liệu có `isFreePreview: true`.
+    - Nếu là `ADMIN`: Truy vấn tất cả tài liệu kèm thông tin khóa học trực thuộc.
+  - Thêm route `@Get()` trong `materials.controller.ts`.
+
+---
+
+#### 1.3.4. Phân hệ Ngân Hàng Đề Thi & Quản Trị Quiz (Quiz Engine - FR-08 & QZ-SCR-004)
+- **Vấn đề thực tế**: Backend hiện có `@Post('/quizzes')` và `@Post('/quizzes/:id/questions')`, nhưng lại **thiếu endpoint lấy danh sách đề thi Quiz tổng quan** để Admin xem toàn bộ ngân hàng câu hỏi, và **thiếu endpoint cập nhật Quiz (`PUT`)**.
+- **Danh sách Endpoint cần bổ sung**:
+  1. `GET /api/quizzes`
+     - **Mô tả**: Admin lấy danh sách toàn bộ các bài Quiz trong hệ thống (phân loại theo khóa học, bài học hoặc đề thi độc lập, thống kê số lượng câu hỏi con).
+     - **Quyền hạn**: `ADMIN`.
+     - **Query Params**: `skill?: SkillType`, `testType?: string`, `search?: string`, `page?: number`, `limit?: number`.
+  2. `PUT /api/quizzes/:id`
+     - **Mô tả**: Admin chỉnh sửa thông tin đề thi Quiz (tiêu đề, bài đọc `passage`, audio `audioUrl`, thời gian `timeLimitMinutes`, điểm sàn `passScore`).
+     - **Quyền hạn**: `ADMIN`.
+  3. `POST /api/quizzes/:id/questions/bulk`
+     - **Mô tả**: Admin nhập hàng loạt câu hỏi kèm 4 đáp án (A, B, C, D) và lời giải thích vào bài thi Quiz chỉ trong 1 lần gửi, thay vì phải gọi API tạo từng câu đơn lẻ.
+     - **Quyền hạn**: `ADMIN`.
+     - **Request Body**: `{ questions: CreateQuestionDto[] }`.
+- **Cách triển khai Backend**:
+  - Viết hàm `findAllQuizzes`, `updateQuiz`, và `addQuestionsBulk` trong `quizzes.service.ts`.
+  - Khai báo các route tương ứng tại `quizzes.controller.ts`.
+
+---
+
+#### 1.3.5. Phân hệ Tự Động Lưu Bản Nháp Bài Viết (Writing Auto-Save Drafts - WR-REQ-002)
+- **Vấn đề thực tế**: Theo SRS `WR-REQ-002` và màn hình `WR-SCR-001`, hệ thống bắt buộc phải có cơ chế **Auto-save draft sau mỗi 15-30 giây** để học viên không bị mất bài viết Task 1/Task 2 khi rớt mạng, sập nguồn hoặc vô tình reload trang. Hiện tại Frontend mới chỉ đếm timeout lưu tạm trên RAM, nếu tắt tab sẽ mất bài viết.
+- **Danh sách Endpoint cần bổ sung**:
+  1. `POST /api/writing/drafts`
+     - **Mô tả**: Lưu bản nháp bài viết đang làm dở của học viên theo thời gian thực.
+     - **Quyền hạn**: `STUDENT`.
+     - **Request Body**: `{ promptId: string, content: string, wordCount: number, durationSeconds: number }`.
+  2. `GET /api/writing/drafts/:promptId`
+     - **Mô tả**: Lấy lại nội dung bài viết đang viết dở khi học viên quay trở lại phòng thi Writing Studio.
+     - **Quyền hạn**: `STUDENT`.
+  3. `DELETE /api/writing/drafts/:promptId`
+     - **Mô tả**: Tự động xóa bản nháp khi học viên đã bấm nộp bài thi chính thức.
+     - **Quyền hạn**: `STUDENT`.
+- **Cách triển khai Backend**:
+  - Thêm bảng `writing_drafts` vào `schema.prisma`:
+    ```prisma
+    model WritingDraft {
+      id              String   @id @default(uuid())
+      userId          String
+      user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+      promptId        String
+      prompt          WritingPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+      content         String   @db.LongText
+      wordCount       Int      @default(0)
+      durationSeconds Int      @default(0)
+      updatedAt       DateTime @updatedAt
+
+      @@unique([userId, promptId])
+      @@map("writing_drafts")
+    }
+    ```
+  - Thêm các route lưu và tải nháp vào `writing.controller.ts`.
+
+---
+
+#### 1.3.6. Phân hệ Upload File Âm Thanh Bài Nói Speaking Lên Cloudinary (Speaking Audio Storage - SPK-REQ-002)
+- **Vấn đề thực tế**: Học sinh thu âm bài thi Speaking qua Web Audio API tạo ra chuỗi Blob (`blob:http://...`). Khi gọi `POST /api/speaking/submissions`, API hiện tại chỉ nhận chuỗi `audioUrl: string`. Nếu truyền blob URL thì link chỉ chạy được trên máy học viên; Admin mở bài lên chấm điểm sẽ không nghe được âm thanh.
+- **Endpoint cần bổ sung**:
+  - `POST /api/speaking/submissions/with-audio` (hoặc `POST /api/media/upload/audio`)
+    - **Mô tả**: Nhận file audio trực tiếp dưới dạng `multipart/form-data` (`file: Express.Multer.File`), tự động upload lên thư mục `teacher_dong_academy/speaking_audios/` trên Cloudinary CDN, sau đó tạo bản ghi `SpeakingSubmission` với URL tĩnh vĩnh viễn.
+    - **Quyền hạn**: `STUDENT`.
+    - **Headers**: `Content-Type: multipart/form-data`.
+    - **Body Fields**: `audioFile` (file mp3/webm/wav), `promptId` (UUID), `durationSeconds` (number).
+- **Cách triển khai Backend**:
+  - Sử dụng `@UseInterceptors(FileInterceptor('audioFile'))` trong `speaking.controller.ts`.
+  - Gọi `cloudinaryService.uploadVideo(file, 'teacher_dong_academy/speaking_audios')` (Cloudinary xử lý audio qua resource type video/raw).
+
+---
+
+#### 1.3.7. Phân hệ Xuất Báo Cáo Chuyên Cần Theo Khoảng Thời Gian (Attendance Date-Range Export - ATT-REQ-005)
+- **Vấn đề thực tế**: Hiện tại `GET /api/attendance/classroom/:classroomId/export` chỉ cho phép xuất Excel của một phòng học đơn lẻ. Theo SRS `ATT-REQ-005` và màn hình `ATT-SCR-002`, Admin cần có chức năng **xuất báo cáo chuyên cần tổng hợp của toàn bộ học viện hoặc theo từng khóa học trong khoảng thời gian tùy chọn** (ví dụ: Từ 01/10/2026 đến 31/10/2026).
+- **Endpoint cần bổ sung**:
+  - `GET /api/attendance/export`
+    - **Mô tả**: Xuất file Excel (`.xlsx`) tổng hợp dữ liệu chuyên cần của nhiều lớp học/khóa học trong khoảng thời gian lọc (Từ ngày - Đến ngày).
+    - **Quyền hạn**: `ADMIN`.
+    - **Query Params**:
+      - `startDate: string` (định dạng `YYYY-MM-DD`, ví dụ: `2026-10-01`).
+      - `endDate: string` (định dạng `YYYY-MM-DD`, ví dụ: `2026-10-31`).
+      - `courseId?: string` (tùy chọn: lọc theo 1 khóa học hoặc toàn bộ khóa học).
+    - **Response**: Trả về binary stream file Excel `.xlsx` có tên file động `Bao_Cao_Chuyen_Can_[TuNgay]_[DenNgay].xlsx`.
+- **Cách triển khai Backend**:
+  - Mở rộng hàm `exportAttendanceToExcel` trong `attendance.service.ts` để nhận thêm điều kiện `where: { createdAt: { gte, lte }, courseId }`.
+  - Khai báo endpoint `@Get('export')` trong `attendance.controller.ts`.
 
 ---
 
