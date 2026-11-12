@@ -23,6 +23,7 @@ import { WritingService } from './writing.service';
 import { CreateWritingPromptDto } from './dto/create-writing-prompt.dto';
 import { SubmitWritingDto } from './dto/submit-writing.dto';
 import { ApproveWritingDto } from './dto/approve-writing.dto';
+import { SaveWritingDraftDto } from './dto/save-writing-draft.dto';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/common/guards/roles.guard';
 import { Roles } from '../../core/common/decorators/roles.decorator';
@@ -87,6 +88,39 @@ export class WritingController {
   @ApiParam({ name: 'id', description: 'UUID của đề bài' })
   deletePrompt(@Param('id') id: string) {
     return this.writingService.deletePrompt(id);
+  }
+
+  // ==========================================
+  // WRITING DRAFTS (AUTO-SAVE)
+  // ==========================================
+
+  @Post('drafts')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STUDENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Học viên tự động lưu bản nháp bài viết đang làm' })
+  saveDraft(@Body() dto: SaveWritingDraftDto, @CurrentUser() user: any) {
+    return this.writingService.saveDraft(user.id, dto);
+  }
+
+  @Get('drafts/:promptId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STUDENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Học viên lấy bản nháp bài viết đang làm dở' })
+  @ApiParam({ name: 'promptId', description: 'UUID của đề bài Writing' })
+  getDraft(@Param('promptId') promptId: string, @CurrentUser() user: any) {
+    return this.writingService.getDraft(user.id, promptId);
+  }
+
+  @Delete('drafts/:promptId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STUDENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Học viên xóa bản nháp bài viết' })
+  @ApiParam({ name: 'promptId', description: 'UUID của đề bài Writing' })
+  deleteDraft(@Param('promptId') promptId: string, @CurrentUser() user: any) {
+    return this.writingService.deleteDraft(user.id, promptId);
   }
 
   // ==========================================

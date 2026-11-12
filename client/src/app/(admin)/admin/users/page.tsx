@@ -143,7 +143,7 @@ export default function AdminUsersPage() {
     setTimeout(() => setNotice(''), 5000);
   };
 
-  const handleCreateStudent = (e: React.FormEvent) => {
+  const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     const newUser: StudentUser = {
       id: `HV-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -156,9 +156,28 @@ export default function AdminUsersPage() {
       joinedDate: new Date().toLocaleDateString('vi-VN'),
     };
 
-    setUsers([...users, newUser]);
+    try {
+      await usersService.createStudent({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        targetBand: formData.targetBand,
+      });
+      setNotice(`Đã tạo học viên "${newUser.fullName}" thành công trên máy chủ!`);
+      await fetchStudents();
+    } catch {
+      setUsers([...users, newUser]);
+      setNotice(`Đã tạo học viên "${newUser.fullName}" (lưu cục bộ).`);
+    }
+
     setIsAddModalOpen(false);
-    setNotice(`Đã tạo học viên "${newUser.fullName}" thành công!`);
+    setFormData({
+      fullName: '',
+      email: '',
+      phone: '',
+      enrolledCourse: 'IELTS Masterclass 7.5+ Intensive',
+      targetBand: '7.5',
+    });
     setTimeout(() => setNotice(''), 4000);
   };
 

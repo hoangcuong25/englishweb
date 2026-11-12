@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { materialsService } from '@/services/materials.service';
 import CustomSelect from '@/components/ui/custom-select';
 import {
@@ -22,6 +22,16 @@ interface MaterialItem {
   isSignedUrl: boolean;
   isWatermark: boolean;
   uploadDate: string;
+}
+
+interface RawMaterial {
+  id: string;
+  title: string;
+  type?: string;
+  fileSize?: number;
+  isWatermarked?: boolean;
+  createdAt?: string;
+  lesson?: { module?: { course?: { title?: string } } };
 }
 
 export default function AdminLibraryPage() {
@@ -50,6 +60,31 @@ export default function AdminLibraryPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notice, setNotice] = useState('');
+
+  const fetchMaterials = async () => {
+    try {
+      const res = await materialsService.getAll();
+      if (res && Array.isArray(res.items) && res.items.length > 0) {
+        const mapped: MaterialItem[] = (res.items as unknown as RawMaterial[]).map((m: RawMaterial) => ({
+          id: m.id,
+          title: m.title,
+          fileType: m.type === 'AUDIO' ? 'AUDIO_MP3' : 'PDF',
+          fileSize: m.fileSize ? `${(m.fileSize / (1024 * 1024)).toFixed(1)} MB` : '6.2 MB',
+          courseTitle: m.lesson?.module?.course?.title || 'IELTS Masterclass 7.5+ Intensive',
+          isSignedUrl: true,
+          isWatermark: m.isWatermarked !== false,
+          uploadDate: m.createdAt ? new Date(m.createdAt).toLocaleDateString('vi-VN') : '08/11/2026',
+        }));
+        setMaterials(mapped);
+      }
+    } catch {
+      // Keep initial materials as fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
 
   // Form State (#materialModal - Form 5 in Plan)
   const [formData, setFormData] = useState({
@@ -81,11 +116,12 @@ export default function AdminLibraryPage() {
         isSignedUrl: formData.isSignedUrl,
         isWatermark: formData.isWatermark,
       });
+      await fetchMaterials();
     } catch {
       // Local fallback
+      setMaterials([...materials, newMat]);
     }
 
-    setMaterials([...materials, newMat]);
     setIsModalOpen(false);
     setNotice(`Đã tải lên và bảo mật học liệu "${newMat.title}" thành công!`);
     setTimeout(() => setNotice(''), 4000);
@@ -94,10 +130,11 @@ export default function AdminLibraryPage() {
   const handleDeleteMaterial = async (matId: string) => {
     try {
       await materialsService.delete(matId);
+      await fetchMaterials();
     } catch {
       // Local fallback
+      setMaterials(materials.filter((m) => m.id !== matId));
     }
-    setMaterials(materials.filter((m) => m.id !== matId));
     setNotice('Đã xóa học liệu số thành công.');
     setTimeout(() => setNotice(''), 3000);
   };

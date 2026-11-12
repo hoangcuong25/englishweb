@@ -28,6 +28,8 @@ export class MockPrismaService {
   public conversations: any[] = [];
   public messages: any[] = [];
   public blogPosts: any[] = [];
+  public notifications: any[] = [];
+  public writingDrafts: any[] = [];
 
   constructor() {
     this.seedInitialData();
@@ -675,12 +677,36 @@ export class MockPrismaService {
 
   // --- MATERIAL REPOSITORY ---
   material = {
-    findMany: async (args: any) => {
+    count: async (args?: any) => {
       let result = [...this.materials];
-      if (args.where?.lessonId) {
+      if (args?.where?.lessonId) {
         result = result.filter((m) => m.lessonId === args.where.lessonId);
       }
-      return result;
+      return result.length;
+    },
+    findMany: async (args?: any) => {
+      let result = [...this.materials];
+      if (args?.where?.lessonId) {
+        result = result.filter((m) => m.lessonId === args.where.lessonId);
+      }
+      if (args?.where?.type) {
+        result = result.filter((m) => m.type === args.where.type);
+      }
+      return result.map((m) => {
+        const clone = { ...m };
+        if (args?.include?.lesson) {
+          const lesson = this.lessons.find((l) => l.id === m.lessonId);
+          if (lesson) {
+            const mod = this.courseModules.find((cmod) => cmod.id === lesson.moduleId);
+            const course = mod ? this.courses.find((c) => c.id === mod.courseId) : null;
+            clone.lesson = {
+              ...lesson,
+              module: mod ? { ...mod, course } : null,
+            };
+          }
+        }
+        return clone;
+      });
     },
     findUnique: async (args: any) => {
       const found = this.materials.find((m) => m.id === args.where.id);
@@ -755,6 +781,15 @@ export class MockPrismaService {
         (e) => e.userId === key.userId && e.courseId === key.courseId,
       );
       return found ? { ...found } : null;
+    },
+    create: async (args: any) => {
+      const newEnrollment = {
+        id: randomUUID(),
+        ...args.data,
+        enrolledAt: new Date(),
+      };
+      this.enrollments.push(newEnrollment);
+      return { ...newEnrollment };
     },
     upsert: async (args: any) => {
       const key = args.where.userId_courseId;
@@ -1116,6 +1151,18 @@ export class MockPrismaService {
           : null;
       }
       return clone;
+    },
+    count: async (args?: any) => {
+      let result = [...this.quizzes];
+      if (args?.where?.skill) result = result.filter((q) => q.skill === args.where.skill);
+      if (args?.where?.testType) result = result.filter((q) => q.testType === args.where.testType);
+      return result.length;
+    },
+    update: async (args: any) => {
+      const idx = this.quizzes.findIndex((q) => q.id === args.where.id);
+      if (idx === -1) return null;
+      this.quizzes[idx] = { ...this.quizzes[idx], ...args.data, updatedAt: new Date() };
+      return { ...this.quizzes[idx] };
     },
     create: async (args: any) => {
       const newQuiz = {
@@ -1590,6 +1637,126 @@ export class MockPrismaService {
       if (idx === -1) return null;
       const deleted = this.blogPosts.splice(idx, 1)[0];
       return deleted;
+    },
+  };
+
+  // --- NOTIFICATION REPOSITORY ---
+  notification = {
+    findMany: async (args?: any) => {
+      let list = [...this.notifications];
+      if (args?.where?.userId) {
+        list = list.filter((n) => n.userId === args.where.userId);
+      }
+      if (args?.where?.isRead !== undefined) {
+        list = list.filter((n) => n.isRead === args.where.isRead);
+      }
+      list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      if (args?.skip) list = list.slice(args.skip);
+      if (args?.take) list = list.slice(0, args.take);
+      return list;
+    },
+    count: async (args?: any) => {
+      let list = [...this.notifications];
+      if (args?.where?.userId) {
+        list = list.filter((n) => n.userId === args.where.userId);
+      }
+      if (args?.where?.isRead !== undefined) {
+        list = list.filter((n) => n.isRead === args.where.isRead);
+      }
+      return list.length;
+    },
+    findUnique: async (args: any) => {
+      const found = this.notifications.find((n) => n.id === args.where.id);
+      return found ? { ...found } : null;
+    },
+    create: async (args: any) => {
+      const newNoti = {
+        id: randomUUID(),
+        ...args.data,
+        isRead: args.data.isRead || false,
+        createdAt: new Date(),
+      };
+      this.notifications.push(newNoti);
+      return { ...newNoti };
+    },
+    update: async (args: any) => {
+      const idx = this.notifications.findIndex((n) => n.id === args.where.id);
+      if (idx === -1) return null;
+      this.notifications[idx] = { ...this.notifications[idx], ...args.data };
+      return { ...this.notifications[idx] };
+    },
+    updateMany: async (args: any) => {
+      let count = 0;
+      this.notifications = this.notifications.map((n) => {
+        let match = true;
+        if (args?.where?.userId && n.userId !== args.where.userId) match = false;
+        if (args?.where?.isRead !== undefined && n.isRead !== args.where.isRead) match = false;
+        if (match) {
+          count++;
+          return { ...n, ...args.data };
+        }
+        return n;
+      });
+      return { count };
+    },
+    delete: async (args: any) => {
+      const idx = this.notifications.findIndex((n) => n.id === args.where.id);
+      if (idx === -1) return null;
+      const [removed] = this.notifications.splice(idx, 1);
+      return removed;
+    },
+  };
+
+  // --- WRITING DRAFT REPOSITORY ---
+  writingDraft = {
+    findUnique: async (args: any) => {
+      const key = args.where.userId_promptId;
+      const found = this.writingDrafts.find(
+        (d) => d.userId === key.userId && d.promptId === key.promptId,
+      );
+      return found ? { ...found } : null;
+    },
+    upsert: async (args: any) => {
+      const key = args.where.userId_promptId;
+      const idx = this.writingDrafts.findIndex(
+        (d) => d.userId === key.userId && d.promptId === key.promptId,
+      );
+      if (idx >= 0) {
+        this.writingDrafts[idx] = {
+          ...this.writingDrafts[idx],
+          ...args.update,
+          updatedAt: new Date(),
+        };
+        return { ...this.writingDrafts[idx] };
+      } else {
+        const created = {
+          id: randomUUID(),
+          ...args.create,
+          updatedAt: new Date(),
+        };
+        this.writingDrafts.push(created);
+        return { ...created };
+      }
+    },
+    delete: async (args: any) => {
+      const key = args.where.userId_promptId;
+      const idx = this.writingDrafts.findIndex(
+        (d) => d.userId === key.userId && d.promptId === key.promptId,
+      );
+      if (idx === -1) return null;
+      const [removed] = this.writingDrafts.splice(idx, 1);
+      return removed;
+    },
+    deleteMany: async (args: any) => {
+      let count = 0;
+      this.writingDrafts = this.writingDrafts.filter((d) => {
+        let match = true;
+        if (args?.where?.userId && d.userId !== args.where.userId) match = false;
+        if (args?.where?.promptId && d.promptId !== args.where.promptId) match = false;
+        if (match) count++;
+        return !match;
+      });
+      return { count };
     },
   };
 

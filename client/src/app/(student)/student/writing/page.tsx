@@ -34,37 +34,57 @@ export default function StudentWritingPage() {
     sampleModel: string;
   } | null>(null);
 
-  // Load prompts from backend
+  // Load prompts from backend & load existing draft
   useEffect(() => {
-    const fetchPrompts = async () => {
+    const fetchPromptsAndDraft = async () => {
       try {
         const prompts = await writingService.getPrompts(taskType);
         if (prompts && prompts.length > 0) {
           setCurrentPromptTitle(prompts[0].title);
           setCurrentPromptId(prompts[0].id);
+
+          // Check if there is an auto-saved draft
+          const draft = await writingService.getDraft(prompts[0].id);
+          if (draft && draft.content) {
+            setEssayContent(draft.content);
+            if (draft.durationSeconds) {
+              const maxTime = taskType === 'TASK_1' ? 20 * 60 : 40 * 60;
+              setTimeLeft(Math.max(60, maxTime - draft.durationSeconds));
+            }
+          }
         }
       } catch {
         // Fallback default
       }
     };
-    fetchPrompts();
+    fetchPromptsAndDraft();
   }, [taskType]);
 
-  // Word counter
+  // Word counter & real auto-save draft
   useEffect(() => {
     const trimmed = essayContent.trim();
-    if (!trimmed) {
-      setWordCount(0);
-    } else {
-      const words = trimmed.split(/\s+/).filter(Boolean);
-      setWordCount(words.length);
-    }
+    const words = trimmed ? trimmed.split(/\s+/).filter(Boolean) : [];
+    setWordCount(words.length);
+
     setIsAutoSaved(false);
-    const saveTimeout = setTimeout(() => {
+    const saveTimeout = setTimeout(async () => {
       setIsAutoSaved(true);
+      if (currentPromptId && trimmed.length > 5) {
+        try {
+          await writingService.saveDraft({
+            promptId: currentPromptId,
+            content: essayContent,
+            wordCount: words.length,
+            durationSeconds: (taskType === 'TASK_1' ? 20 * 60 : 40 * 60) - timeLeft,
+          });
+        } catch {
+          // Ignore background draft save failure
+        }
+      }
     }, 1500);
+
     return () => clearTimeout(saveTimeout);
-  }, [essayContent]);
+  }, [essayContent, currentPromptId, taskType, timeLeft]);
 
   // Timer
   useEffect(() => {
@@ -133,6 +153,7 @@ export default function StudentWritingPage() {
             res.aiAnalysis.suggestedSampleBand8 ||
             'In contemporary society, an increasing number of scholars assert that community engagement...',
         });
+        writingService.deleteDraft(currentPromptId).catch(() => {});
         return;
       }
     } catch {
@@ -161,7 +182,10 @@ export default function StudentWritingPage() {
   };
 
   const minWords = taskType === 'TASK_1' ? 150 : 250;
+  const optimalWords = taskType === 'TASK_1' ? 180 : 280;
   const isWordCountMet = wordCount >= minWords;
+  const isWordCountOptimal = wordCount >= optimalWords;
+  const progressPercent = Math.min(100, Math.round((wordCount / optimalWords) * 100));
 
   return (
     <div className="space-y-6">
@@ -243,18 +267,34 @@ export default function StudentWritingPage() {
                 </span>
               </div>
 
-              {/* Word Count Indicator */}
-              <div className="flex items-center space-x-1.5">
-                <span className="text-muted text-[11px]">Số từ:</span>
-                <span
-                  className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
-                    isWordCountMet
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-amber-100 text-amber-700'
-                  }`}
-                >
-                  {wordCount} / {minWords} từ
-                </span>
+              {/* Dynamic Target Word Progress Indicator (UX Upgrade 2.1) */}
+              <div className="flex flex-col items-end space-y-1">
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-muted text-[11px]">Tiến độ bài viết:</span>
+                  <span
+                    className={`font-mono font-bold px-2 py-0.5 rounded text-xs transition-colors ${
+                      !isWordCountMet
+                        ? 'bg-red-100 text-red-700'
+                        : !isWordCountOptimal
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}
+                  >
+                    {wordCount} / {minWords} từ {!isWordCountMet ? '(Chưa đạt)' : !isWordCountOptimal ? '(Đạt chuẩn)' : '(Tối ưu 7.5+)'}
+                  </span>
+                </div>
+                <div className="w-36 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 rounded-full ${
+                      !isWordCountMet
+                        ? 'bg-red-500'
+                        : !isWordCountOptimal
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
               </div>
             </div>
 

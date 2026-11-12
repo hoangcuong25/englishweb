@@ -8,9 +8,12 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -97,6 +100,27 @@ export class SpeakingController {
   @ApiResponse({ status: 201, description: 'Nộp bài nói thành công' })
   submitRecording(@Body() dto: SubmitSpeakingDto, @CurrentUser() user: any) {
     return this.speakingService.submitRecording(dto, user.id);
+  }
+
+  @Post('submissions/with-audio')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STUDENT)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('audioFile'))
+  @ApiOperation({ summary: 'Học viên upload trực tiếp file âm thanh và nộp bài Speaking lên Cloudinary' })
+  @ApiResponse({ status: 201, description: 'Upload và nộp bài nói thành công' })
+  submitRecordingWithFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('promptId') promptId: string,
+    @Body('durationSeconds') durationSeconds: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.speakingService.submitRecordingWithFile(
+      file,
+      promptId,
+      durationSeconds,
+      user.id,
+    );
   }
 
   @Get('submissions/my')

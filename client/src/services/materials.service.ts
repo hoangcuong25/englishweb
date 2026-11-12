@@ -21,6 +21,25 @@ export interface SignedUrlResponse {
 }
 
 export const materialsService = {
+  async getAll(params?: {
+    search?: string;
+    fileType?: string;
+    courseId?: string;
+    lessonId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ items: Material[]; total: number }> {
+    const response = await api.get('/materials', { params });
+    const data = response.data?.data || response.data;
+    if (Array.isArray(data)) {
+      return { items: data, total: data.length };
+    }
+    return {
+      items: data?.items || [],
+      total: data?.total || 0,
+    };
+  },
+
   async getByLesson(lessonId: string): Promise<Material[]> {
     const response = await api.get(`/materials/lesson/${lessonId}`);
     return response.data?.data || response.data || [];

@@ -75,6 +75,83 @@ export class MaterialsService {
     return this.prisma.material.delete({ where: { id } });
   }
 
+  async findAll(
+    query: {
+      search?: string;
+      fileType?: MaterialType;
+      courseId?: string;
+      lessonId?: string;
+      page?: number;
+      limit?: number;
+    },
+    user?: any,
+  ) {
+    const page = query.page && query.page > 0 ? Number(query.page) : 1;
+    const limit = query.limit && query.limit > 0 ? Number(query.limit) : 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (query.fileType) {
+      where.type = query.fileType;
+    }
+    if (query.lessonId) {
+      where.lessonId = query.lessonId;
+    }
+    if (query.courseId) {
+      where.lesson = {
+        module: {
+          courseId: query.courseId,
+        },
+      };
+    }
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search } },
+        { fileKey: { contains: query.search } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.material.findMany({
+        where,
+        include: {
+          lesson: {
+            select: {
+              id: true,
+              title: true,
+              isFreePreview: true,
+              module: {
+                select: {
+                  id: true,
+                  title: true,
+                  course: {
+                    select: {
+                      id: true,
+                      title: true,
+                      slug: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.material.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async findByLessonId(lessonId: string) {
     return this.prisma.material.findMany({
       where: { lessonId },

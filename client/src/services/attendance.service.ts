@@ -58,5 +58,13 @@ export const attendanceService = {
     });
     return response.data;
   },
+
+  async exportDateRange(startDate?: string, endDate?: string, courseId?: string) {
+    const response = await api.get('/attendance/export', {
+      params: { startDate, endDate, courseId },
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
 

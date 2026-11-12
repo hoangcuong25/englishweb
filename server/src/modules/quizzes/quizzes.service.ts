@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
+import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { Role, SkillType, QuestionType } from '@prisma/client';
@@ -40,6 +41,101 @@ export class QuizzesService {
         passScore: dto.passScore ?? 80,
       },
     });
+  }
+
+  async findAllQuizzes(query: {
+    skill?: SkillType;
+    testType?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = query.page && query.page > 0 ? Number(query.page) : 1;
+    const limit = query.limit && query.limit > 0 ? Number(query.limit) : 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (query.skill) where.skill = query.skill;
+    if (query.testType) where.testType = query.testType;
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search } },
+        { description: { contains: query.search } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.quiz.findMany({
+        where,
+        include: {
+          lesson: {
+            select: { id: true, title: true },
+          },
+          _count: {
+            select: {
+              questions: true,
+              submissions: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.quiz.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async updateQuiz(id: string, dto: UpdateQuizDto) {
+    const quiz = await this.prisma.quiz.findUnique({ where: { id } });
+    if (!quiz) {
+      throw new NotFoundException(`Không tìm thấy bài Quiz ID: ${id}`);
+    }
+
+    return this.prisma.quiz.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async addQuestionsBulk(quizId: string, questions: CreateQuestionDto[]) {
+    const quiz = await this.prisma.quiz.findUnique({ where: { id: quizId } });
+    if (!quiz) {
+      throw new NotFoundException(`Không tìm thấy bài Quiz ID: ${quizId}`);
+    }
+
+    const createdQuestions = [];
+    for (const q of questions) {
+      const created = await this.prisma.question.create({
+        data: {
+          quizId,
+          content: q.content,
+          skill: q.skill || quiz.skill || SkillType.READING,
+          type: q.type,
+          subCategory: q.subCategory,
+          points: q.points ?? 1.0,
+          explanation: q.explanation,
+          orderIndex: q.orderIndex ?? 0,
+          options: {
+            create: q.options.map((opt) => ({
+              content: opt.content,
+              isCorrect: opt.isCorrect,
+            })),
+          },
+        },
+        include: { options: true },
+      });
+      createdQuestions.push(created);
+    }
+    return createdQuestions;
   }
 
   async getQuizByLesson(lessonId: string, role?: Role) {

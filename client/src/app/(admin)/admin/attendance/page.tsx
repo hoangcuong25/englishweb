@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { attendanceService } from '@/services/attendance.service';
 import CustomSelect from '@/components/ui/custom-select';
 import {
@@ -78,6 +78,40 @@ export default function AdminAttendancePage() {
   const [auditNote, setAuditNote] = useState('');
   const [notice, setNotice] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const fetchAttendanceData = async () => {
+    try {
+      const classrooms = await attendanceService.getClassrooms();
+      if (classrooms && classrooms.length > 0) {
+        const recordsRes = await attendanceService.getAttendanceByClassroom(classrooms[0].id);
+        if (recordsRes && recordsRes.length > 0) {
+          const mapped: AttendanceRecord[] = recordsRes.map((r) => ({
+            id: r.id,
+            studentId: r.student?.id ? `HV-${r.student.id.substring(0, 4).toUpperCase()}` : 'HV-0100',
+            studentName: r.student?.fullName || 'Học viên',
+            email: r.student?.email || 'student@dong.edu.vn',
+            sessionTitle: classrooms[0].name || 'Buổi học LiveKit',
+            joinedAt: r.joinedAt ? new Date(r.joinedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
+            leftAt: r.leftAt ? new Date(r.leftAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
+            totalMinutes: r.durationMinutes || 0,
+            percentage: Math.min(100, Math.round(((r.durationMinutes || 0) / 90) * 100)),
+            status: r.status,
+            isManualOverride: false,
+            auditNote: r.notes,
+          }));
+          setRecords(mapped);
+        }
+      }
+    } catch {
+      // Keep initial records as fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendanceData();
+  }, []);
 
   const handleOpenOverride = (rec: AttendanceRecord) => {
     setActiveOverride(rec);
@@ -120,11 +154,16 @@ export default function AdminAttendancePage() {
   const handleExportExcel = async () => {
     setIsExporting(true);
     try {
-      const blob = await attendanceService.exportExcel('classroom-active-id');
+      let blob;
+      if (startDate || endDate) {
+        blob = await attendanceService.exportDateRange(startDate || undefined, endDate || undefined);
+      } else {
+        blob = await attendanceService.exportExcel('classroom-active-id');
+      }
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Diem_Danh_Teacher_Dong_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.setAttribute('download', `Diem_Danh_Teacher_Dong_${startDate || 'All'}_${endDate || new Date().toISOString().split('T')[0]}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -153,18 +192,36 @@ export default function AdminAttendancePage() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center space-x-1 bg-white border border-line rounded-xl px-2.5 py-1 text-xs">
+            <span className="text-slate-400 font-medium text-[11px]">Từ:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="text-xs text-slate-700 font-semibold focus:outline-none bg-transparent"
+            />
+          </div>
+          <div className="flex items-center space-x-1 bg-white border border-line rounded-xl px-2.5 py-1 text-xs">
+            <span className="text-slate-400 font-medium text-[11px]">Đến:</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="text-xs text-slate-700 font-semibold focus:outline-none bg-transparent"
+            />
+          </div>
           <button
             disabled={isExporting}
             onClick={handleExportExcel}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5"
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5"
           >
             {isExporting ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <FileSpreadsheet className="w-4 h-4" />
             )}
-            <span>Xuất Báo Cáo Excel (.xlsx)</span>
+            <span>Xuất Excel {startDate || endDate ? '(Theo Ngày)' : ''}</span>
           </button>
         </div>
       </div>

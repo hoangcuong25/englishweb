@@ -139,4 +139,64 @@ export class AttendanceService {
 
     return { buffer, filename };
   }
+
+  async exportRangeToExcel(startDate?: string, endDate?: string, courseId?: string) {
+    const where: any = {};
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    if (courseId) {
+      where.classroom = { courseId };
+    }
+
+    const records = await this.prisma.attendanceRecord.findMany({
+      where,
+      include: {
+        student: {
+          select: { id: true, fullName: true, email: true, phone: true },
+        },
+        classroom: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const rows = records.map((r, idx) => ({
+      'STT': idx + 1,
+      'Phòng Học': r.classroom?.name || 'Lớp Học',
+      'Mã Học Viên': `TD-STU-${r.student.id.substring(0, 4).toUpperCase()}`,
+      'Họ Và Tên': r.student.fullName,
+      'Email': r.student.email,
+      'Số Điện Thoại': r.student.phone || 'Chưa cập nhật',
+      'Giờ Vào Đầu Tiên': r.firstJoinedAt
+        ? new Date(r.firstJoinedAt).toLocaleString('vi-VN')
+        : 'Chưa vào',
+      'Giờ Rời Cuối Cùng': r.lastLeftAt
+        ? new Date(r.lastLeftAt).toLocaleString('vi-VN')
+        : '-',
+      'Tổng Số Phút Học': `${r.totalMinutes} phút`,
+      'Trạng Thái Chuyên Cần': r.status,
+      'Điều Chỉnh Thủ Công': r.isManualOverride ? 'Có' : 'Không',
+      'Ghi Chú Của Admin': r.note || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'BaoCaoChuyenCan');
+
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const filename = `Bao_Cao_Chuyen_Can_${startDate || 'ToanBo'}_${endDate || 'HienTai'}.xlsx`;
+
+    return { buffer, filename };
+  }
 }

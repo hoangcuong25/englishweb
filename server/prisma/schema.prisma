@@ -108,6 +108,14 @@ enum BlogStatus {
   ARCHIVED
 }
 
+enum NotificationType {
+  WRITING
+  SPEAKING
+  LIVE
+  QUIZ
+  SYSTEM
+}
+
 // ==========================================
 // 1. AUTH & USER MANAGEMENT (MÔ-ĐUN 1 & 2)
 // ==========================================
@@ -140,6 +148,8 @@ model User {
   conversationsAsAdmin     Conversation[]        @relation("AdminConversations")
   sentMessages             Message[]             @relation("SentMessages")
   blogPosts                BlogPost[]            @relation("UserBlogPosts")
+  notifications            Notification[]
+  writingDrafts            WritingDraft[]
 
   @@map("users")
 }
@@ -301,6 +311,7 @@ model WritingPrompt {
   updatedAt        DateTime        @updatedAt
 
   submissions      WritingSubmission[]
+  drafts           WritingDraft[]
 
   @@index([lessonId])
   @@map("writing_prompts")
@@ -336,6 +347,21 @@ model WritingSubmission {
   @@index([userId])
   @@index([approvedById])
   @@map("writing_submissions")
+}
+
+model WritingDraft {
+  id              String        @id @default(uuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promptId        String
+  prompt          WritingPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  content         String        @db.LongText
+  wordCount       Int           @default(0)
+  durationSeconds Int           @default(0)
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([userId, promptId])
+  @@map("writing_drafts")
 }
 
 // ==========================================
@@ -595,5 +621,24 @@ model BlogPost {
   @@index([status])
   @@index([category])
   @@map("blog_posts")
+}
+
+// ==========================================
+// 13. NOTIFICATIONS SYSTEM
+// ==========================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String           @db.Text
+  type      NotificationType @default(SYSTEM)
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
 }
 

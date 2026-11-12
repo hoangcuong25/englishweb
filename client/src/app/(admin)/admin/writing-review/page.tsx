@@ -126,6 +126,26 @@ export default function AdminWritingReviewPage() {
 
   const currentOverall = calculateOverall(scoreTR, scoreCC, scoreLR, scoreGRA);
 
+  const handleQuickApprove = async (sub: WritingReviewItem) => {
+    try {
+      await writingService.approveSubmission(sub.id, {
+        teacherScore: sub.aiOverall,
+        teacherFeedback: 'Phê duyệt chuẩn xác theo phân tích 4 tiêu chí của AI.',
+        isApproved: true,
+      });
+    } catch {
+      // Local fallback
+    }
+
+    setSubmissions((prev) =>
+      prev.map((s) => (s.id === sub.id ? { ...s, status: 'APPROVED' } : s)),
+    );
+    setPublishNotice(
+      `Đã duyệt nhanh bài viết của học viên ${sub.studentName} với điểm Band ${sub.aiOverall.toFixed(1)} thành công!`,
+    );
+    setTimeout(() => setPublishNotice(''), 4000);
+  };
+
   const handleApproveAndPublish = async () => {
     if (!activeReview) return;
     setSubmittingApproval(true);
@@ -222,13 +242,25 @@ export default function AdminWritingReviewPage() {
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => handleOpenReview(sub)}
-                      className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-xs transition shadow-xs flex items-center space-x-1 ml-auto"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Xem & Chấm Điểm</span>
-                    </button>
+                    <div className="flex items-center justify-end space-x-2">
+                      {sub.status !== 'APPROVED' && (
+                        <button
+                          onClick={() => handleQuickApprove(sub)}
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs flex items-center space-x-1"
+                          title="Duyệt nhanh toàn bộ điểm AI (1-click)"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Duyệt nhanh</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleOpenReview(sub)}
+                        className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-xs transition shadow-xs flex items-center space-x-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Xem & Chấm Điểm</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1821,4 +1821,298 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
       expect(response.body).toHaveProperty('strengths');
     });
   });
+
+  // ==========================================
+  // 24. REALTIME NOTIFICATIONS FLOW (FR-10 / 1.3.1)
+  // ==========================================
+  describe('24. Realtime Notifications Flow (FR-10 / 1.3.1)', () => {
+    let createdNotificationId: string;
+
+    it('FR-24.1: Internal/Mock creates a notification for student', async () => {
+      const noti = await mockPrisma.notification.create({
+        data: {
+          userId: 'student-uuid-1',
+          title: 'Bài viết IELTS Writing đã duyệt',
+          content: 'Thầy Đông đã phê duyệt bài viết của bạn đạt Band 7.5.',
+          type: 'WRITING' as any,
+          link: '/student/writing',
+        },
+      });
+      expect(noti).toHaveProperty('id');
+      createdNotificationId = noti.id;
+    });
+
+    it('FR-24.2: GET /api/notifications/unread-count as Student -> returns unread count >= 1', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/notifications/unread-count')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('unreadCount');
+      expect(response.body.unreadCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('FR-24.3: GET /api/notifications as Student -> lists notifications with pagination', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/notifications?page=1&limit=10')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('items');
+      expect(Array.isArray(response.body.items)).toBeTruthy();
+      expect(response.body.items.length).toBeGreaterThanOrEqual(1);
+      expect(response.body).toHaveProperty('total');
+      expect(response.body).toHaveProperty('unreadCount');
+    });
+
+    it('FR-24.4: PUT /api/notifications/:id/read as Student -> marks notification as read', async () => {
+      const response = await request(app.getHttpServer())
+        .put(`/api/notifications/${createdNotificationId}/read`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('isRead', true);
+    });
+
+    it('FR-24.5: PUT /api/notifications/read-all as Student -> marks all notifications as read', async () => {
+      const response = await request(app.getHttpServer())
+        .put('/api/notifications/read-all')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+    });
+
+    it('FR-24.6: DELETE /api/notifications/:id as Student -> deletes notification', async () => {
+      await request(app.getHttpServer())
+        .delete(`/api/notifications/${createdNotificationId}`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+    });
+  });
+
+  // ==========================================
+  // 25. MANUAL STUDENT CREATION BY ADMIN (ADM-REQ-001 / 1.3.2)
+  // ==========================================
+  describe('25. Manual Student Creation by Admin Flow (ADM-REQ-001 / 1.3.2)', () => {
+    const newStudentEmail = `auto.student.${Date.now()}@dongacademy.edu.vn`;
+
+    it('FR-25.1: POST /api/users as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          fullName: 'Unauthorized Student',
+          email: 'unauth@dongacademy.edu.vn',
+        })
+        .expect(403);
+    });
+
+    it('FR-25.2: POST /api/users as Admin -> creates new student user with default password', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/users')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          fullName: 'Tran Thi Cam Tu',
+          email: newStudentEmail,
+          phone: '0909888777',
+          targetBand: '7.5',
+          courseId: 'course-uuid-1',
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('email', newStudentEmail);
+      expect(response.body).toHaveProperty('fullName', 'Tran Thi Cam Tu');
+      expect(response.body).toHaveProperty('role', 'STUDENT');
+      expect(response.body).toHaveProperty('isActive', true);
+    });
+
+    it('FR-25.3: POST /api/users with duplicate email -> should return 409 Conflict', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          fullName: 'Duplicate Student',
+          email: newStudentEmail,
+        })
+        .expect(409);
+    });
+  });
+
+  // ==========================================
+  // 26. DIGITAL LIBRARY SYSTEM-WIDE MATERIALS (FR-04 / 1.3.3)
+  // ==========================================
+  describe('26. Digital Library System-wide Materials Flow (FR-04 / 1.3.3)', () => {
+    it('FR-26.1: GET /api/materials as Student -> lists all library materials', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/materials')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('items');
+      expect(Array.isArray(response.body.items)).toBeTruthy();
+      expect(response.body.items.length).toBeGreaterThanOrEqual(1);
+      expect(response.body).toHaveProperty('total');
+    });
+
+    it('FR-26.2: GET /api/materials?fileType=PDF as Admin -> filters materials by PDF', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/materials?fileType=PDF')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('items');
+      response.body.items.forEach((item: any) => {
+        expect(item.type).toBe('PDF');
+      });
+    });
+  });
+
+  // ==========================================
+  // 27. WRITING AUTO-SAVE DRAFTS FLOW (WR-REQ-002 / 1.3.5)
+  // ==========================================
+  describe('27. Writing Auto-Save Drafts Flow (WR-REQ-002 / 1.3.5)', () => {
+    const draftPromptId = 'writing-prompt-uuid-1';
+
+    it('FR-27.1: POST /api/writing/drafts as Student -> saves draft successfully', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/writing/drafts')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          promptId: draftPromptId,
+          content: 'In modern society, renewable energy has become paramount...',
+          wordCount: 9,
+          durationSeconds: 120,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('promptId', draftPromptId);
+      expect(response.body).toHaveProperty('content');
+      expect(response.body.wordCount).toBe(9);
+    });
+
+    it('FR-27.2: GET /api/writing/drafts/:promptId as Student -> retrieves saved draft', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/writing/drafts/${draftPromptId}`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('promptId', draftPromptId);
+      expect(response.body.content).toContain('renewable energy');
+    });
+
+    it('FR-27.3: DELETE /api/writing/drafts/:promptId as Student -> deletes draft', async () => {
+      const response = await request(app.getHttpServer())
+        .delete(`/api/writing/drafts/${draftPromptId}`)
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+    });
+  });
+
+  // ==========================================
+  // 28. QUIZ MANAGEMENT & BULK QUESTIONS (FR-08 / 1.3.4)
+  // ==========================================
+  describe('28. Quiz Management & Bulk Questions Flow (FR-08 / 1.3.4)', () => {
+    let createdQuizId: string;
+
+    it('FR-28.1: GET /api/quizzes as Admin -> lists all quizzes in academy', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/quizzes')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('items');
+      expect(Array.isArray(response.body.items)).toBeTruthy();
+      expect(response.body).toHaveProperty('total');
+    });
+
+    it('FR-28.2: POST /api/quizzes as Admin -> creates new quiz test', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/quizzes')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          title: 'IELTS Academic Reading Test Volume 5',
+          skill: 'READING',
+          testType: 'PRACTICE_TEST',
+          timeLimitMinutes: 60,
+          passScore: 80,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      createdQuizId = response.body.id;
+    });
+
+    it('FR-28.3: PUT /api/quizzes/:id as Admin -> updates quiz metadata', async () => {
+      const response = await request(app.getHttpServer())
+        .put(`/api/quizzes/${createdQuizId}`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          title: 'IELTS Academic Reading Test Volume 5 (Updated)',
+          passScore: 85,
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('title', 'IELTS Academic Reading Test Volume 5 (Updated)');
+      expect(response.body).toHaveProperty('passScore', 85);
+    });
+
+    it('FR-28.4: POST /api/quizzes/:id/questions/bulk as Admin -> adds multiple questions at once', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/quizzes/${createdQuizId}/questions/bulk`)
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          questions: [
+            {
+              content: 'What is the primary function of paragraph A?',
+              type: 'SINGLE_CHOICE',
+              orderIndex: 1,
+              options: [
+                { content: 'To introduce the background', isCorrect: true },
+                { content: 'To refute a counter-claim', isCorrect: false },
+              ],
+            },
+            {
+              content: 'The author claims that climate change is irreversible.',
+              type: 'TRUE_FALSE_NOT_GIVEN',
+              orderIndex: 2,
+              options: [
+                { content: 'TRUE', isCorrect: false },
+                { content: 'FALSE', isCorrect: true },
+                { content: 'NOT GIVEN', isCorrect: false },
+              ],
+            },
+          ],
+        })
+        .expect(201);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body.length).toBe(2);
+    });
+  });
+
+  // ==========================================
+  // 29. ATTENDANCE DATE-RANGE REPORTING (ATT-REQ-005 / 1.3.7)
+  // ==========================================
+  describe('29. Attendance Date-Range Reporting Flow (ATT-REQ-005 / 1.3.7)', () => {
+    it('FR-29.1: GET /api/attendance/export?startDate=2026-10-01&endDate=2026-11-30 as Admin -> returns Excel spreadsheet', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/attendance/export?startDate=2026-10-01&endDate=2026-11-30')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      expect(response.headers['content-disposition']).toContain('attachment; filename=');
+    });
+
+    it('FR-29.2: GET /api/attendance/export as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .get('/api/attendance/export')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .expect(403);
+    });
+  });
 });

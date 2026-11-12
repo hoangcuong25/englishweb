@@ -21,6 +21,21 @@ export default function StudentSpeakingPage() {
   const [speakTime, setSpeakTime] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentPromptId, setCurrentPromptId] = useState('prompt-speaking-part2-forecast');
+
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const list = await speakingService.getPrompts();
+        if (list && list.length > 0) {
+          setCurrentPromptId(list[0].id);
+        }
+      } catch {
+        // Fallback default
+      }
+    };
+    fetchPrompts();
+  }, [part]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -139,7 +154,7 @@ export default function StudentSpeakingPage() {
     setIsSubmitting(true);
     try {
       await speakingService.submitRecording({
-        promptId: 'prompt-speaking-part2-forecast',
+        promptId: currentPromptId,
         audioUrl: audioUrl || 'blob:audio-recording-session',
         durationSeconds: speakTime,
       });

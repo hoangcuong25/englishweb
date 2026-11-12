@@ -20,6 +20,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
@@ -35,6 +36,14 @@ import { Role } from '@prisma/client';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Admin tạo tài khoản học viên mới' })
+  @ApiResponse({ status: 201, description: 'Tạo tài khoản học viên thành công' })
+  @ResponseMessage('Tạo tài khoản học viên thành công')
+  async createStudent(@Body() dto: CreateUserDto) {
+    return this.usersService.createStudent(dto);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Admin lấy danh sách học viên và người dùng (có lọc & phân trang)' })

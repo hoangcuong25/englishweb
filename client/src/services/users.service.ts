@@ -24,6 +24,18 @@ export const usersService = {
     return response.data?.data || response.data || [];
   },
 
+  async createStudent(data: {
+    fullName: string;
+    email: string;
+    phone?: string;
+    password?: string;
+    courseId?: string;
+    targetBand?: string;
+  }): Promise<UserProfile> {
+    const response = await api.post('/users', data);
+    return response.data?.data || response.data;
+  },
+
   async getUserById(id: string): Promise<UserProfile> {
     const response = await api.get(`/users/${id}`);
     return response.data?.data || response.data;

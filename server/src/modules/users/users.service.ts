@@ -2,10 +2,12 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
+import { CreateUserDto } from './dto/create-user.dto';
 import { Role } from '@prisma/client';
 
 @Injectable()
@@ -210,5 +212,55 @@ export class UsersService {
         updatedAt: true,
       },
     });
+  }
+
+  async createStudent(dto: CreateUserDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase().trim() },
+    });
+    if (existing) {
+      throw new ConflictException(`Email ${dto.email} đã tồn tại trong hệ thống`);
+    }
+
+    const rawPassword = dto.password?.trim() || 'DongAcademy@2026';
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        fullName: dto.fullName.trim(),
+        email: dto.email.toLowerCase().trim(),
+        phone: dto.phone?.trim() || null,
+        passwordHash,
+        role: Role.STUDENT,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
+    });
+
+    if (dto.courseId) {
+      const course = await this.prisma.course.findUnique({
+        where: { id: dto.courseId },
+      });
+      if (course) {
+        await this.prisma.enrollment.create({
+          data: {
+            userId: user.id,
+            courseId: course.id,
+            progressPercent: 0,
+          },
+        });
+      }
+    }
+
+    return user;
   }
 }

@@ -79,5 +79,20 @@ export const writingService = {
     const response = await api.post(`/writing/admin/submissions/${id}/approve`, data);
     return response.data?.data || response.data;
   },
+
+  async saveDraft(data: { promptId: string; content: string; wordCount?: number; durationSeconds?: number }) {
+    const response = await api.post('/writing/drafts', data);
+    return response.data?.data || response.data;
+  },
+
+  async getDraft(promptId: string) {
+    const response = await api.get(`/writing/drafts/${promptId}`);
+    return response.data?.data || response.data;
+  },
+
+  async deleteDraft(promptId: string) {
+    const response = await api.delete(`/writing/drafts/${promptId}`);
+    return response.data?.data || response.data;
+  },
 };
 

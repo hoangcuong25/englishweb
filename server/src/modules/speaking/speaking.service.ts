@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
+import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { CreateSpeakingPromptDto } from './dto/create-speaking-prompt.dto';
 import { SubmitSpeakingDto } from './dto/submit-speaking.dto';
 import { GradeSpeakingDto } from './dto/grade-speaking.dto';
@@ -11,7 +12,10 @@ import { SubmissionStatus, Role } from '@prisma/client';
 
 @Injectable()
 export class SpeakingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cloudinaryService: CloudinaryService,
+  ) {}
 
   // ==========================================
   // 1. PROMPTS MANAGEMENT
@@ -101,6 +105,26 @@ export class SpeakingService {
       message: 'Bản ghi âm đã được nộp thành công cho giáo viên chấm điểm.',
       submission,
     };
+  }
+
+  async submitRecordingWithFile(
+    file: Express.Multer.File,
+    promptId: string,
+    durationSeconds: number,
+    userId: string,
+  ) {
+    const uploadRes = await this.cloudinaryService.uploadVideo(
+      file,
+      'teacher_dong_academy/speaking_audios',
+    );
+    return this.submitRecording(
+      {
+        promptId,
+        audioUrl: uploadRes.secureUrl,
+        durationSeconds: Number(durationSeconds) || 60,
+      },
+      userId,
+    );
   }
 
   async getMySubmissions(userId: string) {

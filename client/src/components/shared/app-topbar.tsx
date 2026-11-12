@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n, Language } from '@/lib/i18n-context';
+import { notificationsService } from '@/services/notifications.service';
 import SessionManagerDrawer from '../modals/session-manager-drawer';
 import { 
   Globe, 
@@ -142,9 +143,59 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
     currentPortal === 'admin' ? adminNotifications : studentNotifications
   );
 
-  const markAllAsRead = () => {
+  const fetchRealNotifications = async () => {
+    try {
+      const res = await notificationsService.getNotifications({ limit: 10 });
+      if (res && Array.isArray(res.items) && res.items.length > 0) {
+        const mapped: NotificationItem[] = res.items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          desc: item.content,
+          time: new Date(item.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          type: (item.type?.toLowerCase() as NotificationItem['type']) || 'system',
+          unread: !item.isRead,
+          link: item.link || undefined,
+        }));
+        setNotifications(mapped);
+        setHasUnread(res.unreadCount > 0);
+      } else {
+        const count = await notificationsService.getUnreadCount();
+        setHasUnread(count > 0);
+      }
+    } catch {
+      // Keep initial notifications as fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchRealNotifications();
+    const interval = setInterval(fetchRealNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markAllAsRead = async () => {
+    try {
+      await notificationsService.markAllAsRead();
+    } catch {
+      // Local fallback
+    }
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
     setHasUnread(false);
+  };
+
+  const handleNotificationClick = async (item: NotificationItem) => {
+    if (item.unread) {
+      try {
+        await notificationsService.markAsRead(item.id);
+      } catch {
+        // Local fallback
+      }
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
+      );
+      setHasUnread(notifications.some((n) => n.id !== item.id && n.unread));
+    }
+    setShowNotifications(false);
   };
 
   const getNotiIcon = (type: NotificationItem['type']) => {
@@ -327,7 +378,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
                     <Link
                       key={item.id}
                       href={item.link || '#'}
-                      onClick={() => setShowNotifications(false)}
+                      onClick={() => handleNotificationClick(item)}
                       className={`p-3.5 block transition hover:bg-sky-50/40 ${
                         item.unread ? 'bg-sky-50/20' : 'bg-white'
                       }`}

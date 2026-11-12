@@ -15,6 +15,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { UsersModule } from './modules/users/users.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { LivekitModule } from './core/livekit/livekit.module';
 import { GeminiModule } from './core/gemini/gemini.module';
 import { CloudinaryModule } from './core/cloudinary/cloudinary.module';
@@ -40,6 +41,7 @@ import { CloudinaryModule } from './core/cloudinary/cloudinary.module';
     ChatModule,
     UsersModule,
     BlogsModule,
+    NotificationsModule,
     LivekitModule,
   ],
   controllers: [AppController],

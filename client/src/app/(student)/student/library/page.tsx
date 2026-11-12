@@ -25,6 +25,15 @@ interface LibraryMaterial {
   updatedAt: string;
 }
 
+interface RawMaterial {
+  id: string;
+  title: string;
+  type?: string;
+  fileSize?: number;
+  createdAt?: string;
+  lesson?: { module?: { course?: { title?: string } } };
+}
+
 export default function StudentLibraryPage() {
   const { user } = useAuth();
   const [selectedMaterial, setSelectedMaterial] = useState<LibraryMaterial | null>(null);
@@ -35,6 +44,63 @@ export default function StudentLibraryPage() {
 
   // 15:00 Presigned URL countdown timer
   const [timeLeft, setTimeLeft] = useState(15 * 60);
+
+  const [materials, setMaterials] = useState<LibraryMaterial[]>([
+    {
+      id: 'mat-1',
+      title: 'IELTS Writing Task 2 Master Vocabulary Band 8.0+ (Full Guide)',
+      fileType: 'PDF',
+      category: 'IELTS Writing',
+      size: '8.4 MB',
+      updatedAt: '08/11/2026',
+    },
+    {
+      id: 'mat-2',
+      title: 'Academic Collocations & Linking Words for Band 7.5+',
+      fileType: 'PDF',
+      category: 'Vocabulary',
+      size: '4.2 MB',
+      updatedAt: '05/11/2026',
+    },
+    {
+      id: 'mat-3',
+      title: 'IELTS Speaking Part 2 Native Speaker Audio Model Answers (Set 01)',
+      fileType: 'AUDIO_MP3',
+      category: 'IELTS Speaking',
+      size: '24.5 MB',
+      updatedAt: '02/11/2026',
+    },
+    {
+      id: 'mat-4',
+      title: 'Business Communication English — Negotiation Phrases Handbook',
+      fileType: 'PDF',
+      category: 'Business English',
+      size: '6.1 MB',
+      updatedAt: '28/10/2026',
+    },
+  ]);
+
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      try {
+        const res = await materialsService.getAll();
+        if (res && Array.isArray(res.items) && res.items.length > 0) {
+          const mapped: LibraryMaterial[] = (res.items as unknown as RawMaterial[]).map((m: RawMaterial) => ({
+            id: m.id,
+            title: m.title,
+            fileType: m.type === 'AUDIO' ? 'AUDIO_MP3' : 'PDF',
+            category: m.lesson?.module?.course?.title || 'Kho Học Liệu',
+            size: m.fileSize ? `${(m.fileSize / (1024 * 1024)).toFixed(1)} MB` : '6.2 MB',
+            updatedAt: m.createdAt ? new Date(m.createdAt).toLocaleDateString('vi-VN') : '08/11/2026',
+          }));
+          setMaterials(mapped);
+        }
+      } catch {
+        // Keep initial mock list
+      }
+    };
+    fetchMaterials();
+  }, []);
 
   useEffect(() => {
     if (!selectedMaterial) return;
@@ -73,41 +139,6 @@ export default function StudentLibraryPage() {
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
-
-  const materials: LibraryMaterial[] = [
-    {
-      id: 'mat-1',
-      title: 'IELTS Writing Task 2 Master Vocabulary Band 8.0+ (Full Guide)',
-      fileType: 'PDF',
-      category: 'IELTS Writing',
-      size: '8.4 MB',
-      updatedAt: '08/11/2026',
-    },
-    {
-      id: 'mat-2',
-      title: 'Academic Collocations & Linking Words for Band 7.5+',
-      fileType: 'PDF',
-      category: 'Vocabulary',
-      size: '4.2 MB',
-      updatedAt: '05/11/2026',
-    },
-    {
-      id: 'mat-3',
-      title: 'IELTS Speaking Part 2 Native Speaker Audio Model Answers (Set 01)',
-      fileType: 'AUDIO_MP3',
-      category: 'IELTS Speaking',
-      size: '24.5 MB',
-      updatedAt: '02/11/2026',
-    },
-    {
-      id: 'mat-4',
-      title: 'Business Communication English — Negotiation Phrases Handbook',
-      fileType: 'PDF',
-      category: 'Business English',
-      size: '6.1 MB',
-      updatedAt: '28/10/2026',
-    },
-  ];
 
   const filtered = materials.filter((m) => {
     const matchSearch = m.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -301,6 +332,15 @@ export default function StudentLibraryPage() {
           </div>
         </div>
       )}
+
+      {/* Screen-capture & Print Shield */}
+      <style jsx global>{`
+        @media print {
+          body {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

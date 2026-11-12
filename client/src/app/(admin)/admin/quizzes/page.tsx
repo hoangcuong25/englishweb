@@ -67,7 +67,11 @@ export default function AdminQuizzesPage() {
   const fetchQuizzes = async () => {
     setLoading(true);
     try {
-      const list = await quizzesService.getSkillsTests();
+      let list = await quizzesService.getSkillsTests();
+      if (!Array.isArray(list) || list.length === 0) {
+        const all = await quizzesService.getAllQuizzes();
+        list = Array.isArray(all) ? all : (all as { items?: unknown[] })?.items || [];
+      }
       if (Array.isArray(list) && list.length > 0) {
         setQuizzes(list as RemoteQuiz[]);
         const loadedQuestions: QuizQuestion[] = [];

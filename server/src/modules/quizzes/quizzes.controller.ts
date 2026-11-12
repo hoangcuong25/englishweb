@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Body,
   Param,
@@ -19,7 +20,9 @@ import {
 } from '@nestjs/swagger';
 import { QuizzesService } from './quizzes.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
+import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
+import { CreateBulkQuestionsDto } from './dto/create-bulk-questions.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../core/common/guards/optional-jwt-auth.guard';
@@ -44,6 +47,45 @@ export class QuizzesController {
     return this.quizzesService.createQuiz(dto);
   }
 
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin lấy danh sách tất cả các bài Quiz / Test trong hệ thống' })
+  @ApiQuery({ name: 'skill', required: false, enum: SkillType })
+  @ApiQuery({ name: 'testType', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAllQuizzes(
+    @Query('skill') skill?: SkillType,
+    @Query('testType') testType?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.quizzesService.findAllQuizzes({
+      skill,
+      testType,
+      search,
+      page,
+      limit,
+    });
+  }
+
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin cập nhật thông tin bài Quiz' })
+  @ApiParam({ name: 'id', description: 'UUID của bài Quiz' })
+  updateQuiz(
+    @Param('id') id: string,
+    @Body() dto: UpdateQuizDto,
+  ) {
+    return this.quizzesService.updateQuiz(id, dto);
+  }
+
   @Post(':id/questions')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -55,6 +97,19 @@ export class QuizzesController {
     @Body() dto: CreateQuestionDto,
   ) {
     return this.quizzesService.addQuestion(id, dto);
+  }
+
+  @Post(':id/questions/bulk')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin thêm hàng loạt câu hỏi vào đề thi' })
+  @ApiParam({ name: 'id', description: 'UUID của bài Quiz' })
+  addQuestionsBulk(
+    @Param('id') id: string,
+    @Body() dto: CreateBulkQuestionsDto,
+  ) {
+    return this.quizzesService.addQuestionsBulk(id, dto.questions);
   }
 
   // ==========================================

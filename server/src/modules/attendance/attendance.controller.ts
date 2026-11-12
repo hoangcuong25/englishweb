@@ -5,6 +5,7 @@ import {
   Put,
   Body,
   Param,
+  Query,
   Res,
   UseGuards,
   HttpCode,
@@ -16,6 +17,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { AttendanceService } from './attendance.service';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
@@ -88,6 +90,33 @@ export class AttendanceController {
     @Body() dto: OverrideAttendanceDto,
   ) {
     return this.attendanceService.overrideAttendance(id, dto);
+  }
+
+  @Get('export')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin xuất báo cáo chuyên cần tổng hợp theo khoảng thời gian (.xlsx)' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({ name: 'courseId', required: false, type: String })
+  async exportDateRangeExcel(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('courseId') courseId: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } =
+      await this.attendanceService.exportRangeToExcel(startDate, endDate, courseId);
+
+    res.set({
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+
+    res.end(buffer);
   }
 
   @Get('classroom/:classroomId/export')

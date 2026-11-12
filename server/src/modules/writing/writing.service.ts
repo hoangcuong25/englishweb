@@ -8,6 +8,7 @@ import { GeminiService } from '../../core/gemini/gemini.service';
 import { CreateWritingPromptDto } from './dto/create-writing-prompt.dto';
 import { SubmitWritingDto } from './dto/submit-writing.dto';
 import { ApproveWritingDto } from './dto/approve-writing.dto';
+import { SaveWritingDraftDto } from './dto/save-writing-draft.dto';
 import {
   WritingTaskType,
   WritingSubmissionStatus,
@@ -129,10 +130,86 @@ export class WritingService {
       },
     });
 
+    // Auto-clean draft if exists
+    try {
+      await this.prisma.writingDraft.deleteMany({
+        where: { userId, promptId: dto.promptId },
+      });
+    } catch {
+      // Ignore if no draft
+    }
+
     return {
       message: 'Bài viết đã được nộp và phân tích bởi AI. Đang chờ Admin phê duyệt kết quả chính thức.',
       submission,
     };
+  }
+
+  // ==========================================
+  // DRAFTS (AUTO-SAVE)
+  // ==========================================
+
+  async saveDraft(userId: string, dto: SaveWritingDraftDto) {
+    await this.findPromptById(dto.promptId);
+
+    const words = dto.content.trim().split(/\s+/).filter(Boolean);
+    const wordCount = dto.wordCount ?? words.length;
+
+    return this.prisma.writingDraft.upsert({
+      where: {
+        userId_promptId: {
+          userId,
+          promptId: dto.promptId,
+        },
+      },
+      create: {
+        userId,
+        promptId: dto.promptId,
+        content: dto.content,
+        wordCount,
+        durationSeconds: dto.durationSeconds ?? 0,
+      },
+      update: {
+        content: dto.content,
+        wordCount,
+        durationSeconds: dto.durationSeconds ?? 0,
+      },
+    });
+  }
+
+  async getDraft(userId: string, promptId: string) {
+    return this.prisma.writingDraft.findUnique({
+      where: {
+        userId_promptId: {
+          userId,
+          promptId,
+        },
+      },
+    });
+  }
+
+  async deleteDraft(userId: string, promptId: string) {
+    const existing = await this.prisma.writingDraft.findUnique({
+      where: {
+        userId_promptId: {
+          userId,
+          promptId,
+        },
+      },
+    });
+    if (!existing) {
+      return { success: true, message: 'Không có bản nháp để xóa' };
+    }
+
+    await this.prisma.writingDraft.delete({
+      where: {
+        userId_promptId: {
+          userId,
+          promptId,
+        },
+      },
+    });
+    return { success: true, message: 'Đã xóa bản nháp thành công' };
   }
 
   // ==========================================

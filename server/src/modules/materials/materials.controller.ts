@@ -27,7 +27,7 @@ import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/common/guards/roles.guard';
 import { Roles } from '../../core/common/decorators/roles.decorator';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
-import { Role } from '@prisma/client';
+import { Role, MaterialType } from '@prisma/client';
 import { Response } from 'express';
 
 @ApiTags('Secured Digital Library & Content Protection')
@@ -66,6 +66,31 @@ export class MaterialsController {
   @ApiParam({ name: 'id', description: 'UUID của tài liệu' })
   remove(@Param('id') id: string) {
     return this.materialsService.delete(id);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lấy danh sách tài liệu số trong Thư viện số' })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'fileType', required: false, enum: MaterialType })
+  @ApiQuery({ name: 'courseId', required: false, type: String })
+  @ApiQuery({ name: 'lessonId', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(
+    @Query('search') search?: string,
+    @Query('fileType') fileType?: MaterialType,
+    @Query('courseId') courseId?: string,
+    @Query('lessonId') lessonId?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @CurrentUser() user?: any,
+  ) {
+    return this.materialsService.findAll(
+      { search, fileType, courseId, lessonId, page, limit },
+      user,
+    );
   }
 
   @Get('lesson/:lessonId')

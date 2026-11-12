@@ -115,5 +115,26 @@ export const quizzesService = {
     const response = await api.delete(`/quizzes/${id}`);
     return response.data;
   },
+
+  async getAllQuizzes(params?: {
+    skill?: string;
+    testType?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const response = await api.get('/quizzes', { params });
+    return response.data?.data || response.data || [];
+  },
+
+  async updateQuiz(id: string, data: Record<string, unknown>) {
+    const response = await api.put(`/quizzes/${id}`, data);
+    return response.data?.data || response.data;
+  },
+
+  async addQuestionsBulk(quizId: string, questions: Record<string, unknown>[]) {
+    const response = await api.post(`/quizzes/${quizId}/questions/bulk`, { questions });
+    return response.data?.data || response.data;
+  },
 };
 

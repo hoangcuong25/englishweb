@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { speakingService } from '@/services/speaking.service';
+import React, { useState, useEffect } from 'react';
+import { speakingService, SpeakingSubmission } from '@/services/speaking.service';
 import {
   Headphones,
   Play,
@@ -42,6 +42,23 @@ export default function AdminSpeakingGradingPage() {
   const [newCommentText, setNewCommentText] = useState('');
   const [submittedNotice, setSubmittedNotice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissions, setSubmissions] = useState<SpeakingSubmission[]>([]);
+  const [selectedSubId, setSelectedSubId] = useState<string>('submission-spk-demo-1');
+
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        const data = await speakingService.getAdminSubmissions();
+        if (data && data.length > 0) {
+          setSubmissions(data);
+          setSelectedSubId(data[0].id);
+        }
+      } catch {
+        // Fallback default
+      }
+    };
+    fetchSubmissions();
+  }, []);
 
   const calculateOverall = () => {
     const raw = (fc + lr + gra + pr) / 4;
@@ -83,7 +100,7 @@ export default function AdminSpeakingGradingPage() {
   const handlePublishGrade = async () => {
     setIsSubmitting(true);
     try {
-      await speakingService.gradeSubmission('submission-spk-demo-1', {
+      await speakingService.gradeSubmission(selectedSubId, {
         fluencyScore: fc,
         lexicalScore: lr,
         grammarScore: gra,
@@ -136,8 +153,25 @@ export default function AdminSpeakingGradingPage() {
             Học viên: Đỗ Thùy Trang (Lớp IELTS Masterclass 7.5+)
           </h2>
           <p className="text-xs text-muted">
-            Đề bài: &ldquo;Describe a momentous life decision that substantially changed your career path or life perspective&rdquo;
+            Chủ đề: Describe a memorable journey you have taken in the past year.
           </p>
+
+          {submissions.length > 0 && (
+            <div className="mt-2.5 flex items-center space-x-2">
+              <span className="text-[11px] font-bold text-slate-500">Chọn bài nộp:</span>
+              <select
+                value={selectedSubId}
+                onChange={(e) => setSelectedSubId(e.target.value)}
+                className="text-xs bg-slate-50 border border-line rounded-lg px-2.5 py-1 font-semibold text-slate-700 focus:outline-none"
+              >
+                {submissions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.student?.fullName || 'Học viên'} - {s.prompt?.title || 'Speaking Prompt'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center space-x-3 text-right">
