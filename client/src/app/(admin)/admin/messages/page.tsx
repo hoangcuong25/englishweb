@@ -1,11 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
+import ActionMenu from '@/components/ui/action-menu';
 import {
   Send,
   Paperclip,
   Search,
-  MoreVertical,
+  UserCheck,
+  BellOff,
+  Trash2,
+  GraduationCap,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -115,9 +119,35 @@ export default function AdminMessagesPage() {
               <p className="text-[11px] text-muted">IELTS Masterclass 7.5+ • Đang học Module 03</p>
             </div>
           </div>
-          <button className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
-            <MoreVertical className="w-5 h-5" />
-          </button>
+          <ActionMenu
+            items={[
+              {
+                label: 'Xem học bạ học viên',
+                icon: <GraduationCap className="w-4 h-4 text-primary" />,
+                onClick: () => alert('Thông tin học viên: Trần Văn Nam (HV-0102) - Khóa IELTS Masterclass 7.5+'),
+              },
+              {
+                label: 'Đánh dấu đã hoàn thành hỗ trợ',
+                icon: <UserCheck className="w-4 h-4 text-emerald-600" />,
+                onClick: () => alert('Đã đánh dấu phiên hỗ trợ này là hoàn thành.'),
+              },
+              {
+                label: 'Tắt thông báo hội thoại',
+                icon: <BellOff className="w-4 h-4" />,
+                onClick: () => alert('Đã tắt thông báo cho cuộc hội thoại này.'),
+              },
+              {
+                label: 'Xóa cuộc hội thoại',
+                icon: <Trash2 className="w-4 h-4" />,
+                variant: 'danger',
+                onClick: () => {
+                  if (confirm('Bạn có chắc chắn muốn xóa hội thoại với học viên này?')) {
+                    setMessages([]);
+                  }
+                },
+              },
+            ]}
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-bg">

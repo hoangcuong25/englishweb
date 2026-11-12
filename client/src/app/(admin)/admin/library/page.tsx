@@ -2,11 +2,15 @@
 
 import React, { useState } from 'react';
 import { materialsService } from '@/services/materials.service';
+import CustomSelect from '@/components/ui/custom-select';
 import {
   Upload,
   CheckCircle2,
   Trash2,
   X,
+  FileText,
+  Music,
+  GraduationCap,
 } from 'lucide-react';
 
 interface MaterialItem {
@@ -227,33 +231,52 @@ export default function AdminLibraryPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Định dạng tài liệu
-                  </label>
-                  <select
-                    value={formData.fileType}
-                    onChange={(e) => setFormData({ ...formData, fileType: e.target.value as 'PDF' | 'AUDIO_MP3' })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white font-bold"
-                  >
-                    <option value="PDF">Giáo trình PDF (Max 50MB)</option>
-                    <option value="AUDIO_MP3">Âm thanh MP3 (Max 100MB)</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Định dạng tài liệu"
+                  value={formData.fileType}
+                  onChange={(val) => setFormData({ ...formData, fileType: val as 'PDF' | 'AUDIO_MP3' })}
+                  options={[
+                    {
+                      value: 'PDF',
+                      label: 'Giáo trình PDF',
+                      sublabel: 'Tối đa 50MB, xem inline có Watermark',
+                      icon: <FileText className="w-4 h-4 text-red-500" />,
+                      badge: 'PDF',
+                      badgeColor: 'bg-red-100 text-red-700',
+                    },
+                    {
+                      value: 'AUDIO_MP3',
+                      label: 'Âm thanh MP3',
+                      sublabel: 'Tối đa 100MB, bài nghe IELTS',
+                      icon: <Music className="w-4 h-4 text-purple-500" />,
+                      badge: 'MP3',
+                      badgeColor: 'bg-purple-100 text-purple-700',
+                    },
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Khóa học áp dụng
-                  </label>
-                  <select
-                    value={formData.courseTitle}
-                    onChange={(e) => setFormData({ ...formData, courseTitle: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white"
-                  >
-                    <option value="IELTS Masterclass 7.5+ Intensive">IELTS Masterclass 7.5+</option>
-                    <option value="Business English VIP">Business English VIP</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Khóa học áp dụng"
+                  value={formData.courseTitle}
+                  onChange={(val) => setFormData({ ...formData, courseTitle: val })}
+                  options={[
+                    {
+                      value: 'IELTS Masterclass 7.5+ Intensive',
+                      label: 'IELTS Masterclass 7.5+',
+                      sublabel: 'Writing & Speaking Intensive',
+                      icon: <GraduationCap className="w-4 h-4 text-primary" />,
+                      badge: 'Active',
+                    },
+                    {
+                      value: 'Business English VIP',
+                      label: 'Business English VIP',
+                      sublabel: 'Executive Communication',
+                      icon: <GraduationCap className="w-4 h-4 text-primary" />,
+                      badge: 'VIP',
+                      badgeColor: 'bg-purple-100 text-purple-700',
+                    },
+                  ]}
+                />
               </div>
 
               {/* Security policy checkboxes */}

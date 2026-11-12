@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { livekitService, LivekitRoom } from '@/services/livekit.service';
+import CustomSelect from '@/components/ui/custom-select';
 import {
   Video,
   Plus,
@@ -12,6 +13,7 @@ import {
   Server,
   RefreshCw,
   Users,
+  Timer,
 } from 'lucide-react';
 
 export default function AdminClassroomPage() {
@@ -298,21 +300,44 @@ export default function AdminClassroomPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Thời lượng dự kiến (phút)
-                </label>
-                <select
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
-                  className="w-full px-3 py-2 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-                >
-                  <option value={45}>45 phút (Luyện phát âm mini)</option>
-                  <option value={60}>60 phút (Tiêu chuẩn)</option>
-                  <option value={90}>90 phút (Intensive Masterclass)</option>
-                  <option value={120}>120 phút (Thi thử Full Mock Test)</option>
-                </select>
-              </div>
+              <CustomSelect
+                label="Thời lượng dự kiến buổi học"
+                value={String(formData.duration)}
+                onChange={(val) => setFormData({ ...formData, duration: Number(val) })}
+                options={[
+                  {
+                    value: '45',
+                    label: '45 phút',
+                    sublabel: 'Luyện phản xạ & phát âm mini',
+                    icon: <Timer className="w-4 h-4 text-sky-500" />,
+                    badge: 'Mini',
+                  },
+                  {
+                    value: '60',
+                    label: '60 phút',
+                    sublabel: 'Thời lượng tiêu chuẩn lớp học',
+                    icon: <Clock className="w-4 h-4 text-emerald-500" />,
+                    badge: 'Standard',
+                    badgeColor: 'bg-emerald-100 text-emerald-700',
+                  },
+                  {
+                    value: '90',
+                    label: '90 phút',
+                    sublabel: 'Intensive Masterclass nâng cao',
+                    icon: <Clock className="w-4 h-4 text-purple-500" />,
+                    badge: 'Intensive',
+                    badgeColor: 'bg-purple-100 text-purple-700',
+                  },
+                  {
+                    value: '120',
+                    label: '120 phút',
+                    sublabel: 'Thi thử Full Mock Test 4 kỹ năng',
+                    icon: <Clock className="w-4 h-4 text-amber-500" />,
+                    badge: 'Mock Exam',
+                    badgeColor: 'bg-amber-100 text-amber-700',
+                  },
+                ]}
+              />
 
               <div className="pt-3 border-t border-line flex items-center justify-end space-x-2">
                 <button

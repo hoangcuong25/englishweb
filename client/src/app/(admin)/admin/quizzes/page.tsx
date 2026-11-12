@@ -1,11 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
+import CustomSelect from '@/components/ui/custom-select';
 import {
   Plus,
   CheckCircle2,
   Trash2,
   X,
+  BookOpen,
+  Headphones,
+  FileCode,
+  PenTool,
 } from 'lucide-react';
 
 interface QuizQuestion {
@@ -156,37 +161,53 @@ export default function AdminQuizzesPage() {
 
             <form onSubmit={handleCreateQuestion} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Kỹ năng kiểm tra
-                  </label>
-                  <select
-                    value={qFormData.skill}
-                    onChange={(e) => setQFormData({ ...qFormData, skill: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white font-bold"
-                  >
-                    <option value="VOCABULARY">Vocabulary</option>
-                    <option value="GRAMMAR">Grammar</option>
-                    <option value="READING">Reading</option>
-                    <option value="LISTENING">Listening</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Kỹ năng kiểm tra"
+                  value={qFormData.skill}
+                  onChange={(val) => setQFormData({ ...qFormData, skill: val })}
+                  options={[
+                    {
+                      value: 'VOCABULARY',
+                      label: 'Vocabulary',
+                      icon: <BookOpen className="w-4 h-4 text-sky-500" />,
+                      badge: 'Lexis',
+                      badgeColor: 'bg-sky-100 text-sky-700',
+                    },
+                    {
+                      value: 'GRAMMAR',
+                      label: 'Grammar',
+                      icon: <PenTool className="w-4 h-4 text-emerald-500" />,
+                      badge: 'Structure',
+                      badgeColor: 'bg-emerald-100 text-emerald-700',
+                    },
+                    {
+                      value: 'READING',
+                      label: 'Reading',
+                      icon: <FileCode className="w-4 h-4 text-purple-500" />,
+                      badge: 'Academic',
+                      badgeColor: 'bg-purple-100 text-purple-700',
+                    },
+                    {
+                      value: 'LISTENING',
+                      label: 'Listening',
+                      icon: <Headphones className="w-4 h-4 text-amber-500" />,
+                      badge: 'Audio',
+                      badgeColor: 'bg-amber-100 text-amber-700',
+                    },
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Đáp án chính xác
-                  </label>
-                  <select
-                    value={qFormData.correctAnswer}
-                    onChange={(e) => setQFormData({ ...qFormData, correctAnswer: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white font-bold text-primary"
-                  >
-                    <option value="A">Phương án A</option>
-                    <option value="B">Phương án B</option>
-                    <option value="C">Phương án C</option>
-                    <option value="D">Phương án D</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Đáp án chính xác"
+                  value={qFormData.correctAnswer}
+                  onChange={(val) => setQFormData({ ...qFormData, correctAnswer: val })}
+                  options={[
+                    { value: 'A', label: 'Phương án A', colorDot: 'bg-emerald-500', badge: 'Key A', badgeColor: 'bg-emerald-50 text-emerald-700' },
+                    { value: 'B', label: 'Phương án B', colorDot: 'bg-emerald-500', badge: 'Key B', badgeColor: 'bg-emerald-50 text-emerald-700' },
+                    { value: 'C', label: 'Phương án C', colorDot: 'bg-emerald-500', badge: 'Key C', badgeColor: 'bg-emerald-50 text-emerald-700' },
+                    { value: 'D', label: 'Phương án D', colorDot: 'bg-emerald-500', badge: 'Key D', badgeColor: 'bg-emerald-50 text-emerald-700' },
+                  ]}
+                />
               </div>
 
               <div>

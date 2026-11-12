@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { Mail, Lock, User, Phone, AlertCircle, ArrowRight } from 'lucide-react';
+import CustomSelect from '@/components/ui/custom-select';
+import { Mail, Lock, User, Phone, AlertCircle, ArrowRight, Target } from 'lucide-react';
 
 export default function RegisterPage() {
   const { register, loginWithGoogle } = useAuth();
@@ -156,22 +157,18 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Mục tiêu Band
-              </label>
-              <select
-                value={targetBand}
-                onChange={(e) => setTargetBand(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-line text-xs bg-white font-bold"
-              >
-                <option value="6.0">Band 6.0</option>
-                <option value="6.5">Band 6.5</option>
-                <option value="7.0">Band 7.0</option>
-                <option value="7.5">Band 7.5</option>
-                <option value="8.0+">Band 8.0+</option>
-              </select>
-            </div>
+            <CustomSelect
+              label="Mục tiêu Band điểm"
+              value={targetBand}
+              onChange={(val) => setTargetBand(val)}
+              options={[
+                { value: '6.0', label: 'Band 6.0', icon: <Target className="w-4 h-4 text-sky-500" /> },
+                { value: '6.5', label: 'Band 6.5', icon: <Target className="w-4 h-4 text-sky-600" /> },
+                { value: '7.0', label: 'Band 7.0', icon: <Target className="w-4 h-4 text-emerald-500" />, badge: 'Standard' },
+                { value: '7.5', label: 'Band 7.5', icon: <Target className="w-4 h-4 text-emerald-600" />, badge: 'High-Impact' },
+                { value: '8.0+', label: 'Band 8.0+', icon: <Target className="w-4 h-4 text-purple-600" />, badge: 'Mastery' },
+              ]}
+            />
           </div>
 
           <div>

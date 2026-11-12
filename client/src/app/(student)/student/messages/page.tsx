@@ -1,12 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
+import ActionMenu from '@/components/ui/action-menu';
 import {
   Send,
   Paperclip,
   CheckCheck,
   Search,
-  MoreVertical,
+  User,
+  BellOff,
+  Trash2,
+  FileText,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -143,9 +147,35 @@ export default function StudentMessagesPage() {
             </div>
           </div>
 
-          <button className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
-            <MoreVertical className="w-5 h-5" />
-          </button>
+          <ActionMenu
+            items={[
+              {
+                label: 'Hồ sơ Thầy Đông (8.5)',
+                icon: <User className="w-4 h-4" />,
+                onClick: () => alert('Thông tin: Thầy Đông - Trưởng bộ môn IELTS Masterclass (Speaking 8.5, Writing 8.5)'),
+              },
+              {
+                label: 'Xem bài tập đính kèm',
+                icon: <FileText className="w-4 h-4" />,
+                onClick: () => alert('Không có bài tập nào đang được chia sẻ trong đoạn hội thoại này.'),
+              },
+              {
+                label: 'Tắt thông báo trò chuyện',
+                icon: <BellOff className="w-4 h-4" />,
+                onClick: () => alert('Đã tắt thông báo cho cuộc hội thoại này.'),
+              },
+              {
+                label: 'Xóa lịch sử tin nhắn',
+                icon: <Trash2 className="w-4 h-4" />,
+                variant: 'danger',
+                onClick: () => {
+                  if (confirm('Bạn có chắc chắn muốn xóa lịch sử cuộc trò chuyện này?')) {
+                    setMessages([]);
+                  }
+                },
+              },
+            ]}
+          />
         </div>
 
         {/* Messages Stream */}

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { attendanceService } from '@/services/attendance.service';
+import CustomSelect from '@/components/ui/custom-select';
 import {
   Edit3,
   CheckCircle2,
@@ -9,6 +10,9 @@ import {
   FileSpreadsheet,
   X,
   RefreshCw,
+  UserCheck,
+  Clock,
+  UserX,
 } from 'lucide-react';
 
 interface AttendanceRecord {
@@ -297,22 +301,40 @@ export default function AdminAttendancePage() {
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Trạng thái mới <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={overrideStatus}
-                  onChange={(e) =>
-                    setOverrideStatus(e.target.value as 'PRESENT' | 'LATE' | 'ABSENT')
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-bold focus:outline-none focus:border-primary"
-                >
-                  <option value="PRESENT">PRESENT (Có mặt đầy đủ)</option>
-                  <option value="LATE">LATE (Đi muộn có lý do)</option>
-                  <option value="ABSENT">ABSENT (Vắng mặt)</option>
-                </select>
-              </div>
+              <CustomSelect
+                label="Trạng thái chuyên cần mới *"
+                value={overrideStatus}
+                onChange={(val) => setOverrideStatus(val as 'PRESENT' | 'LATE' | 'ABSENT')}
+                options={[
+                  {
+                    value: 'PRESENT',
+                    label: 'PRESENT (Có mặt đầy đủ)',
+                    sublabel: 'Tham gia ≥ 80% thời lượng lớp',
+                    icon: <UserCheck className="w-4 h-4 text-emerald-600" />,
+                    colorDot: 'bg-emerald-500',
+                    badge: 'Đủ điều kiện',
+                    badgeColor: 'bg-emerald-100 text-emerald-700',
+                  },
+                  {
+                    value: 'LATE',
+                    label: 'LATE (Đi muộn có lý do)',
+                    sublabel: 'Vào sau 15 phút đầu, học ≥ 50%',
+                    icon: <Clock className="w-4 h-4 text-amber-600" />,
+                    colorDot: 'bg-amber-500',
+                    badge: 'Đi muộn',
+                    badgeColor: 'bg-amber-100 text-amber-700',
+                  },
+                  {
+                    value: 'ABSENT',
+                    label: 'ABSENT (Vắng mặt)',
+                    sublabel: 'Tham gia < 30% thời lượng',
+                    icon: <UserX className="w-4 h-4 text-red-600" />,
+                    colorDot: 'bg-red-500',
+                    badge: 'Không tính',
+                    badgeColor: 'bg-red-100 text-red-700',
+                  },
+                ]}
+              />
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import CustomSelect from '@/components/ui/custom-select';
 import {
   UserPlus,
   Search,
@@ -10,6 +11,8 @@ import {
   X,
   Phone,
   Mail,
+  GraduationCap,
+  Target,
 } from 'lucide-react';
 
 interface StudentUser {
@@ -289,36 +292,42 @@ export default function AdminUsersPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Khóa học kích hoạt ngay
-                  </label>
-                  <select
-                    value={formData.enrolledCourse}
-                    onChange={(e) => setFormData({ ...formData, enrolledCourse: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white"
-                  >
-                    <option value="IELTS Masterclass 7.5+ Intensive">IELTS Masterclass 7.5+</option>
-                    <option value="Business English VIP">Business English VIP</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Khóa học kích hoạt ngay"
+                  value={formData.enrolledCourse}
+                  onChange={(val) => setFormData({ ...formData, enrolledCourse: val })}
+                  options={[
+                    {
+                      value: 'IELTS Masterclass 7.5+ Intensive',
+                      label: 'IELTS Masterclass 7.5+',
+                      sublabel: 'Writing & Speaking Focus',
+                      icon: <GraduationCap className="w-4 h-4" />,
+                      badge: 'HOT',
+                      badgeColor: 'bg-emerald-100 text-emerald-700',
+                    },
+                    {
+                      value: 'Business English VIP',
+                      label: 'Business English VIP',
+                      sublabel: 'Executive Communication',
+                      icon: <GraduationCap className="w-4 h-4" />,
+                      badge: 'VIP',
+                      badgeColor: 'bg-purple-100 text-purple-700',
+                    },
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Mục tiêu Band điểm
-                  </label>
-                  <select
-                    value={formData.targetBand}
-                    onChange={(e) => setFormData({ ...formData, targetBand: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white font-bold"
-                  >
-                    <option value="6.0">Band 6.0</option>
-                    <option value="6.5">Band 6.5</option>
-                    <option value="7.0">Band 7.0</option>
-                    <option value="7.5">Band 7.5</option>
-                    <option value="8.0+">Band 8.0+</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Mục tiêu Band điểm"
+                  value={formData.targetBand}
+                  onChange={(val) => setFormData({ ...formData, targetBand: val })}
+                  options={[
+                    { value: '6.0', label: 'Band 6.0', icon: <Target className="w-4 h-4 text-sky-500" /> },
+                    { value: '6.5', label: 'Band 6.5', icon: <Target className="w-4 h-4 text-sky-600" /> },
+                    { value: '7.0', label: 'Band 7.0', icon: <Target className="w-4 h-4 text-emerald-500" /> },
+                    { value: '7.5', label: 'Band 7.5', icon: <Target className="w-4 h-4 text-emerald-600" />, badge: 'Standard' },
+                    { value: '8.0+', label: 'Band 8.0+', icon: <Target className="w-4 h-4 text-purple-600" />, badge: 'Master' },
+                  ]}
+                />
               </div>
 
               <div className="pt-2 flex items-center justify-end space-x-2">

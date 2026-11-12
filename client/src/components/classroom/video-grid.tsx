@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
+import ActionMenu from '@/components/ui/action-menu';
 import {
   Mic,
   MicOff,
   Hand,
-  MoreVertical,
   Crown,
+  UserMinus,
 } from 'lucide-react';
 
 export interface ClassroomParticipant {
@@ -197,13 +198,35 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
                   <Hand className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button
-                onClick={() => onKickParticipant?.(p.identity)}
-                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"
-                title="Mời ra khỏi phòng"
-              >
-                <MoreVertical className="w-3.5 h-3.5" />
-              </button>
+              <ActionMenu
+                triggerClassName="bg-slate-800 hover:bg-slate-700 text-slate-300 p-1.5"
+                items={[
+                  {
+                    label: p.isMuted ? 'Bật micro học viên' : 'Tắt micro học viên',
+                    icon: p.isMuted ? <Mic className="w-3.5 h-3.5 text-emerald-500" /> : <MicOff className="w-3.5 h-3.5 text-amber-500" />,
+                    onClick: () => onMuteParticipant?.(p.identity),
+                  },
+                  ...(p.isHandRaised
+                    ? [
+                        {
+                          label: 'Hạ tay học viên',
+                          icon: <Hand className="w-3.5 h-3.5 text-amber-500" />,
+                          onClick: () => onLowerHand?.(p.identity),
+                        },
+                      ]
+                    : []),
+                  {
+                    label: 'Mời ra khỏi lớp',
+                    icon: <UserMinus className="w-3.5 h-3.5 text-red-500" />,
+                    variant: 'danger',
+                    onClick: () => {
+                      if (confirm(`Bạn có chắc muốn mời học viên ${p.name} ra khỏi lớp học?`)) {
+                        onKickParticipant?.(p.identity);
+                      }
+                    },
+                  },
+                ]}
+              />
             </div>
           )}
         </div>

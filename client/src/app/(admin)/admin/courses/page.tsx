@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { coursesService } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
+import CustomSelect from '@/components/ui/custom-select';
 import {
   Plus,
   Edit,
@@ -10,6 +11,16 @@ import {
   CheckCircle2,
   X,
   RefreshCw,
+  BookOpen,
+  Briefcase,
+  Baby,
+  GraduationCap,
+  Sparkles,
+  Video,
+  FileText,
+  HelpCircle,
+  PenTool,
+  Mic,
 } from 'lucide-react';
 
 interface Course {
@@ -299,38 +310,64 @@ export default function AdminCoursesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Trụ Cột Đào Tạo <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={courseFormData.category}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, category: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white"
-                  >
-                    <option value="IELTS">1. English Proficiency (IELTS)</option>
-                    <option value="BUSINESS">1. Business English</option>
-                    <option value="KIDS">1. Kids English</option>
-                    <option value="TEACHER_TRAINING">2. Professional Development</option>
-                    <option value="LIFE_SKILLS">3. Life Skills & Leadership</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Trụ Cột Đào Tạo *"
+                  value={courseFormData.category}
+                  onChange={(val) => setCourseFormData({ ...courseFormData, category: val })}
+                  options={[
+                    {
+                      value: 'IELTS',
+                      label: 'English Proficiency (IELTS)',
+                      sublabel: 'IELTS Academic & General',
+                      icon: <BookOpen className="w-4 h-4 text-sky-500" />,
+                      badge: 'Core',
+                    },
+                    {
+                      value: 'BUSINESS',
+                      label: 'Business English',
+                      sublabel: 'Giao tiếp & Đàm phán chuyên nghiệp',
+                      icon: <Briefcase className="w-4 h-4 text-emerald-500" />,
+                      badge: 'VIP',
+                      badgeColor: 'bg-emerald-100 text-emerald-700',
+                    },
+                    {
+                      value: 'KIDS',
+                      label: 'Kids English',
+                      sublabel: 'Tiếng Anh thiếu nhi',
+                      icon: <Baby className="w-4 h-4 text-amber-500" />,
+                      badge: 'Junior',
+                      badgeColor: 'bg-amber-100 text-amber-700',
+                    },
+                    {
+                      value: 'TEACHER_TRAINING',
+                      label: 'Professional Development',
+                      sublabel: 'Đào tạo giáo viên & Phương pháp',
+                      icon: <GraduationCap className="w-4 h-4 text-purple-500" />,
+                      badge: 'TESOL',
+                      badgeColor: 'bg-purple-100 text-purple-700',
+                    },
+                    {
+                      value: 'LIFE_SKILLS',
+                      label: 'Life Skills & Leadership',
+                      sublabel: 'Kỹ năng mềm & Lãnh đạo',
+                      icon: <Sparkles className="w-4 h-4 text-pink-500" />,
+                      badge: 'Skills',
+                      badgeColor: 'bg-pink-100 text-pink-700',
+                    },
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Cấp độ mục tiêu <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={courseFormData.level}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, level: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white"
-                  >
-                    <option value="BEGINNER">Beginner (4.0 - 5.0)</option>
-                    <option value="INTERMEDIATE">Intermediate (5.5 - 6.5)</option>
-                    <option value="ADVANCED">Advanced (7.0 - 7.5)</option>
-                    <option value="MASTER">Master (8.0 - 8.5+)</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Cấp độ mục tiêu *"
+                  value={courseFormData.level}
+                  onChange={(val) => setCourseFormData({ ...courseFormData, level: val })}
+                  options={[
+                    { value: 'BEGINNER', label: 'Beginner (4.0 - 5.0)', colorDot: 'bg-sky-400', badge: 'Tier 1' },
+                    { value: 'INTERMEDIATE', label: 'Intermediate (5.5 - 6.5)', colorDot: 'bg-emerald-400', badge: 'Tier 2' },
+                    { value: 'ADVANCED', label: 'Advanced (7.0 - 7.5)', colorDot: 'bg-purple-400', badge: 'Tier 3' },
+                    { value: 'MASTER', label: 'Master (8.0 - 8.5+)', colorDot: 'bg-amber-400', badge: 'Elite' },
+                  ]}
+                />
               </div>
 
               <div>
@@ -396,20 +433,20 @@ export default function AdminCoursesPage() {
             </div>
 
             <form onSubmit={handleCreateLesson} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Khóa học trực thuộc <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={lessonFormData.courseId}
-                  onChange={(e) => setLessonFormData({ ...lessonFormData, courseId: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white"
-                >
-                  {courses.map((c) => (
-                    <option key={c.id} value={c.id}>{c.title}</option>
-                  ))}
-                </select>
-              </div>
+              <CustomSelect
+                label="Khóa học trực thuộc *"
+                value={lessonFormData.courseId}
+                onChange={(val) => setLessonFormData({ ...lessonFormData, courseId: val })}
+                searchable
+                placeholder="Chọn khóa học..."
+                options={courses.map((c) => ({
+                  value: c.id,
+                  label: c.title,
+                  sublabel: `${c.category} • ${c.level}`,
+                  icon: <GraduationCap className="w-4 h-4 text-primary" />,
+                  badge: `${c.modulesCount} modules`,
+                }))}
+              />
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -440,22 +477,52 @@ export default function AdminCoursesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Loại bài học <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={lessonFormData.type}
-                    onChange={(e) => setLessonFormData({ ...lessonFormData, type: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs bg-white"
-                  >
-                    <option value="VIDEO">Video bài giảng HLS</option>
-                    <option value="DOCUMENT">Tài liệu PDF bảo mật</option>
-                    <option value="QUIZ_CHECKPOINT">Quiz Checkpoint</option>
-                    <option value="WRITING">Writing Studio</option>
-                    <option value="SPEAKING">Speaking Studio</option>
-                  </select>
-                </div>
+                <CustomSelect
+                  label="Loại bài học *"
+                  value={lessonFormData.type}
+                  onChange={(val) => setLessonFormData({ ...lessonFormData, type: val })}
+                  options={[
+                    {
+                      value: 'VIDEO',
+                      label: 'Video bài giảng',
+                      sublabel: 'Video streaming HLS',
+                      icon: <Video className="w-4 h-4 text-sky-500" />,
+                      badge: 'Video',
+                    },
+                    {
+                      value: 'DOCUMENT',
+                      label: 'Tài liệu PDF',
+                      sublabel: 'Xem bảo mật có Watermark',
+                      icon: <FileText className="w-4 h-4 text-red-500" />,
+                      badge: 'PDF',
+                      badgeColor: 'bg-red-100 text-red-700',
+                    },
+                    {
+                      value: 'QUIZ_CHECKPOINT',
+                      label: 'Quiz Checkpoint',
+                      sublabel: 'Kiểm tra sàn điểm ≥ 80%',
+                      icon: <HelpCircle className="w-4 h-4 text-amber-500" />,
+                      badge: 'Checkpoint',
+                      badgeColor: 'bg-amber-100 text-amber-700',
+                    },
+                    {
+                      value: 'WRITING',
+                      label: 'Writing Studio',
+                      sublabel: 'Nộp bài viết AI chấm 4 tiêu chí',
+                      icon: <PenTool className="w-4 h-4 text-emerald-500" />,
+                      badge: 'Writing',
+                      badgeColor: 'bg-emerald-100 text-emerald-700',
+                    },
+                    {
+                      value: 'SPEAKING',
+                      label: 'Speaking Studio',
+                      sublabel: 'Ghi âm sóng âm Audio Wave',
+                      icon: <Mic className="w-4 h-4 text-purple-500" />,
+                      badge: 'Speaking',
+                      badgeColor: 'bg-purple-100 text-purple-700',
+                    },
+                  ]}
+                />
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
