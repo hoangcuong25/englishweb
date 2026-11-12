@@ -10,4 +10,5 @@ export * from './speaking.service';
 export * from './livekit.service';
 export * from './attendance.service';
 export * from './dashboard.service';
+export * from './chat.service';
 
