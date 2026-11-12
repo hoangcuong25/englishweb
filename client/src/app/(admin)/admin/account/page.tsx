@@ -1,33 +1,60 @@
 'use client';
 
 import React, { useState } from 'react';
+import { authService } from '@/services/auth.service';
 import SessionManagerDrawer from '@/components/modals/session-manager-drawer';
 import {
   User,
   Shield,
   KeyRound,
   CheckCircle2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function AdminAccountPage() {
   const [isSessionDrawerOpen, setIsSessionDrawerOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      alert('Mật khẩu xác nhận không trùng khớp!');
+    setErrorMessage('');
+    setNotice('');
+
+    if (newPassword.length < 6) {
+      setErrorMessage('Mật khẩu mới phải có tối thiểu 6 ký tự!');
       return;
     }
-    setNotice('Đã cập nhật mật khẩu quản trị viên thành công!');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => setNotice(''), 4000);
+
+    if (newPassword !== confirmPassword) {
+      setErrorMessage('Mật khẩu xác nhận không trùng khớp!');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await authService.changePassword({
+        oldPassword: currentPassword,
+        newPassword,
+      });
+
+      setNotice('Đã cập nhật mật khẩu quản trị viên thành công!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setNotice(''), 4000);
+    } catch (err: unknown) {
+      const errRes = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      setErrorMessage(errRes?.message || 'Không thể đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu hiện tại!');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -45,6 +72,13 @@ export default function AdminAccountPage() {
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center space-x-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <span>{notice}</span>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+          <span>{errorMessage}</span>
         </div>
       )}
 
@@ -147,9 +181,11 @@ export default function AdminAccountPage() {
 
           <button
             type="submit"
-            className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm transition"
+            disabled={submitting}
+            className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
           >
-            Cập Nhật Mật Khẩu
+            {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+            <span>{submitting ? 'Đang cập nhật...' : 'Cập Nhật Mật Khẩu'}</span>
           </button>
         </form>
       </div>

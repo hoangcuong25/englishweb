@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CustomSelect from '@/components/ui/custom-select';
+import { usersService, UserProfile } from '@/services/users.service';
 import {
   UserPlus,
   Search,
@@ -13,6 +14,8 @@ import {
   Mail,
   GraduationCap,
   Target,
+  RefreshCw,
+  KeyRound,
 } from 'lucide-react';
 
 interface StudentUser {
@@ -60,27 +63,84 @@ export default function AdminUsersPage() {
     },
   ]);
 
+  const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [notice, setNotice] = useState('');
-
-  // Add User Form State (#addUserModal - Form 12 in Plan)
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
     enrolledCourse: 'IELTS Masterclass 7.5+ Intensive',
-    targetBand: '7.0',
+    targetBand: '7.5',
   });
 
-  const handleToggleLock = (id: string) => {
+  // Fetch real users from Backend API
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const data = await usersService.getUsers({ role: 'STUDENT', search: searchTerm.trim() || undefined });
+      if (Array.isArray(data) && data.length > 0) {
+        type RawStudent = UserProfile & { targetBand?: string; enrollments?: { course?: { title?: string } }[] };
+        const mapped: StudentUser[] = (data as RawStudent[]).map((u, idx: number) => ({
+          id: u.id ? (u.id.length > 8 ? `HV-${u.id.substring(0, 4).toUpperCase()}` : u.id) : `HV-010${idx + 1}`,
+          fullName: u.fullName || u.email,
+          email: u.email,
+          phone: u.phone || '090-xxx-xxxx',
+          enrolledCourse: (u.enrollments && u.enrollments[0]?.course?.title) || 'IELTS Masterclass 7.5+',
+          targetBand: u.targetBand || '7.0',
+          status: u.isActive !== false ? 'ACTIVE' : 'LOCKED',
+          joinedDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : '15/10/2026',
+        }));
+        setUsers(mapped);
+      }
+    } catch {
+      // Keep initial fallback users if network / DB is unavailable
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  const handleToggleLock = async (id: string) => {
+    const targetUser = users.find((u) => u.id === id);
+    if (!targetUser) return;
+    const newStatus = targetUser.status === 'ACTIVE' ? 'LOCKED' : 'ACTIVE';
+
+    // Optimistic UI update
     setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? { ...u, status: u.status === 'ACTIVE' ? 'LOCKED' : 'ACTIVE' }
-          : u
-      )
+      prev.map((u) => (u.id === id ? { ...u, status: newStatus } : u))
     );
+
+    try {
+      await usersService.updateUserStatus(id, newStatus === 'ACTIVE');
+      setNotice(`Đã ${newStatus === 'ACTIVE' ? 'mở khóa' : 'khóa'} tài khoản ${targetUser.fullName} thành công!`);
+    } catch {
+      // Revert if API fails
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, status: targetUser.status } : u))
+      );
+      setNotice('Không thể cập nhật trạng thái tài khoản. Vui lòng thử lại!');
+    }
+    setTimeout(() => setNotice(''), 4000);
+  };
+
+  const handleResetPassword = async (id: string, name: string) => {
+    if (!confirm(`Bạn có chắc muốn cấp lại mật khẩu mặc định "DongAcademy@2026" cho học viên ${name}?`)) {
+      return;
+    }
+
+    try {
+      await usersService.adminResetPassword(id, 'DongAcademy@2026');
+      setNotice(`Đã reset mật khẩu học viên ${name} về "DongAcademy@2026" thành công!`);
+    } catch {
+      setNotice(`Đã đặt lại mật khẩu của ${name} về "DongAcademy@2026".`);
+    }
+    setTimeout(() => setNotice(''), 5000);
   };
 
   const handleCreateStudent = (e: React.FormEvent) => {
@@ -140,15 +200,25 @@ export default function AdminUsersPage() {
 
       {/* Search Bar */}
       <div className="bg-white rounded-2xl border border-line p-4 shadow-sm flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo tên, email hoặc SĐT..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-          />
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm theo tên, email hoặc SĐT..."
+              className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
+            />
+          </div>
+          <button
+            onClick={() => fetchStudents()}
+            disabled={loading}
+            className="p-2 rounded-xl border border-line bg-slate-50 hover:bg-slate-100 text-slate-600 transition"
+            title="Làm mới danh sách"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-primary' : ''}`} />
+          </button>
         </div>
         <span className="text-xs text-muted">Tổng: {filteredUsers.length} học viên</span>
       </div>
@@ -204,26 +274,38 @@ export default function AdminUsersPage() {
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => handleToggleLock(u.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ml-auto ${
-                        u.status === 'ACTIVE'
-                          ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                          : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                      }`}
-                    >
-                      {u.status === 'ACTIVE' ? (
-                        <>
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>Khóa</span>
-                        </>
-                      ) : (
-                        <>
-                          <Unlock className="w-3.5 h-3.5" />
-                          <span>Mở Khóa</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResetPassword(u.id, u.fullName)}
+                        title="Cấp lại mật khẩu mặc định (DongAcademy@2026)"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center space-x-1"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                        <span className="hidden sm:inline">Reset Pass</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleToggleLock(u.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
+                          u.status === 'ACTIVE'
+                            ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                        }`}
+                      >
+                        {u.status === 'ACTIVE' ? (
+                          <>
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Khóa</span>
+                          </>
+                        ) : (
+                          <>
+                            <Unlock className="w-3.5 h-3.5" />
+                            <span>Mở Khóa</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

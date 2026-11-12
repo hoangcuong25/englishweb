@@ -72,5 +72,48 @@ export const quizzesService = {
     });
     return response.data?.data || response.data;
   },
+
+  async getSkillsTests(skill?: string) {
+    const response = await api.get('/quizzes/skills/tests', {
+      params: { skill },
+    });
+    return response.data?.data || response.data || [];
+  },
+
+  async createQuiz(data: {
+    title: string;
+    description?: string;
+    skill?: string;
+    testType?: string;
+    passage?: string;
+    audioUrl?: string;
+    timeLimitMinutes?: number;
+    passScore?: number;
+    lessonId?: string;
+  }) {
+    const response = await api.post('/quizzes', data);
+    return response.data?.data || response.data;
+  },
+
+  async addQuestion(
+    quizId: string,
+    data: {
+      content: string;
+      skill?: string;
+      type?: string;
+      points?: number;
+      explanation?: string;
+      orderIndex?: number;
+      options: { content: string; isCorrect: boolean }[];
+    }
+  ) {
+    const response = await api.post(`/quizzes/${quizId}/questions`, data);
+    return response.data?.data || response.data;
+  },
+
+  async deleteQuiz(id: string) {
+    const response = await api.delete(`/quizzes/${id}`);
+    return response.data;
+  },
 };
 

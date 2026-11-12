@@ -1,7 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CustomSelect from '@/components/ui/custom-select';
+import {
+  quizzesService,
+  Quiz as RemoteQuiz,
+  QuizQuestion as RemoteQuizQuestion,
+  QuizQuestionOption,
+} from '@/services/quizzes.service';
 import {
   Plus,
   CheckCircle2,
@@ -11,6 +17,7 @@ import {
   Headphones,
   FileCode,
   PenTool,
+  RefreshCw,
 } from 'lucide-react';
 
 interface QuizQuestion {
@@ -39,6 +46,9 @@ export default function AdminQuizzesPage() {
     },
   ]);
 
+  const [quizzes, setQuizzes] = useState<RemoteQuiz[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -54,19 +64,102 @@ export default function AdminQuizzesPage() {
     explanation: '',
   });
 
-  const handleCreateQuestion = (e: React.FormEvent) => {
+  const fetchQuizzes = async () => {
+    setLoading(true);
+    try {
+      const list = await quizzesService.getSkillsTests();
+      if (Array.isArray(list) && list.length > 0) {
+        setQuizzes(list as RemoteQuiz[]);
+        const loadedQuestions: QuizQuestion[] = [];
+        (list as (RemoteQuiz & { skill?: string })[]).forEach((quiz) => {
+          if (Array.isArray(quiz.questions)) {
+            quiz.questions.forEach((q: RemoteQuizQuestion) => {
+              const correctOpt = q.options?.find((o: QuizQuestionOption & { isCorrect?: boolean }) => o.isCorrect);
+              const correctIdx = correctOpt ? q.options.indexOf(correctOpt) : 0;
+              const correctLetter = String.fromCharCode(65 + (correctIdx >= 0 ? correctIdx : 0));
+              loadedQuestions.push({
+                id: q.id,
+                skill: q.skillType || quiz.skill || 'VOCABULARY',
+                questionText: q.content,
+                correctAnswer: correctLetter,
+                explanation: q.explanation || 'Đáp án chuẩn hóa theo ngân hàng đề thi.',
+              });
+            });
+          }
+        });
+        if (loadedQuestions.length > 0) {
+          setQuestions(loadedQuestions);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load quizzes from backend, using local list:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuizzes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newQ: QuizQuestion = {
-      id: `q-${Date.now()}`,
-      skill: qFormData.skill,
-      questionText: qFormData.questionText,
-      correctAnswer: qFormData.correctAnswer,
-      explanation: qFormData.explanation,
-    };
-    setQuestions([...questions, newQ]);
-    setIsQuestionModalOpen(false);
-    setNotice(`Đã thêm câu hỏi mới vào Ngân hàng đề thành công!`);
-    setTimeout(() => setNotice(''), 4000);
+    setSubmitting(true);
+    try {
+      let targetQuizId = quizzes[0]?.id;
+      if (!targetQuizId) {
+        const createdQuiz = await quizzesService.createQuiz({
+          title: 'Ngân hàng đề thi trắc nghiệm & 4 kỹ năng',
+          passScore: 80,
+          skill: qFormData.skill,
+        });
+        targetQuizId = createdQuiz.id;
+      }
+
+      const options = [
+        { content: qFormData.optionA, isCorrect: qFormData.correctAnswer === 'A' },
+        { content: qFormData.optionB, isCorrect: qFormData.correctAnswer === 'B' },
+        { content: qFormData.optionC, isCorrect: qFormData.correctAnswer === 'C' },
+        { content: qFormData.optionD, isCorrect: qFormData.correctAnswer === 'D' },
+      ];
+
+      await quizzesService.addQuestion(targetQuizId, {
+        content: qFormData.questionText,
+        skill: qFormData.skill,
+        explanation: qFormData.explanation,
+        options,
+      });
+
+      setNotice('Đã thêm câu hỏi mới vào Ngân hàng đề thành công trên máy chủ!');
+      setIsQuestionModalOpen(false);
+      setQFormData({
+        skill: 'VOCABULARY',
+        questionText: '',
+        optionA: '',
+        optionB: '',
+        optionC: '',
+        optionD: '',
+        correctAnswer: 'A',
+        explanation: '',
+      });
+      await fetchQuizzes();
+    } catch (err: unknown) {
+      console.error('Failed to create question on server:', err);
+      const newQ: QuizQuestion = {
+        id: `q-${Date.now()}`,
+        skill: qFormData.skill,
+        questionText: qFormData.questionText,
+        correctAnswer: qFormData.correctAnswer,
+        explanation: qFormData.explanation,
+      };
+      setQuestions((prev) => [...prev, newQ]);
+      setIsQuestionModalOpen(false);
+      setNotice('Đã thêm câu hỏi vào ngân hàng đề cục bộ.');
+    } finally {
+      setSubmitting(false);
+      setTimeout(() => setNotice(''), 4000);
+    }
   };
 
   return (
@@ -83,6 +176,14 @@ export default function AdminQuizzesPage() {
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => fetchQuizzes()}
+            disabled={loading}
+            className="p-2.5 rounded-xl border border-line bg-white hover:bg-slate-50 text-slate-600 transition"
+            title="Làm mới từ máy chủ"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-primary' : ''}`} />
+          </button>
           <button
             onClick={() => setIsQuestionModalOpen(true)}
             className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md shadow-primary/20 transition flex items-center space-x-1.5"
@@ -282,9 +383,11 @@ export default function AdminQuizzesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm"
+                  disabled={submitting}
+                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm disabled:opacity-50 flex items-center space-x-1.5"
                 >
-                  Lưu Câu Hỏi
+                  {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{submitting ? 'Đang lưu...' : 'Lưu Câu Hỏi'}</span>
                 </button>
               </div>
             </form>

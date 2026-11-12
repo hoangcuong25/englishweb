@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ActionMenu from '@/components/ui/action-menu';
+import { chatService, ConversationItem, ChatMessageItem } from '@/services/chat.service';
+import { useAuth } from '@/lib/auth-context';
 import {
   Send,
   Paperclip,
@@ -11,6 +13,7 @@ import {
   BellOff,
   Trash2,
   FileText,
+  RefreshCw,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -22,6 +25,10 @@ interface ChatMessage {
 }
 
 export default function StudentMessagesPage() {
+  const { user } = useAuth();
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [activeConversation, setActiveConversation] = useState<ConversationItem | null>(null);
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'm1',
@@ -37,96 +44,193 @@ export default function StudentMessagesPage() {
       time: '14:30',
       isRead: true,
     },
-    {
-      id: 'm3',
-      sender: 'TEACHER',
-      text: 'Tốt lắm, tối nay chủ đề Part 2 khá hay về "Important Decision", em chuẩn bị trước dàn ý nhé!',
-      time: '14:32',
-      isRead: true,
-    },
   ]);
 
   const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isTyping] = useState(false);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const loadConversations = async () => {
+    setLoading(true);
+    try {
+      const list = await chatService.getConversations();
+      if (Array.isArray(list) && list.length > 0) {
+        setConversations(list);
+        const current = list[0];
+        setActiveConversation(current);
+        await loadMessages(current.id);
+      }
+    } catch (err) {
+      console.warn('Could not load chat conversations from server, using default messages:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMessages = async (convId: string) => {
+    try {
+      const items: ChatMessageItem[] = await chatService.getMessages(convId);
+      if (Array.isArray(items) && items.length > 0) {
+        const formatted: ChatMessage[] = items.map((m) => {
+          const isMe = m.senderId === user?.id || m.sender?.role === 'STUDENT';
+          return {
+            id: m.id,
+            sender: isMe ? 'ME' : 'TEACHER',
+            text: m.content,
+            time: new Date(m.createdAt).toLocaleTimeString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            isRead: m.isRead,
+          };
+        });
+        setMessages(formatted);
+      }
+      // Mark as read
+      await chatService.markAsRead(convId).catch(() => {});
+    } catch (err) {
+      console.warn('Could not load messages from server:', err);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
+    const content = inputMessage.trim();
+    setInputMessage('');
+
+    // Optimistic message
+    const tempId = `m-${Date.now()}`;
     const newMsg: ChatMessage = {
-      id: `m-${Date.now()}`,
+      id: tempId,
       sender: 'ME',
-      text: inputMessage.trim(),
+      text: content,
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       isRead: false,
     };
+    setMessages((prev) => [...prev, newMsg]);
 
-    setMessages([...messages, newMsg]);
-    setInputMessage('');
-
-    // Simulate Teacher Reply via WebSocket Gateway
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      const replyMsg: ChatMessage = {
-        id: `m-reply-${Date.now()}`,
-        sender: 'TEACHER',
-        text: 'Thầy đã nhận được tin nhắn qua WebSocket Gateway. Hẹn gặp em trong lớp học trực tuyến nhé!',
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        isRead: true,
-      };
-      setMessages((prev) => [...prev, replyMsg]);
-    }, 2000);
+    if (activeConversation?.id) {
+      setIsSending(true);
+      try {
+        const sent = await chatService.sendMessage(activeConversation.id, content);
+        if (sent && sent.id) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempId
+                ? {
+                    ...m,
+                    id: sent.id,
+                    time: new Date(sent.createdAt).toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                  }
+                : m
+            )
+          );
+        }
+      } catch (err) {
+        console.error('Failed to send message via API:', err);
+      } finally {
+        setIsSending(false);
+      }
+    }
   };
 
   return (
     <div className="h-[calc(100vh-8rem)] bg-white rounded-3xl border border-line shadow-sm overflow-hidden flex flex-col md:flex-row">
       {/* Left Sidebar: Conversations List */}
       <div className="w-full md:w-80 border-r border-line flex flex-col h-full bg-slate-50/50">
-        <div className="p-4 border-b border-line">
-          <h2 className="text-sm font-extrabold text-slate-900 tracking-tight">
-            Hội Thoại & Hỗ Trợ Học Vụ
-          </h2>
-          <div className="relative mt-2">
+        <div className="p-4 border-b border-line flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-extrabold text-slate-900 tracking-tight">
+              Hội Thoại & Hỗ Trợ Học Vụ
+            </h2>
+            <p className="text-[10px] text-muted">Trực tuyến cùng Thầy & Bộ môn</p>
+          </div>
+          <button
+            onClick={() => loadConversations()}
+            disabled={loading}
+            className="p-1.5 rounded-lg border border-line bg-white hover:bg-slate-100 text-slate-600 transition"
+            title="Làm mới cuộc trò chuyện"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-primary' : ''}`} />
+          </button>
+        </div>
+
+        <div className="p-3 border-b border-line bg-white">
+          <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Tìm tin nhắn..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-line text-xs bg-white focus:outline-none focus:border-primary"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-line text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-primary"
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-line/60">
-          <div className="p-4 bg-sky-50/70 border-l-4 border-primary flex items-start space-x-3 cursor-pointer">
-            <div className="w-10 h-10 rounded-full bg-primary text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0 shadow-sm">
-              TD
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-900 truncate">Thầy Đông (IELTS 8.5)</h4>
-                <span className="text-[10px] text-muted">14:32</span>
-              </div>
-              <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                Tốt lắm, tối nay chủ đề Part 2 khá hay...
-              </p>
-            </div>
-          </div>
+          {conversations.length > 0 ? (
+            conversations.map((conv) => {
+              const teacherName = conv.admin?.fullName || 'Thầy Đông (IELTS 8.5)';
+              const lastText = conv.lastMessage?.content || 'Chào em! Có câu hỏi gì cứ nhắn thầy nhé.';
+              const lastTime = conv.lastMessage?.createdAt
+                ? new Date(conv.lastMessage.createdAt).toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'Mới';
 
-          <div className="p-4 hover:bg-slate-50 flex items-start space-x-3 cursor-pointer">
-            <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 font-extrabold flex items-center justify-center text-xs flex-shrink-0">
-              HV
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-900 truncate">Hỗ Trợ Học Vụ & Kỹ Thuật</h4>
-                <span className="text-[10px] text-muted">Hôm qua</span>
+              return (
+                <div
+                  key={conv.id}
+                  onClick={() => {
+                    setActiveConversation(conv);
+                    loadMessages(conv.id);
+                  }}
+                  className={`p-4 flex items-start space-x-3 cursor-pointer transition ${
+                    activeConversation?.id === conv.id
+                      ? 'bg-sky-50/70 border-l-4 border-primary'
+                      : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0 shadow-sm">
+                    TD
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-900 truncate">{teacherName}</h4>
+                      <span className="text-[10px] text-muted">{lastTime}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5">{lastText}</p>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-4 bg-sky-50/70 border-l-4 border-primary flex items-start space-x-3 cursor-pointer">
+              <div className="w-10 h-10 rounded-full bg-primary text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0 shadow-sm">
+                TD
               </div>
-              <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                Tài khoản của bạn đã được gia hạn thành công...
-              </p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900 truncate">Thầy Đông (IELTS 8.5)</h4>
+                  <span className="text-[10px] text-muted">14:32</span>
+                </div>
+                <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                  Tốt lắm, tối nay chủ đề Part 2 khá hay...
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -238,10 +342,10 @@ export default function StudentMessagesPage() {
 
           <button
             type="submit"
-            disabled={!inputMessage.trim()}
+            disabled={!inputMessage.trim() || isSending}
             className="p-2.5 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white shadow-sm transition flex-shrink-0"
           >
-            <Send className="w-4 h-4" />
+            {isSending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </form>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { coursesService, Course } from '@/services/courses.service';
+import { coursesService, Course, CourseModule, CourseLesson } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
 import {
   PlayCircle,
@@ -90,12 +90,60 @@ export default function StudentCoursesPage() {
     const fetchCourses = async () => {
       setLoading(true);
       try {
+        let loadedCourses: Course[] = [];
         const myLearning = await coursesService.getMyLearning();
         if (myLearning && myLearning.length > 0) {
-          setCourses(myLearning);
+          loadedCourses = myLearning;
         } else {
           const allCourses = await coursesService.getCourses();
-          setCourses(allCourses);
+          loadedCourses = allCourses || [];
+        }
+
+        setCourses(loadedCourses);
+
+        // Fetch dynamic curriculum (Course -> Modules -> Lessons) from Backend
+        if (loadedCourses.length > 0) {
+          const primary = loadedCourses[0];
+          const courseDetail = await coursesService.getCourseBySlug(primary.slug || primary.id);
+          if (courseDetail && Array.isArray(courseDetail.modules) && courseDetail.modules.length > 0) {
+            type ExtendedLesson = CourseLesson & { isAccessible?: boolean };
+            const dynamicModules: MockModule[] = courseDetail.modules.map((m: CourseModule, mIdx: number) => {
+              const lessons: ExtendedLesson[] = Array.isArray(m.lessons) ? m.lessons : [];
+              const isAllDone = lessons.length > 0 && lessons.every((l: ExtendedLesson) => l.isCompleted);
+              const prevModule = courseDetail.modules ? courseDetail.modules[mIdx - 1] : undefined;
+              const isPrevDone = prevModule?.lessons ? prevModule.lessons.every((l: CourseLesson) => l.isCompleted) : true;
+              return {
+                id: m.id || `m-${mIdx + 1}`,
+                title: m.title || `Module 0${mIdx + 1}`,
+                lessonsCount: lessons.length,
+                isCompleted: isAllDone,
+                isLocked: mIdx > 0 && !isPrevDone,
+                lessons: lessons.map((l: ExtendedLesson, lIdx: number) => ({
+                  id: l.id || `l-${mIdx + 1}-${lIdx + 1}`,
+                  title: l.title || `Lesson ${lIdx + 1}`,
+                  duration: `${l.durationMinutes || 45} phút`,
+                  isDone: Boolean(l.isCompleted),
+                  isLocked: l.isAccessible === false,
+                })),
+              };
+            });
+
+            setModules(dynamicModules);
+            if (dynamicModules[0]?.id) {
+              setExpandedModule(dynamicModules[0].id);
+            }
+
+            // Sync completed lessons
+            const completedIds = new Set<string>();
+            courseDetail.modules.forEach((mod: CourseModule) => {
+              mod.lessons?.forEach((les: CourseLesson) => {
+                if (les.isCompleted) completedIds.add(les.id);
+              });
+            });
+            if (completedIds.size > 0) {
+              setCompletedLessonIds(completedIds);
+            }
+          }
         }
       } catch {
         // Fallback default
