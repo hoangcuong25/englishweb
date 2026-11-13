@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <AppTopbar currentPortal="admin" pageTitle="Cổng Quản Trị & Giảng Viên" />
       <div className="flex flex-1">
         <AdminSidebar />
-        <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
           {children}
         </main>
       </div>

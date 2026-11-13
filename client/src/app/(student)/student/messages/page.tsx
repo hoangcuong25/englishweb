@@ -14,6 +14,7 @@ import {
   Trash2,
   FileText,
   RefreshCw,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -28,6 +29,7 @@ export default function StudentMessagesPage() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [activeConversation, setActiveConversation] = useState<ConversationItem | null>(null);
+  const [activeMobileView, setActiveMobileView] = useState<'list' | 'chat'>('list');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -199,7 +201,11 @@ export default function StudentMessagesPage() {
   return (
     <div className="h-[calc(100vh-8rem)] bg-white rounded-3xl border border-line shadow-sm overflow-hidden flex flex-col md:flex-row">
       {/* Left Sidebar: Conversations List */}
-      <div className="w-full md:w-80 border-r border-line flex flex-col h-full bg-slate-50/50">
+      <div
+        className={`w-full md:w-80 border-r border-line flex-col h-full bg-slate-50/50 ${
+          activeMobileView === 'chat' ? 'hidden md:flex' : 'flex'
+        }`}
+      >
         <div className="p-4 border-b border-line flex items-center justify-between">
           <div>
             <h2 className="text-sm font-extrabold text-slate-900 tracking-tight">
@@ -246,6 +252,7 @@ export default function StudentMessagesPage() {
                   onClick={() => {
                     setActiveConversation(conv);
                     loadMessages(conv.id);
+                    setActiveMobileView('chat');
                   }}
                   className={`p-4 flex items-start space-x-3 cursor-pointer transition ${
                     activeConversation?.id === conv.id
@@ -267,7 +274,10 @@ export default function StudentMessagesPage() {
               );
             })
           ) : (
-            <div className="p-4 bg-sky-50/70 border-l-4 border-primary flex items-start space-x-3 cursor-pointer">
+            <div
+              onClick={() => setActiveMobileView('chat')}
+              className="p-4 bg-sky-50/70 border-l-4 border-primary flex items-start space-x-3 cursor-pointer"
+            >
               <div className="w-10 h-10 rounded-full bg-primary text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0 shadow-sm">
                 TD
               </div>
@@ -286,11 +296,25 @@ export default function StudentMessagesPage() {
       </div>
 
       {/* Right: Active Chat Window */}
-      <div className="flex-1 flex flex-col h-full bg-white">
+      <div
+        className={`flex-1 flex-col h-full bg-white ${
+          activeMobileView === 'list' ? 'hidden md:flex' : 'flex'
+        }`}
+      >
         {/* Chat Header */}
         <div className="p-4 border-b border-line flex items-center justify-between bg-white">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-primary text-white font-bold flex items-center justify-center text-xs">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Mobile Back Button */}
+            <button
+              type="button"
+              onClick={() => setActiveMobileView('list')}
+              className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-primary hover:bg-slate-100 rounded-lg transition"
+              title="Quay lại danh sách hội thoại"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary text-white font-bold flex items-center justify-center text-xs shrink-0">
               TD
             </div>
             <div>
@@ -298,7 +322,7 @@ export default function StudentMessagesPage() {
                 <h3 className="text-xs sm:text-sm font-bold text-slate-900">Thầy Đông (IELTS 8.5)</h3>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               </div>
-              <p className="text-[11px] text-muted">Online qua WebSocket Gateway • Phản hồi nhanh</p>
+              <p className="text-[10px] sm:text-[11px] text-muted">Online qua WebSocket Gateway • Phản hồi nhanh</p>
             </div>
           </div>
 

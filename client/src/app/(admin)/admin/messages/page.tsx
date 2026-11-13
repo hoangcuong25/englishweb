@@ -13,6 +13,7 @@ import {
   Trash2,
   GraduationCap,
   RefreshCw,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -27,6 +28,7 @@ export default function AdminMessagesPage() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [activeConversation, setActiveConversation] = useState<ConversationItem | null>(null);
+  const [activeMobileView, setActiveMobileView] = useState<'list' | 'chat'>('list');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -151,6 +153,7 @@ export default function AdminMessagesPage() {
 
   const handleSelectConversation = async (conv: ConversationItem) => {
     setActiveConversation(conv);
+    setActiveMobileView('chat');
     await loadMessages(conv.id, conv.student?.fullName || 'Học viên');
   };
 
@@ -219,7 +222,11 @@ export default function AdminMessagesPage() {
   return (
     <div className="h-[calc(100vh-8rem)] bg-white rounded-3xl border border-line shadow-sm overflow-hidden flex flex-col md:flex-row">
       {/* Students Conversation List */}
-      <div className="w-full md:w-80 border-r border-line flex flex-col h-full bg-slate-50/50">
+      <div
+        className={`w-full md:w-80 border-r border-line flex-col h-full bg-slate-50/50 ${
+          activeMobileView === 'chat' ? 'hidden md:flex' : 'flex'
+        }`}
+      >
         <div className="p-4 border-b border-line flex items-center justify-between">
           <div>
             <h2 className="text-sm font-extrabold text-slate-900 tracking-tight">
@@ -302,7 +309,10 @@ export default function AdminMessagesPage() {
           ) : (
             <>
               {/* Default fallback items */}
-              <div className="p-4 bg-sky-50/70 border-l-4 border-primary flex items-start space-x-3 cursor-pointer">
+              <div
+                onClick={() => setActiveMobileView('chat')}
+                className="p-4 bg-sky-50/70 border-l-4 border-primary flex items-start space-x-3 cursor-pointer"
+              >
                 <div className="w-10 h-10 rounded-full bg-primary text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0">
                   TN
                 </div>
@@ -317,7 +327,10 @@ export default function AdminMessagesPage() {
                 </div>
               </div>
 
-              <div className="p-4 hover:bg-slate-50 flex items-start space-x-3 cursor-pointer">
+              <div
+                onClick={() => setActiveMobileView('chat')}
+                className="p-4 hover:bg-slate-50 flex items-start space-x-3 cursor-pointer"
+              >
                 <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 font-extrabold flex items-center justify-center text-xs flex-shrink-0">
                   LM
                 </div>
@@ -337,15 +350,29 @@ export default function AdminMessagesPage() {
       </div>
 
       {/* Active Conversation */}
-      <div className="flex-1 flex flex-col h-full bg-white">
+      <div
+        className={`flex-1 flex-col h-full bg-white ${
+          activeMobileView === 'list' ? 'hidden md:flex' : 'flex'
+        }`}
+      >
         <div className="p-4 border-b border-line flex items-center justify-between bg-white">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-primary text-white font-bold flex items-center justify-center text-xs">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Mobile Back Button to Students List */}
+            <button
+              type="button"
+              onClick={() => setActiveMobileView('list')}
+              className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-primary hover:bg-slate-100 rounded-lg transition"
+              title="Quay lại danh sách học viên"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary text-white font-bold flex items-center justify-center text-xs shrink-0">
               {initials}
             </div>
             <div>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900">{studentName}</h3>
-              <p className="text-[11px] text-muted">{studentEmail} • Trực tuyến qua WebSocket</p>
+              <p className="text-[10px] sm:text-[11px] text-muted">{studentEmail} • Trực tuyến qua WebSocket</p>
             </div>
           </div>
           <ActionMenu

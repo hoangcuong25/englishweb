@@ -35,7 +35,7 @@ export default function StudentSidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-line flex flex-col h-[calc(100vh-4rem)] sticky top-16 select-none">
+    <aside className="hidden lg:flex w-64 bg-white border-r border-line flex-col h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0">
       <div className="p-4 border-b border-line/60">
         <span className="text-[11px] font-extrabold text-muted uppercase tracking-wider">
           Cổng Học Viên (STUDENT)

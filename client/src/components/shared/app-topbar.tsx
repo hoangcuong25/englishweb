@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n, Language } from '@/lib/i18n-context';
 import { notificationsService } from '@/services/notifications.service';
@@ -18,7 +19,23 @@ import {
   Mic, 
   CheckCircle2, 
   Clock, 
-  Sparkles
+  Sparkles,
+  Menu,
+  X,
+  LayoutDashboard,
+  BookOpen,
+  FolderLock,
+  PenTool,
+  HelpCircle,
+  CalendarCheck,
+  MessageSquare,
+  UserCheck,
+  GraduationCap,
+  FileCheck,
+  Headphones,
+  FileQuestion,
+  Users,
+  Settings,
 } from 'lucide-react';
 
 interface AppTopbarProps {
@@ -39,9 +56,45 @@ interface NotificationItem {
 export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useI18n();
+  const pathname = usePathname();
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showSessionDrawer, setShowSessionDrawer] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setShowMobileDrawer(false);
+  }, [pathname]);
+
+  const studentNavItems = [
+    { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
+    { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen },
+    { href: '/student/library', label: t('nav_library', 'Học liệu số & Bảo mật'), icon: FolderLock },
+    { href: '/student/classroom', label: t('nav_classroom', 'Phòng học trực tuyến'), icon: Video },
+    { href: '/student/writing', label: t('nav_writing', 'Luyện viết IELTS AI'), icon: PenTool },
+    { href: '/student/speaking', label: t('nav_speaking', 'Studio luyện nói IELTS'), icon: Mic },
+    { href: '/student/quizzes', label: t('nav_quiz', 'Ngân hàng bài tập Quiz'), icon: HelpCircle },
+    { href: '/student/attendance', label: t('nav_attendance', 'Điểm danh & Chuyên cần'), icon: CalendarCheck },
+    { href: '/student/messages', label: t('nav_messages', 'Tin nhắn & Thảo luận'), icon: MessageSquare },
+    { href: '/student/account', label: t('nav_account', 'Tài khoản cá nhân'), icon: UserCheck },
+  ];
+
+  const adminNavItems = [
+    { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
+    { href: '/admin/courses', label: t('nav_admin_courses', 'Quản lý khóa học'), icon: GraduationCap },
+    { href: '/admin/library', label: t('nav_admin_library', 'Kho học liệu số'), icon: FolderLock },
+    { href: '/admin/classroom', label: t('nav_admin_classroom', 'Quản trị phòng học LiveKit'), icon: Video },
+    { href: '/admin/writing-review', label: t('nav_writing_review', 'Duyệt bài viết IELTS AI'), icon: FileCheck },
+    { href: '/admin/speaking-grading', label: t('nav_speaking_grading', 'Chấm bài nói Speaking'), icon: Headphones },
+    { href: '/admin/quizzes', label: t('nav_admin_quizzes', 'Ngân hàng câu hỏi Quiz'), icon: FileQuestion },
+    { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },
+    { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
+    { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },
+    { href: '/admin/account', label: t('nav_system_settings', 'Cài đặt hệ thống'), icon: Settings },
+  ];
+
+  const activeNavItems = currentPortal === 'admin' ? adminNavItems : studentNavItems;
 
   const notiRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
@@ -198,7 +251,17 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
     <>
       <header className="bg-white border-b border-line sticky top-0 z-30 h-16 px-4 sm:px-6 flex items-center justify-between shadow-sm">
         {/* Left: Brand or Page Title */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Mobile Navigation Drawer Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowMobileDrawer(true)}
+            className="lg:hidden p-2 -ml-1 text-slate-600 hover:text-primary hover:bg-slate-100 rounded-xl transition"
+            aria-label="Mở menu điều hướng"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           <Link href="/" className="flex items-center space-x-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-dark to-primary flex items-center justify-center text-white font-extrabold text-base shadow-sm">
               TD
@@ -423,6 +486,139 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
         isOpen={showSessionDrawer}
         onClose={() => setShowSessionDrawer(false)}
       />
+
+      {/* Mobile Navigation Drawer */}
+      {showMobileDrawer && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setShowMobileDrawer(false)}
+          />
+
+          {/* Drawer Panel */}
+          <div
+            className={`relative flex-1 flex flex-col max-w-xs w-full shadow-2xl z-10 animate-in slide-in-from-left duration-200 ${
+              currentPortal === 'admin' ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-800'
+            }`}
+          >
+            {/* Drawer Header */}
+            <div
+              className={`p-4 flex items-center justify-between border-b ${
+                currentPortal === 'admin' ? 'border-slate-800' : 'border-line'
+              }`}
+            >
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-dark to-primary flex items-center justify-center text-white font-extrabold text-sm shadow-sm">
+                  TD
+                </div>
+                <div>
+                  <span
+                    className={`font-extrabold text-xs tracking-tight block ${
+                      currentPortal === 'admin' ? 'text-white' : 'text-slate-900'
+                    }`}
+                  >
+                    Teacher Dong Academy
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider ${
+                      currentPortal === 'admin' ? 'text-amber-400' : 'text-primary'
+                    }`}
+                  >
+                    {currentPortal === 'admin' ? 'Quản Trị Viên & Giảng Viên' : 'Cổng Học Viên'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowMobileDrawer(false)}
+                className={`p-1.5 rounded-lg transition ${
+                  currentPortal === 'admin'
+                    ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                aria-label="Đóng menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Navigation List */}
+            <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+              {activeNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname.startsWith(item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setShowMobileDrawer(false)}
+                    className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
+                      isActive
+                        ? currentPortal === 'admin'
+                          ? 'bg-slate-800 text-white font-bold border-l-4 border-amber-400'
+                          : 'bg-sky-50 text-primary font-bold border-l-4 border-primary'
+                        : currentPortal === 'admin'
+                        ? 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <Icon
+                      className={`w-4 h-4 shrink-0 ${
+                        isActive
+                          ? currentPortal === 'admin'
+                            ? 'text-amber-400'
+                            : 'text-primary'
+                          : currentPortal === 'admin'
+                          ? 'text-slate-500'
+                          : 'text-slate-400'
+                      }`}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Drawer User Summary Footer */}
+            <div
+              className={`p-3.5 border-t flex items-center justify-between ${
+                currentPortal === 'admin' ? 'border-slate-800 bg-slate-950/40' : 'border-line bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center text-xs shrink-0">
+                  {user?.fullName?.charAt(0) || 'U'}
+                </div>
+                <div className="min-w-0">
+                  <p
+                    className={`text-xs font-bold truncate ${
+                      currentPortal === 'admin' ? 'text-white' : 'text-slate-800'
+                    }`}
+                  >
+                    {user?.fullName || (currentPortal === 'admin' ? 'Teacher Dong' : 'Học Viên')}
+                  </p>
+                  <p className="text-[10px] text-muted truncate">{user?.email || 'user@dong.edu.vn'}</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileDrawer(false);
+                  logout();
+                }}
+                className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition"
+                title="Đăng xuất"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

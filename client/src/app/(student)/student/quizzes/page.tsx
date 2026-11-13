@@ -272,13 +272,13 @@ Paragraph C: Nevertheless, substantial obstacles remain. The intrinsic intermitt
       </div>
 
       {/* Floating Exam Info Bar */}
-      <div className="p-4 rounded-2xl bg-white border border-line shadow-sm flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
+      <div className="p-4 rounded-2xl bg-white border border-line shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center space-x-3 overflow-x-auto max-w-full pb-1">
+          <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 shrink-0">
             <HelpCircle className="w-4 h-4 text-primary" />
             <span>Câu {currentIdx + 1} / {questions.length}</span>
           </div>
-          <div className="hidden sm:flex items-center space-x-1">
+          <div className="flex items-center space-x-1 overflow-x-auto max-w-full scrollbar-none">
             {questions.map((q, idx) => {
               const isAnswered = Boolean(selectedAnswers[q.id]);
               const isCurrent = idx === currentIdx;
@@ -286,7 +286,7 @@ Paragraph C: Nevertheless, substantial obstacles remain. The intrinsic intermitt
                 <button
                   key={q.id}
                   onClick={() => setCurrentIdx(idx)}
-                  className={`w-6 h-6 rounded-lg text-[10px] font-bold transition ${
+                  className={`w-6 h-6 shrink-0 rounded-lg text-[10px] font-bold transition ${
                     isCurrent
                       ? 'bg-primary text-white shadow-sm'
                       : isAnswered
@@ -302,7 +302,7 @@ Paragraph C: Nevertheless, substantial obstacles remain. The intrinsic intermitt
         </div>
 
         {/* Timer */}
-        <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 font-mono font-bold text-xs text-slate-800">
+        <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 font-mono font-bold text-xs text-slate-800 shrink-0">
           <Clock className="w-4 h-4 text-amber-500" />
           <span>{formatTimer(timeLeft)}</span>
         </div>

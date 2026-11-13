@@ -24,7 +24,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <AppTopbar currentPortal="student" pageTitle="Cổng Học Viên" />
       <div className="flex flex-1">
         <StudentSidebar />
-        <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
           {children}
         </main>
       </div>
