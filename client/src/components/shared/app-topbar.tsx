@@ -42,7 +42,6 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showSessionDrawer, setShowSessionDrawer] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [hasUnread, setHasUnread] = useState(true);
 
   const notiRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
@@ -61,92 +60,14 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const studentNotifications: NotificationItem[] = [
-    {
-      id: '1',
-      title: 'Bài viết IELTS Writing đã duyệt',
-      desc: 'Giáo viên đã phê duyệt bài Task 2 "Technology in Education" của bạn đạt Band 7.0!',
-      time: '10 phút trước',
-      type: 'writing',
-      unread: true,
-      link: '/student/writing',
-    },
-    {
-      id: '2',
-      title: 'Lớp học trực tuyến sắp bắt đầu',
-      desc: 'Buổi học LiveKit IELTS Speaking của Thầy Đông sẽ diễn ra lúc 19:30 tối nay.',
-      time: '1 giờ trước',
-      type: 'live',
-      unread: true,
-      link: '/student/classroom',
-    },
-    {
-      id: '3',
-      title: 'Nhận xét bài thu âm Speaking',
-      desc: 'Thầy Đông đã thêm nhận xét chi tiết và timestamp feedback cho bài nói Part 2 của bạn.',
-      time: '3 giờ trước',
-      type: 'speaking',
-      unread: false,
-      link: '/student/speaking',
-    },
-    {
-      id: '4',
-      title: 'Đạt điểm sàn bài kiểm tra Quiz',
-      desc: 'Chúc mừng bạn đạt 9/10 câu hỏi bài Quiz Lesson 1, hệ thống đã mở khóa bài học tiếp theo.',
-      time: 'Hôm qua',
-      type: 'quiz',
-      unread: false,
-      link: '/student/quizzes',
-    },
-  ];
-
-  const adminNotifications: NotificationItem[] = [
-    {
-      id: 'a1',
-      title: 'Bài viết Writing mới chờ duyệt',
-      desc: 'Học viên Nguyen Thi Mai vừa nộp bài Task 1, AI đã chấm gợi ý cần bạn phê duyệt.',
-      time: '5 phút trước',
-      type: 'writing',
-      unread: true,
-      link: '/admin/writing-review',
-    },
-    {
-      id: 'a2',
-      title: 'Bài nói Speaking mới cần chấm',
-      desc: 'Học viên Tran Van Bao đã gửi bản ghi âm Speaking Part 1 chờ bạn nghe và cho điểm.',
-      time: '25 phút trước',
-      type: 'speaking',
-      unread: true,
-      link: '/admin/speaking-grading',
-    },
-    {
-      id: 'a3',
-      title: 'Báo cáo điểm danh sẵn sàng',
-      desc: 'Dữ liệu chuyên cần buổi học LiveKit gần nhất đã tự động đồng bộ và sẵn sàng xuất Excel.',
-      time: '2 giờ trước',
-      type: 'live',
-      unread: false,
-      link: '/admin/attendance',
-    },
-    {
-      id: 'a4',
-      title: 'Học viên hoàn thành chẩn đoán 4 kỹ năng',
-      desc: 'Học viên Le Hoang Nam đã hoàn thành bài thi thử, xem biểu đồ phân tích kỹ năng yếu.',
-      time: 'Hôm qua',
-      type: 'quiz',
-      unread: false,
-      link: '/admin/quizzes',
-    },
-  ];
-
-  const [notifications, setNotifications] = useState<NotificationItem[]>(
-    currentPortal === 'admin' ? adminNotifications : studentNotifications
-  );
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState<boolean>(true);
+  const [hasUnread, setHasUnread] = useState<boolean>(false);
 
   const fetchRealNotifications = async () => {
     try {
-      const res = await notificationsService.getNotifications({ limit: 10 });
-      if (res && Array.isArray(res.items) && res.items.length > 0) {
+      const res = await notificationsService.getNotifications({ limit: 15 });
+      if (res && Array.isArray(res.items)) {
         const mapped: NotificationItem[] = res.items.map((item) => ({
           id: item.id,
           title: item.title,
@@ -158,12 +79,11 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
         }));
         setNotifications(mapped);
         setHasUnread(res.unreadCount > 0);
-      } else {
-        const count = await notificationsService.getUnreadCount();
-        setHasUnread(count > 0);
       }
     } catch {
-      // Keep initial notifications as fallback
+      // Keep empty or current
+    } finally {
+      setLoadingNotifications(false);
     }
   };
 
@@ -374,47 +294,58 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
 
                 {/* Notification List */}
                 <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                  {notifications.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={item.link || '#'}
-                      onClick={() => handleNotificationClick(item)}
-                      className={`p-3.5 block transition hover:bg-sky-50/40 ${
-                        item.unread ? 'bg-sky-50/20' : 'bg-white'
-                      }`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${getNotiBadgeBg(
-                            item.type
-                          )}`}
-                        >
-                          {getNotiIcon(item.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p
-                              className={`text-xs truncate ${
-                                item.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'
-                              }`}
-                            >
-                              {item.title}
+                  {loadingNotifications && notifications.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      Đang tải thông báo từ hệ thống...
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400 flex flex-col items-center justify-center space-y-2">
+                      <Bell className="w-7 h-7 text-slate-300 stroke-1" />
+                      <span className="font-semibold text-slate-500">Chưa có thông báo mới nào</span>
+                    </div>
+                  ) : (
+                    notifications.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.link || '#'}
+                        onClick={() => handleNotificationClick(item)}
+                        className={`p-3.5 block transition hover:bg-sky-50/40 ${
+                          item.unread ? 'bg-sky-50/20' : 'bg-white'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${getNotiBadgeBg(
+                              item.type
+                            )}`}
+                          >
+                            {getNotiIcon(item.type)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p
+                                className={`text-xs truncate ${
+                                  item.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'
+                                }`}
+                              >
+                                {item.title}
+                              </p>
+                              {item.unread && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 ml-1.5"></span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-muted line-clamp-2 mt-0.5 leading-snug">
+                              {item.desc}
                             </p>
-                            {item.unread && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 ml-1.5"></span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted line-clamp-2 mt-0.5 leading-snug">
-                            {item.desc}
-                          </p>
-                          <div className="flex items-center space-x-1 mt-1.5 text-[10px] text-slate-400">
-                            <Clock className="w-3 h-3" />
-                            <span>{item.time}</span>
+                            <div className="flex items-center space-x-1 mt-1.5 text-[10px] text-slate-400">
+                              <Clock className="w-3 h-3" />
+                              <span>{item.time}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    ))
+                  )}
                 </div>
 
                 {/* Footer */}

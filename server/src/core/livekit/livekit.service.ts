@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccessToken, WebhookReceiver, RoomServiceClient } from 'livekit-server-sdk';
-import { Role, AttendanceStatus } from '@prisma/client';
+import { Role, AttendanceStatus, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -85,6 +85,28 @@ export class LivekitService {
         data: { status: 'ENDED', actualEndTime: new Date() },
       });
 
+      // Notify admins that attendance report is ready
+      try {
+        const admins = await this.prisma.user.findMany({
+          where: { role: Role.ADMIN, isActive: true },
+          select: { id: true },
+        });
+        if (admins.length > 0) {
+          await this.prisma.notification.createMany({
+            data: admins.map((a) => ({
+              userId: a.id,
+              title: 'Báo cáo điểm danh sẵn sàng',
+              content: `Buổi học LiveKit "${roomName}" đã kết thúc. Dữ liệu chuyên cần đã sẵn sàng xuất Excel.`,
+              type: NotificationType.LIVE,
+              link: '/admin/attendance',
+              isRead: false,
+            })),
+          });
+        }
+      } catch {
+        // Do not block end room
+      }
+
       return { success: true, message: `Room ${roomName} ended` };
     } catch (err) {
       this.logger.error(`Error ending room ${roomName}:`, err);
@@ -129,7 +151,7 @@ export class LivekitService {
       throw new BadRequestException('Tên phòng học đã tồn tại');
     }
 
-    return this.prisma.classroom.create({
+    const room = await this.prisma.classroom.create({
       data: {
         name: data.name,
         courseId: data.courseId || null,
@@ -143,6 +165,30 @@ export class LivekitService {
         course: { select: { id: true, title: true } },
       },
     });
+
+    // Notify students about scheduled live class
+    try {
+      const students = await this.prisma.user.findMany({
+        where: { role: Role.STUDENT, isActive: true },
+        select: { id: true },
+      });
+      if (students.length > 0) {
+        await this.prisma.notification.createMany({
+          data: students.map((s) => ({
+            userId: s.id,
+            title: 'Lớp học trực tuyến sắp bắt đầu',
+            content: `Buổi học LiveKit "${data.name}" đã được lên lịch. Nhấn để chuẩn bị vào lớp.`,
+            type: NotificationType.LIVE,
+            link: '/student/classroom',
+            isRead: false,
+          })),
+        });
+      }
+    } catch {
+      // Do not block room creation
+    }
+
+    return room;
   }
 
   async handleWebhook(body: string, authHeader: string) {

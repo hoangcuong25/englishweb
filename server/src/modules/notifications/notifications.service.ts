@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Role } from '@prisma/client';
 
 export interface CreateNotificationInput {
   userId: string;
@@ -107,5 +107,37 @@ export class NotificationsService {
         link: data.link,
       },
     });
+  }
+
+  async broadcastNotification(data: {
+    title: string;
+    content: string;
+    type?: NotificationType;
+    link?: string;
+    targetRole?: Role;
+  }) {
+    const where: any = { isActive: true };
+    if (data.targetRole) {
+      where.role = data.targetRole;
+    }
+    const users = await this.prisma.user.findMany({ where, select: { id: true } });
+    if (users.length === 0) {
+      return { count: 0, message: 'Không có người dùng nào thỏa điều kiện nhận thông báo' };
+    }
+
+    await this.prisma.notification.createMany({
+      data: users.map((u) => ({
+        userId: u.id,
+        title: data.title,
+        content: data.content,
+        type: data.type || NotificationType.SYSTEM,
+        link: data.link,
+      })),
+    });
+
+    return {
+      count: users.length,
+      message: `Đã gửi thông báo thành công tới ${users.length} người dùng`,
+    };
   }
 }

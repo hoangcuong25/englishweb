@@ -7,7 +7,7 @@ import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
-import { Role, SkillType, QuestionType } from '@prisma/client';
+import { Role, SkillType, QuestionType, NotificationType } from '@prisma/client';
 
 @Injectable()
 export class QuizzesService {
@@ -366,6 +366,24 @@ export class QuizzesService {
           create: { userId, courseId, progressPercent },
         });
       }
+    }
+
+    // Automatically create a notification for Student in the database
+    try {
+      await this.prisma.notification.create({
+        data: {
+          userId,
+          title: isPassed ? 'Đạt điểm sàn bài kiểm tra Quiz' : 'Kết quả bài kiểm tra Quiz',
+          content: isPassed
+            ? `Chúc mừng bạn đã vượt qua bài Quiz "${quiz.title}" với số điểm ${score}%! Hệ thống đã mở khóa bài học tiếp theo.`
+            : `Bạn đạt ${score}% bài kiểm tra "${quiz.title}" (điểm sàn: ${quiz.passScore}%). Vui lòng làm lại để mở khóa bài học.`,
+          type: NotificationType.QUIZ,
+          link: '/student/quizzes',
+          isRead: false,
+        },
+      });
+    } catch {
+      // Do not block quiz submission
     }
 
     return {

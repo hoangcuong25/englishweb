@@ -1,4 +1,4 @@
-import { PrismaClient, Role, CourseCategory, QuestionType } from '@prisma/client';
+import { PrismaClient, Role, CourseCategory, QuestionType, NotificationType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -132,6 +132,67 @@ async function main() {
       progressPercent: 25.0,
     },
   });
+
+  // 9. Seed Initial Notifications
+  await prisma.notification.deleteMany({
+    where: { userId: { in: [admin.id, student.id] } },
+  });
+
+  await prisma.notification.createMany({
+    data: [
+      // Admin Notifications
+      {
+        userId: admin.id,
+        title: 'Bài viết Writing mới chờ duyệt',
+        content: 'Học viên Nguyen Thi Mai vừa nộp bài Task 1, AI đã chấm gợi ý Band 6.5 cần bạn phê duyệt.',
+        type: NotificationType.WRITING,
+        link: '/admin/writing-review',
+        isRead: false,
+      },
+      {
+        userId: admin.id,
+        title: 'Bài nói Speaking mới cần chấm',
+        content: 'Học viên Tran Van Bao đã gửi bản ghi âm Speaking Part 1 chờ bạn nghe và cho điểm.',
+        type: NotificationType.SPEAKING,
+        link: '/admin/speaking-grading',
+        isRead: false,
+      },
+      {
+        userId: admin.id,
+        title: 'Báo cáo điểm danh sẵn sàng',
+        content: 'Dữ liệu chuyên cần buổi học LiveKit gần nhất đã tự động đồng bộ và sẵn sàng xuất Excel.',
+        type: NotificationType.LIVE,
+        link: '/admin/attendance',
+        isRead: false,
+      },
+      {
+        userId: admin.id,
+        title: 'Học viên hoàn thành chẩn đoán 4 kỹ năng',
+        content: 'Học viên Le Hoang Nam đã hoàn thành bài thi thử, xem biểu đồ phân tích kỹ năng yếu.',
+        type: NotificationType.QUIZ,
+        link: '/admin/quizzes',
+        isRead: true,
+      },
+      // Student Notifications
+      {
+        userId: student.id,
+        title: 'Bài viết IELTS Writing đã duyệt',
+        content: 'Giáo viên đã phê duyệt bài Task 2 "Technology in Education" của bạn đạt Band 7.0!',
+        type: NotificationType.WRITING,
+        link: '/student/writing',
+        isRead: false,
+      },
+      {
+        userId: student.id,
+        title: 'Lớp học trực tuyến sắp bắt đầu',
+        content: 'Buổi học LiveKit IELTS Speaking của Thầy Đông sẽ diễn ra lúc 19:30 tối nay.',
+        type: NotificationType.LIVE,
+        link: '/student/classroom',
+        isRead: false,
+      },
+    ],
+  });
+  console.log('✅ Seeded Initial Notifications for Admin and Student');
 
   console.log('🚀 Seeding finished successfully!');
 }

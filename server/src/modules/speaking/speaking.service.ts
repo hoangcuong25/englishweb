@@ -8,7 +8,7 @@ import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { CreateSpeakingPromptDto } from './dto/create-speaking-prompt.dto';
 import { SubmitSpeakingDto } from './dto/submit-speaking.dto';
 import { GradeSpeakingDto } from './dto/grade-speaking.dto';
-import { SubmissionStatus, Role } from '@prisma/client';
+import { SubmissionStatus, Role, NotificationType } from '@prisma/client';
 
 @Injectable()
 export class SpeakingService {
@@ -100,6 +100,28 @@ export class SpeakingService {
         },
       },
     });
+
+    // Notify all admins about new speaking submission
+    try {
+      const admins = await this.prisma.user.findMany({
+        where: { role: Role.ADMIN, isActive: true },
+        select: { id: true },
+      });
+      if (admins.length > 0) {
+        await this.prisma.notification.createMany({
+          data: admins.map((admin) => ({
+            userId: admin.id,
+            title: 'Bài nói Speaking mới cần chấm',
+            content: `Học viên vừa gửi bản ghi âm cho bài nói "${submission.prompt?.title}". Đang chờ bạn nghe và chấm điểm.`,
+            type: NotificationType.SPEAKING,
+            link: '/admin/speaking-grading',
+            isRead: false,
+          })),
+        });
+      }
+    } catch {
+      // Do not block submission
+    }
 
     return {
       message: 'Bản ghi âm đã được nộp thành công cho giáo viên chấm điểm.',
@@ -207,7 +229,7 @@ export class SpeakingService {
       4;
     const bandScore = dto.bandScore ?? Math.round(raw * 2) / 2;
 
-    return this.prisma.speakingSubmission.update({
+    const updated = await this.prisma.speakingSubmission.update({
       where: { id },
       data: {
         status: SubmissionStatus.GRADED,
@@ -226,5 +248,23 @@ export class SpeakingService {
         prompt: { select: { id: true, title: true } },
       },
     });
+
+    // Notify student about graded speaking
+    try {
+      await this.prisma.notification.create({
+        data: {
+          userId: submission.userId,
+          title: 'Nhận xét bài thu âm Speaking',
+          content: `Giáo viên đã hoàn tất chấm điểm bài nói "${updated.prompt?.title}". Band: ${bandScore}.`,
+          type: NotificationType.SPEAKING,
+          link: '/student/speaking',
+          isRead: false,
+        },
+      });
+    } catch {
+      // Do not block grading
+    }
+
+    return updated;
   }
 }

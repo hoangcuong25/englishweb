@@ -13,6 +13,7 @@ import {
   WritingTaskType,
   WritingSubmissionStatus,
   Role,
+  NotificationType,
 } from '@prisma/client';
 
 @Injectable()
@@ -137,6 +138,28 @@ export class WritingService {
       });
     } catch {
       // Ignore if no draft
+    }
+
+    // Automatically create a notification for Admin in the database
+    try {
+      const admins = await this.prisma.user.findMany({
+        where: { role: Role.ADMIN, isActive: true },
+        select: { id: true },
+      });
+      if (admins.length > 0) {
+        await this.prisma.notification.createMany({
+          data: admins.map((admin) => ({
+            userId: admin.id,
+            title: 'Bài viết Writing mới chờ duyệt',
+            content: `Học viên vừa nộp bài cho chủ đề "${prompt.title}". AI đề xuất Band ${evaluation.overallBand}, đang chờ bạn phê duyệt.`,
+            type: NotificationType.WRITING,
+            link: '/admin/writing-review',
+            isRead: false,
+          })),
+        });
+      }
+    } catch {
+      // Do not block submission
     }
 
     return {
@@ -284,7 +307,7 @@ export class WritingService {
       throw new NotFoundException(`Không tìm thấy bài nộp Writing ID: ${id}`);
     }
 
-    return this.prisma.writingSubmission.update({
+    const updated = await this.prisma.writingSubmission.update({
       where: { id },
       data: {
         status: WritingSubmissionStatus.APPROVED,
@@ -298,5 +321,24 @@ export class WritingService {
         prompt: { select: { id: true, title: true } },
       },
     });
+
+    // Automatically create a notification for Student in the database
+    try {
+      const finalBand = dto.adminOverrideBand ?? submission.overallBand;
+      await this.prisma.notification.create({
+        data: {
+          userId: submission.userId,
+          title: 'Bài viết IELTS Writing đã duyệt',
+          content: `Giáo viên đã phê duyệt bài viết "${updated.prompt?.title}". Điểm chính thức: Band ${finalBand}!`,
+          type: NotificationType.WRITING,
+          link: '/student/writing',
+          isRead: false,
+        },
+      });
+    } catch {
+      // Do not block approval
+    }
+
+    return updated;
   }
 }
