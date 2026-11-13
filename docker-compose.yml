@@ -33,6 +33,15 @@ services:
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml
 
+  redis:
+    image: redis:7-alpine
+    container_name: englishweb_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   server:
     build:
       context: ./server
@@ -72,3 +81,4 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:

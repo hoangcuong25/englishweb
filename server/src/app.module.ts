@@ -19,6 +19,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { LivekitModule } from './core/livekit/livekit.module';
 import { GeminiModule } from './core/gemini/gemini.module';
 import { CloudinaryModule } from './core/cloudinary/cloudinary.module';
+import { RedisModule } from './core/redis/redis.module';
+import { MailModule } from './core/mail/mail.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { CloudinaryModule } from './core/cloudinary/cloudinary.module';
       envFilePath: ['.env', '../.env'],
     }),
     PrismaModule,
+    RedisModule,
+    MailModule,
     GeminiModule,
     CloudinaryModule,
     AuthModule,

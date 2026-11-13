@@ -6,6 +6,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { MailService } from '../../core/mail/mail.service';
+import { RedisService } from '../../core/redis/redis.service';
 import * as bcrypt from 'bcrypt';
 import { Role, Language } from '@prisma/client';
 import { randomBytes } from 'crypto';
@@ -16,6 +18,8 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private mailService: MailService,
+    private redisService: RedisService,
   ) {}
 
   /**
@@ -91,9 +95,20 @@ export class AuthService {
           isRevoked: true,
         },
       });
+
+      // Revoke prior active session in Redis
+      const oldSessionToken = await this.redisService.get(`user:session:${user.id}`);
+      if (oldSessionToken) {
+        await this.redisService.set(`blacklist:token:${oldSessionToken}`, 'revoked', 7 * 24 * 3600);
+      }
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role, dto.deviceId, ipAddress, userAgent);
+
+    // Track latest active session in Redis for instant invalidation
+    if (user.role === Role.STUDENT) {
+      await this.redisService.set(`user:session:${user.id}`, tokens.refreshToken, 7 * 24 * 3600);
+    }
 
     return {
       user: {
@@ -270,6 +285,20 @@ export class AuthService {
       data: { revokedAt: new Date(), isRevoked: true },
     });
 
+    // Invalidate user in Redis session store
+    await this.redisService.set(`blacklist:user:${userId}`, 'revoked', 7 * 24 * 3600);
+    await this.redisService.del(`user:session:${userId}`);
+
+    // Dispatch English security alert email asynchronously
+    try {
+      await this.mailService.sendPasswordChangedEmail({
+        email: user.email,
+        fullName: user.fullName,
+      });
+    } catch {
+      // Non-blocking
+    }
+
     return { message: 'Password changed successfully. Please log in again.' };
   }
 
@@ -281,6 +310,12 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token is required');
     }
 
+    // Fast check against Redis blacklist
+    const isTokenBlacklisted = await this.redisService.get(`blacklist:token:${refreshToken}`);
+    if (isTokenBlacklisted) {
+      throw new UnauthorizedException('Invalid, revoked or expired refresh token');
+    }
+
     const tokenRecord = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
       include: { user: true },
@@ -290,11 +325,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid, revoked or expired refresh token');
     }
 
+    const isUserBlacklisted = await this.redisService.get(`blacklist:user:${tokenRecord.userId}`);
+    if (isUserBlacklisted) {
+      throw new UnauthorizedException('User sessions have been invalidated');
+    }
+
     // Revoke old refresh token (Rotation)
     await this.prisma.refreshToken.update({
       where: { id: tokenRecord.id },
       data: { revokedAt: new Date(), isRevoked: true },
     });
+
+    // Blacklist rotated token in Redis
+    await this.redisService.set(`blacklist:token:${refreshToken}`, 'revoked', 7 * 24 * 3600);
 
     return this.generateTokens(tokenRecord.user.id, tokenRecord.user.email, tokenRecord.user.role, tokenRecord.deviceId, ipAddress, userAgent);
   }
@@ -308,6 +351,7 @@ export class AuthService {
         where: { token: refreshToken, revokedAt: null },
         data: { revokedAt: new Date(), isRevoked: true },
       });
+      await this.redisService.set(`blacklist:token:${refreshToken}`, 'revoked', 7 * 24 * 3600);
     }
     return { message: 'Logged out successfully' };
   }
@@ -320,6 +364,8 @@ export class AuthService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date(), isRevoked: true },
     });
+    await this.redisService.set(`blacklist:user:${userId}`, 'revoked', 7 * 24 * 3600);
+    await this.redisService.del(`user:session:${userId}`);
     return { message: 'Logged out from all devices successfully' };
   }
 

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
+import { MailService } from '../../core/mail/mail.service';
 import { CreateSpeakingPromptDto } from './dto/create-speaking-prompt.dto';
 import { SubmitSpeakingDto } from './dto/submit-speaking.dto';
 import { GradeSpeakingDto } from './dto/grade-speaking.dto';
@@ -15,6 +16,7 @@ export class SpeakingService {
   constructor(
     private prisma: PrismaService,
     private cloudinaryService: CloudinaryService,
+    private mailService: MailService,
   ) {}
 
   // ==========================================
@@ -261,6 +263,17 @@ export class SpeakingService {
           isRead: false,
         },
       });
+
+      // Dispatch English email notification to student
+      if (updated.user?.email) {
+        await this.mailService.sendSpeakingGradedEmail({
+          email: updated.user.email,
+          fullName: updated.user.fullName,
+          promptTitle: updated.prompt?.title || 'IELTS Speaking Task',
+          bandScore,
+          feedback: dto.feedback,
+        });
+      }
     } catch {
       // Do not block grading
     }

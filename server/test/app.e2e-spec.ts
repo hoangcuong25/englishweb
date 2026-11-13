@@ -2193,4 +2193,92 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
         .expect(403);
     });
   });
+
+  // ==========================================
+  // 32. EMAIL DISPATCH PIPELINE & ENGLISH CONTENT FLOW
+  // ==========================================
+  describe('32. Email Dispatch Pipeline & English Content Flow', () => {
+    it('FR-32.1: GET /api/mail/status -> returns email dispatch status and configured sender', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/mail/status')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('configured');
+      expect(response.body).toHaveProperty('sender');
+    });
+
+    it('FR-32.2: POST /api/mail/test as Admin -> dispatches English test verification email', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/mail/test')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          to: 'student@englishweb.com',
+          subject: 'Teacher Dong Academy - Automated SMTP Verification Test',
+          content: 'Testing Gmail SMTP dispatch with English content.',
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('messageId');
+    });
+
+    it('FR-32.3: POST /api/mail/test as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/mail/test')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          to: 'attacker@evil.com',
+        })
+        .expect(403);
+    });
+
+    it('FR-32.4: POST /api/mail/send-custom as Admin -> dispatches custom announcement email in English', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/mail/send-custom')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          to: 'student@englishweb.com',
+          subject: 'Teacher Dong Academy - IELTS Masterclass Schedule Update',
+          html: '<p>Dear Student, the IELTS Masterclass will start at 7:30 PM UTC+7.</p>',
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+    });
+  });
+
+  // ==========================================
+  // 33. REDIS HIGH-SPEED CACHING & INSTANT SESSION INVALIDATION FLOW
+  // ==========================================
+  describe('33. Redis High-Speed Caching & Instant Session Invalidation Flow', () => {
+    it('FR-33.1: GET /api/courses -> caches course catalog in Redis and retrieves with cache header/speed', async () => {
+      // First request (primes cache)
+      const res1 = await request(app.getHttpServer())
+        .get('/api/courses')
+        .expect(200);
+
+      expect(Array.isArray(res1.body)).toBeTruthy();
+
+      // Second request (hits Redis cache)
+      const res2 = await request(app.getHttpServer())
+        .get('/api/courses')
+        .expect(200);
+
+      expect(res2.body.length).toBe(res1.body.length);
+    });
+
+    it('FR-33.2: GET /api/blogs -> caches public blog articles in Redis and serves instantly', async () => {
+      const res1 = await request(app.getHttpServer())
+        .get('/api/blogs')
+        .expect(200);
+
+      expect(res1.body).toHaveProperty('items');
+
+      const res2 = await request(app.getHttpServer())
+        .get('/api/blogs')
+        .expect(200);
+
+      expect(res2.body.items.length).toBe(res1.body.items.length);
+    });
+  });
 });

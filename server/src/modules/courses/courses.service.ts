@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
+import { RedisService } from '../../core/redis/redis.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CourseCategory, Role } from '@prisma/client';
@@ -15,6 +16,7 @@ export class CoursesService {
   constructor(
     private prisma: PrismaService,
     private cloudinaryService: CloudinaryService,
+    private redisService: RedisService,
   ) {}
 
   getCategories() {
@@ -28,6 +30,12 @@ export class CoursesService {
   }
 
   async findAll(role?: Role, category?: CourseCategory, search?: string) {
+    const cacheKey = `cache:courses:${role || 'PUBLIC'}:${category || 'ALL'}:${search || 'NONE'}`;
+    const cached = await this.redisService.getJson<any[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const whereClause: any = {};
 
     // Students / Guests can only view published courses
@@ -59,11 +67,14 @@ export class CoursesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return courses.map((course) => ({
+    const result = courses.map((course) => ({
       ...course,
       moduleCount: course._count?.modules ?? 0,
       studentCount: course._count?.enrollments ?? 0,
     }));
+
+    await this.redisService.setJson(cacheKey, result, 300);
+    return result;
   }
 
   async findBySlugOrId(identifier: string, userId?: string, role?: Role) {
@@ -217,7 +228,7 @@ export class CoursesService {
       throw new ConflictException(`Đường dẫn slug "${dto.slug}" đã tồn tại trên hệ thống`);
     }
 
-    return this.prisma.course.create({
+    const created = await this.prisma.course.create({
       data: {
         title: dto.title,
         slug: dto.slug,
@@ -227,6 +238,9 @@ export class CoursesService {
         isPublished: dto.isPublished ?? false,
       },
     });
+
+    await this.redisService.delPattern('cache:courses:*');
+    return created;
   }
 
   async updateCourse(id: string, dto: UpdateCourseDto) {
@@ -244,10 +258,13 @@ export class CoursesService {
       }
     }
 
-    return this.prisma.course.update({
+    const updated = await this.prisma.course.update({
       where: { id },
       data: dto,
     });
+
+    await this.redisService.delPattern('cache:courses:*');
+    return updated;
   }
 
   async deleteCourse(id: string) {
@@ -256,7 +273,9 @@ export class CoursesService {
       throw new NotFoundException(`Không tìm thấy khóa học ID: ${id}`);
     }
 
-    return this.prisma.course.delete({ where: { id } });
+    const deleted = await this.prisma.course.delete({ where: { id } });
+    await this.redisService.delPattern('cache:courses:*');
+    return deleted;
   }
 
   async enrollCourse(courseId: string, userId: string) {
@@ -305,9 +324,12 @@ export class CoursesService {
       'teacher_dong_academy/courses',
     );
 
-    return this.prisma.course.update({
+    const updated = await this.prisma.course.update({
       where: { id: courseId },
       data: { thumbnail: uploadRes.secureUrl },
     });
+
+    await this.redisService.delPattern('cache:courses:*');
+    return updated;
   }
 }

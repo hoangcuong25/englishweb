@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { GeminiService } from '../../core/gemini/gemini.service';
+import { MailService } from '../../core/mail/mail.service';
 import { CreateWritingPromptDto } from './dto/create-writing-prompt.dto';
 import { SubmitWritingDto } from './dto/submit-writing.dto';
 import { ApproveWritingDto } from './dto/approve-writing.dto';
@@ -21,6 +22,7 @@ export class WritingService {
   constructor(
     private prisma: PrismaService,
     private geminiService: GeminiService,
+    private mailService: MailService,
   ) {}
 
   // ==========================================
@@ -335,6 +337,17 @@ export class WritingService {
           isRead: false,
         },
       });
+
+      // Dispatch English email notification to student
+      if (updated.user?.email) {
+        await this.mailService.sendWritingGradedEmail({
+          email: updated.user.email,
+          fullName: updated.user.fullName,
+          promptTitle: updated.prompt?.title || 'IELTS Writing Task',
+          overallBand: finalBand,
+          adminFeedback: dto.adminFeedback,
+        });
+      }
     } catch {
       // Do not block approval
     }

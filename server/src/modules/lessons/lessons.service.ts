@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
+import { RedisService } from '../../core/redis/redis.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -17,6 +18,7 @@ export class LessonsService {
   constructor(
     private prisma: PrismaService,
     private cloudinaryService: CloudinaryService,
+    private redisService: RedisService,
   ) {}
 
   // ==========================================
@@ -72,7 +74,7 @@ export class LessonsService {
   }
 
   async reorderModules(items: ReorderItemDto[]) {
-    return this.prisma.$transaction(
+    const res = await this.prisma.$transaction(
       items.map((item) =>
         this.prisma.courseModule.update({
           where: { id: item.id },
@@ -80,6 +82,8 @@ export class LessonsService {
         }),
       ),
     );
+    await this.redisService.delPattern('cache:courses:*');
+    return res;
   }
 
   // ==========================================
@@ -138,7 +142,7 @@ export class LessonsService {
   }
 
   async reorderLessons(items: ReorderItemDto[]) {
-    return this.prisma.$transaction(
+    const res = await this.prisma.$transaction(
       items.map((item) =>
         this.prisma.lesson.update({
           where: { id: item.id },
@@ -146,6 +150,8 @@ export class LessonsService {
         }),
       ),
     );
+    await this.redisService.delPattern('cache:courses:*');
+    return res;
   }
 
   async getLesson(id: string, userId?: string, role?: Role) {

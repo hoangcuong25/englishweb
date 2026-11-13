@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
+import { RedisService } from '../../core/redis/redis.service';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
 import { QueryBlogsDto } from './dto/query-blogs.dto';
@@ -18,6 +19,7 @@ export class BlogsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -65,7 +67,7 @@ export class BlogsService {
 
     const publishedAt = dto.status === BlogStatus.PUBLISHED ? new Date() : null;
 
-    return this.prisma.blogPost.create({
+    const res = await this.prisma.blogPost.create({
       data: {
         title: dto.title,
         slug,
@@ -88,6 +90,9 @@ export class BlogsService {
         },
       },
     });
+
+    await this.redisService.delPattern('cache:blogs:*');
+    return res;
   }
 
   /**
@@ -139,7 +144,7 @@ export class BlogsService {
       publishedAt = new Date();
     }
 
-    return this.prisma.blogPost.update({
+    const updated = await this.prisma.blogPost.update({
       where: { id },
       data: {
         title: dto.title,
@@ -162,12 +167,21 @@ export class BlogsService {
         },
       },
     });
+
+    await this.redisService.delPattern('cache:blogs:*');
+    return updated;
   }
 
   /**
    * Lấy danh sách bài viết Blog (Học viên chỉ thấy PUBLISHED, Admin thấy tất cả)
    */
   async findAll(query: QueryBlogsDto, userRole?: Role) {
+    const cacheKey = `cache:blogs:${userRole || 'PUBLIC'}:${query.category || 'ALL'}:${query.status || 'ANY'}:${query.page || 1}:${query.search || 'NONE'}`;
+    const cached = await this.redisService.getJson<any>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
     const skip = (page - 1) * limit;
@@ -211,13 +225,16 @@ export class BlogsService {
       this.prisma.blogPost.count({ where }),
     ]);
 
-    return {
+    const result = {
       items,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
     };
+
+    await this.redisService.setJson(cacheKey, result, 300);
+    return result;
   }
 
   /**
@@ -282,6 +299,7 @@ export class BlogsService {
     }
 
     await this.prisma.blogPost.delete({ where: { id } });
+    await this.redisService.delPattern('cache:blogs:*');
 
     return { success: true, message: 'Xóa bài viết Blog thành công' };
   }

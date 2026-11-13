@@ -7,6 +7,8 @@ import {
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
+import { MailService } from '../../core/mail/mail.service';
+import { RedisService } from '../../core/redis/redis.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Role } from '@prisma/client';
 
@@ -15,6 +17,8 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly mailService: MailService,
+    private readonly redisService: RedisService,
   ) {}
 
   async findAll(query: {
@@ -160,6 +164,8 @@ export class UsersService {
         where: { userId: id, isRevoked: false },
         data: { isRevoked: true, revokedAt: new Date() },
       });
+      // Invalidate user in Redis session store
+      await this.redisService.set(`blacklist:user:${id}`, 'revoked', 7 * 24 * 3600);
     }
 
     return updated;
@@ -183,6 +189,20 @@ export class UsersService {
       where: { userId: id, isRevoked: false },
       data: { isRevoked: true, revokedAt: new Date() },
     });
+
+    // Invalidate user in Redis
+    await this.redisService.set(`blacklist:user:${id}`, 'revoked', 7 * 24 * 3600);
+
+    // Dispatch English password reset notification email asynchronously
+    try {
+      await this.mailService.sendResetPasswordEmail({
+        email: user.email,
+        fullName: user.fullName,
+        newPassword,
+      });
+    } catch {
+      // Non-blocking: continue if SMTP is unreachable
+    }
 
     return {
       message: 'Đặt lại mật khẩu cho học viên thành công',
@@ -259,6 +279,18 @@ export class UsersService {
           },
         });
       }
+    }
+
+    // Dispatch Welcome & Credentials Email in English to student
+    try {
+      await this.mailService.sendWelcomeStudentEmail({
+        email: user.email,
+        fullName: user.fullName,
+        rawPassword,
+        targetBand: dto.targetBand,
+      });
+    } catch {
+      // Non-blocking: student creation succeeds even if SMTP is offline
     }
 
     return user;
