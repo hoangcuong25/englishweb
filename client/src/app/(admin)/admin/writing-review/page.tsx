@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { writingService } from '@/services/writing.service';
 import {
   FileCheck,
@@ -8,6 +9,7 @@ import {
   Eye,
   X,
   RefreshCw,
+  FileText,
 } from 'lucide-react';
 
 interface WritingReviewItem {
@@ -187,6 +189,24 @@ export default function AdminWritingReviewPage() {
         <p className="text-xs text-muted mt-0.5">
           Quy tắc chuẩn: Điểm AI chỉ là bản nháp sơ bộ (Draft). Điểm chính thức chỉ gửi về học viên sau khi Thầy Đông bấm duyệt.
         </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-line gap-2">
+        <Link
+          href="/admin/writing-review"
+          className="px-4 py-2 text-xs font-bold text-primary border-b-2 border-primary transition flex items-center space-x-2"
+        >
+          <FileCheck className="w-4 h-4" />
+          <span>Duyệt Bài Viết Của Học Viên ({submissions.length})</span>
+        </Link>
+        <Link
+          href="/admin/writing-prompts"
+          className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition flex items-center space-x-2 border-b-2 border-transparent"
+        >
+          <FileText className="w-4 h-4" />
+          <span>Ngân Hàng Đề Bài Writing</span>
+        </Link>
       </div>
 
       {publishNotice && (

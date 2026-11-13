@@ -61,5 +61,15 @@ export const lessonsService = {
     const response = await api.delete(`/lessons/modules/${id}`);
     return response.data;
   },
+
+  async reorderModules(items: Array<{ id: string; order: number }>) {
+    const response = await api.post('/lessons/modules/reorder', { items });
+    return response.data;
+  },
+
+  async reorderLessons(items: Array<{ id: string; order: number }>) {
+    const response = await api.post('/lessons/reorder', { items });
+    return response.data;
+  },
 };
 

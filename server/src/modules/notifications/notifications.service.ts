@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { NotificationType, Role } from '@prisma/client';
+import { NotificationsGateway } from './notifications.gateway';
 
 export interface CreateNotificationInput {
   userId: string;
@@ -12,7 +13,10 @@ export interface CreateNotificationInput {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Optional() private readonly notificationsGateway?: NotificationsGateway,
+  ) {}
 
   async getUserNotifications(
     userId: string,
@@ -98,7 +102,7 @@ export class NotificationsService {
   }
 
   async createNotification(data: CreateNotificationInput) {
-    return this.prisma.notification.create({
+    const noti = await this.prisma.notification.create({
       data: {
         userId: data.userId,
         title: data.title,
@@ -107,6 +111,14 @@ export class NotificationsService {
         link: data.link,
       },
     });
+
+    try {
+      this.notificationsGateway?.sendNotificationToUser(data.userId, noti);
+    } catch {
+      // Do not block database operation if socket fails
+    }
+
+    return noti;
   }
 
   async broadcastNotification(data: {
@@ -134,6 +146,18 @@ export class NotificationsService {
         link: data.link,
       })),
     });
+
+    try {
+      this.notificationsGateway?.broadcastNotification({
+        title: data.title,
+        content: data.content,
+        type: data.type || NotificationType.SYSTEM,
+        link: data.link,
+        targetRole: data.targetRole,
+      });
+    } catch {
+      // Non-blocking
+    }
 
     return {
       count: users.length,

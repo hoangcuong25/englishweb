@@ -1,4 +1,5 @@
 import { api } from '../lib/api';
+import { getNotificationsSocket } from '../lib/socket';
 
 export interface NotificationItem {
   id: string;
@@ -48,5 +49,30 @@ export const notificationsService = {
   async deleteNotification(id: string): Promise<NotificationItem> {
     const response = await api.delete(`/notifications/${id}`);
     return response.data?.data || response.data;
+  },
+
+  // ==========================================
+  // REAL-TIME SOCKET.IO NOTIFICATIONS
+  // ==========================================
+
+  joinUserNotifications(userId: string) {
+    const socket = getNotificationsSocket();
+    socket.emit('joinUser', { userId });
+  },
+
+  onNotificationReceived(callback: (noti: NotificationItem) => void): () => void {
+    const socket = getNotificationsSocket();
+    socket.on('notificationReceived', callback);
+    return () => {
+      socket.off('notificationReceived', callback);
+    };
+  },
+
+  onBroadcastNotification(callback: (noti: NotificationItem) => void): () => void {
+    const socket = getNotificationsSocket();
+    socket.on('broadcastNotification', callback);
+    return () => {
+      socket.off('broadcastNotification', callback);
+    };
   },
 };

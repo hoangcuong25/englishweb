@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ActionMenu from '@/components/ui/action-menu';
 import { chatService, ConversationItem, ChatMessageItem } from '@/services/chat.service';
 import { useAuth } from '@/lib/auth-context';
@@ -48,13 +48,64 @@ export default function StudentMessagesPage() {
 
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [isTyping] = useState(false);
+  const [partnerIsTyping, setPartnerIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load conversations on mount
   useEffect(() => {
     loadConversations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Real-time Socket.IO subscriptions for active conversation
+  useEffect(() => {
+    if (!activeConversation?.id) return;
+
+    chatService.joinConversation(activeConversation.id);
+
+    const unsubNewMsg = chatService.onNewMessage((newMsg) => {
+      if (newMsg.conversationId === activeConversation.id) {
+        const isMe = newMsg.senderId === user?.id || newMsg.sender?.role === 'STUDENT';
+        const formatted: ChatMessage = {
+          id: newMsg.id,
+          sender: isMe ? 'ME' : 'TEACHER',
+          text: newMsg.content,
+          time: new Date(newMsg.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          isRead: newMsg.isRead,
+        };
+        setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, formatted]));
+        if (!isMe) {
+          chatService.markAsRead(activeConversation.id).catch(() => {});
+        }
+      }
+    });
+
+    const unsubTyping = chatService.onUserTyping((data) => {
+      if (data.conversationId === activeConversation.id && data.userId !== user?.id) {
+        setPartnerIsTyping(data.isTyping);
+      }
+    });
+
+    return () => {
+      chatService.leaveConversation(activeConversation.id);
+      unsubNewMsg();
+      unsubTyping();
+    };
+  }, [activeConversation?.id, user?.id]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputMessage(e.target.value);
+    if (!activeConversation?.id || !user?.id) return;
+
+    chatService.sendTyping(activeConversation.id, user.id, user.fullName || 'Học viên', true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      chatService.sendTyping(activeConversation.id, user.id, user.fullName || 'Học viên', false);
+    }, 2000);
+  };
 
   const loadConversations = async () => {
     setLoading(true);
@@ -309,12 +360,12 @@ export default function StudentMessagesPage() {
             );
           })}
 
-          {isTyping && (
+          {partnerIsTyping && (
             <div className="flex items-center space-x-2 text-xs text-muted">
               <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"></span>
               <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></span>
               <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></span>
-              <span className="text-[11px]">Thầy Đông đang gõ tin nhắn...</span>
+              <span className="text-[11px] text-primary font-semibold">Thầy Đông đang soạn tin nhắn...</span>
             </div>
           )}
         </div>
@@ -335,7 +386,7 @@ export default function StudentMessagesPage() {
           <input
             type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Nhập tin nhắn... (Nhấn Enter để gửi qua WebSocket)"
             className="flex-1 px-4 py-2.5 rounded-xl border border-line text-xs sm:text-sm focus:outline-none focus:border-primary"
           />

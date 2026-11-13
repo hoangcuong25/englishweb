@@ -94,5 +94,20 @@ export const writingService = {
     const response = await api.delete(`/writing/drafts/${promptId}`);
     return response.data?.data || response.data;
   },
+
+  async createPrompt(data: Partial<WritingPrompt>) {
+    const response = await api.post('/writing/prompts', data);
+    return response.data?.data || response.data;
+  },
+
+  async updatePrompt(id: string, data: Partial<WritingPrompt>) {
+    const response = await api.put(`/writing/prompts/${id}`, data);
+    return response.data?.data || response.data;
+  },
+
+  async deletePrompt(id: string) {
+    const response = await api.delete(`/writing/prompts/${id}`);
+    return response.data?.data || response.data;
+  },
 };
 

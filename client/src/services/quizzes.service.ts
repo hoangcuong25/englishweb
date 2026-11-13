@@ -20,14 +20,20 @@ export interface Quiz {
   id: string;
   title: string;
   description?: string;
-  passingScore: number;
+  passage?: string;
+  audioUrl?: string;
+  skill?: string;
+  timeLimitMinutes?: number;
+  passScore?: number;
+  passingScore?: number;
   lessonId?: string;
   questions: QuizQuestion[];
 }
 
 export interface SubmitQuizAnswer {
   questionId: string;
-  selectedOptionId: string;
+  selectedOptionId?: string;
+  textAnswer?: string;
 }
 
 export interface QuizResult {

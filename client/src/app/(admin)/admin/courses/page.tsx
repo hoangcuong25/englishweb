@@ -21,6 +21,9 @@ import {
   HelpCircle,
   PenTool,
   Mic,
+  ChevronUp,
+  ChevronDown,
+  Layers,
 } from 'lucide-react';
 
 interface Course {
@@ -32,6 +35,19 @@ interface Course {
   price: number;
   status: 'PUBLISHED' | 'DRAFT';
   modulesCount: number;
+}
+
+interface ModuleItem {
+  id: string;
+  title: string;
+  order: number;
+  lessons: Array<{
+    id: string;
+    title: string;
+    order: number;
+    durationMinutes?: number;
+    type?: string;
+  }>;
 }
 
 export default function AdminCoursesPage() {
@@ -173,6 +189,88 @@ export default function AdminCoursesPage() {
     setTimeout(() => setNotice(''), 3000);
   };
 
+  // Curriculum Reorder State & Handlers
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('c-1');
+  const [curriculumModules, setCurriculumModules] = useState<ModuleItem[]>([
+    {
+      id: 'm-1',
+      title: 'Module 01: IELTS Writing Task 2 Overview & Band Descriptors',
+      order: 1,
+      lessons: [
+        { id: 'l-1', title: 'Lesson 01: Academic Register & Formal Tone', order: 1, durationMinutes: 30, type: 'VIDEO' },
+        { id: 'l-2', title: 'Lesson 02: Introduction Writing Techniques', order: 2, durationMinutes: 45, type: 'DOCUMENT' },
+        { id: 'l-3', title: 'Lesson 03: Checkpoint Quiz Task 2 Formal Style', order: 3, durationMinutes: 15, type: 'QUIZ_CHECKPOINT' },
+      ],
+    },
+    {
+      id: 'm-2',
+      title: 'Module 02: Paragraph Coherence & Topic Sentences',
+      order: 2,
+      lessons: [
+        { id: 'l-4', title: 'Lesson 04: PEEL Method for Body Paragraphs', order: 1, durationMinutes: 40, type: 'VIDEO' },
+        { id: 'l-5', title: 'Lesson 05: Studio Writing Task 2 Practice #1', order: 2, durationMinutes: 50, type: 'WRITING' },
+      ],
+    },
+    {
+      id: 'm-3',
+      title: 'Module 03: Lexical Resource & Academic Collocations',
+      order: 3,
+      lessons: [
+        { id: 'l-6', title: 'Lesson 06: C1/C2 Collocations in Environment & Tech', order: 1, durationMinutes: 35, type: 'VIDEO' },
+        { id: 'l-7', title: 'Lesson 07: Speaking Part 3 Discussion Studio', order: 2, durationMinutes: 40, type: 'SPEAKING' },
+      ],
+    },
+  ]);
+
+  const handleMoveModule = async (index: number, direction: -1 | 1) => {
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= curriculumModules.length) return;
+
+    const updated = [...curriculumModules];
+    const temp = updated[index];
+    updated[index] = updated[targetIdx];
+    updated[targetIdx] = temp;
+
+    const reordered = updated.map((m, idx) => ({ ...m, order: idx + 1 }));
+    setCurriculumModules(reordered);
+
+    try {
+      await lessonsService.reorderModules(
+        reordered.map((m) => ({ id: m.id, order: m.order }))
+      );
+    } catch {
+      // Local fallback
+    }
+    setNotice(`Đã đổi vị trí chương: "${temp.title}"!`);
+    setTimeout(() => setNotice(''), 3000);
+  };
+
+  const handleMoveLesson = async (moduleIdx: number, lessonIdx: number, direction: -1 | 1) => {
+    const mod = curriculumModules[moduleIdx];
+    const targetIdx = lessonIdx + direction;
+    if (targetIdx < 0 || targetIdx >= mod.lessons.length) return;
+
+    const updatedLessons = [...mod.lessons];
+    const temp = updatedLessons[lessonIdx];
+    updatedLessons[lessonIdx] = updatedLessons[targetIdx];
+    updatedLessons[targetIdx] = temp;
+
+    const reorderedLessons = updatedLessons.map((l, idx) => ({ ...l, order: idx + 1 }));
+    const updatedModules = [...curriculumModules];
+    updatedModules[moduleIdx] = { ...mod, lessons: reorderedLessons };
+    setCurriculumModules(updatedModules);
+
+    try {
+      await lessonsService.reorderLessons(
+        reorderedLessons.map((l) => ({ id: l.id, order: l.order }))
+      );
+    } catch {
+      // Local fallback
+    }
+    setNotice(`Đã đổi vị trí bài học: "${temp.title}"!`);
+    setTimeout(() => setNotice(''), 3000);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -275,6 +373,126 @@ export default function AdminCoursesPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Curriculum Reorder & Sequential Architecture (STT 3) */}
+      <div className="bg-white rounded-2xl border border-line shadow-sm p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-line pb-4">
+          <div>
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded bg-sky-100 text-primary text-[11px] font-bold mb-1">
+              <Layers className="w-3.5 h-3.5" />
+              <span>Curriculum Reorder & Sequential Architecture</span>
+            </div>
+            <h2 className="text-base font-extrabold text-slate-900">
+              Quản Trị Cây Giáo Trình & Thứ Tự Bài Học
+            </h2>
+            <p className="text-xs text-muted">
+              Cơ chế Sequential Unlocking: Di chuyển và hoán đổi vị trí các Chương học (Module) và Bài học (Lesson).
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-bold text-slate-600">Khóa học:</span>
+            <select
+              value={selectedCourseId}
+              onChange={(e) => setSelectedCourseId(e.target.value)}
+              className="px-3 py-1.5 text-xs font-bold rounded-xl border border-line bg-slate-50 focus:outline-none focus:border-primary text-slate-800"
+            >
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Modules & Lessons List with Up/Down Controls */}
+        <div className="space-y-4 pt-1">
+          {curriculumModules.map((mod, modIdx) => (
+            <div
+              key={mod.id}
+              className="rounded-2xl border border-line bg-slate-50/60 p-4 space-y-3 hover:border-slate-300 transition"
+            >
+              {/* Module Header */}
+              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-line shadow-sm">
+                <div className="flex items-center space-x-2.5">
+                  <span className="w-6 h-6 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-xs">
+                    {mod.order}
+                  </span>
+                  <div>
+                    <h3 className="text-xs font-extrabold text-slate-900">{mod.title}</h3>
+                    <span className="text-[10px] text-muted">{mod.lessons.length} bài học trực thuộc</span>
+                  </div>
+                </div>
+
+                {/* Module Reorder Controls */}
+                <div className="flex items-center space-x-1">
+                  <button
+                    type="button"
+                    disabled={modIdx === 0}
+                    onClick={() => handleMoveModule(modIdx, -1)}
+                    className="p-1 rounded-lg border border-line bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:hover:bg-slate-50 transition"
+                    title="Chuyển lên trên"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={modIdx === curriculumModules.length - 1}
+                    onClick={() => handleMoveModule(modIdx, 1)}
+                    className="p-1 rounded-lg border border-line bg-slate-50 hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:hover:bg-slate-50 transition"
+                    title="Chuyển xuống dưới"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Lessons within this module */}
+              <div className="space-y-1.5 pl-6">
+                {mod.lessons.map((les, lesIdx) => (
+                  <div
+                    key={les.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-line text-xs hover:border-primary/40 transition"
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <span className="text-[10px] font-mono font-bold text-slate-400">
+                        #{les.order}
+                      </span>
+                      <span className="font-bold text-slate-800">{les.title}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-600">
+                        {les.type || 'VIDEO'} • {les.durationMinutes || 45}m
+                      </span>
+                    </div>
+
+                    {/* Lesson Reorder Controls */}
+                    <div className="flex items-center space-x-1">
+                      <button
+                        type="button"
+                        disabled={lesIdx === 0}
+                        onClick={() => handleMoveLesson(modIdx, lesIdx, -1)}
+                        className="p-1 rounded text-slate-500 hover:text-primary hover:bg-sky-50 disabled:opacity-20 transition"
+                        title="Di chuyển bài học lên"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={lesIdx === mod.lessons.length - 1}
+                        onClick={() => handleMoveLesson(modIdx, lesIdx, 1)}
+                        className="p-1 rounded text-slate-500 hover:text-primary hover:bg-sky-50 disabled:opacity-20 transition"
+                        title="Di chuyển bài học xuống"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

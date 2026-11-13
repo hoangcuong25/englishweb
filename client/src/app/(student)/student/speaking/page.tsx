@@ -16,6 +16,7 @@ export default function StudentSpeakingPage() {
   const [part, setPart] = useState<'PART_1' | 'PART_2' | 'PART_3'>('PART_2');
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioBlobState, setAudioBlobState] = useState<Blob | null>(null);
   const [prepTime, setPrepTime] = useState(60);
   const [isPrepActive, setIsPrepActive] = useState(false);
   const [speakTime, setSpeakTime] = useState(0);
@@ -125,6 +126,7 @@ export default function StudentSpeakingPage() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
+        setAudioBlobState(audioBlob);
         stream.getTracks().forEach((track) => track.stop());
         if (audioContextRef.current) audioContextRef.current.close();
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -146,6 +148,7 @@ export default function StudentSpeakingPage() {
 
   const handleRetake = () => {
     setAudioUrl(null);
+    setAudioBlobState(null);
     setSpeakTime(0);
     setIsSubmitted(false);
   };
@@ -153,11 +156,19 @@ export default function StudentSpeakingPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await speakingService.submitRecording({
-        promptId: currentPromptId,
-        audioUrl: audioUrl || 'blob:audio-recording-session',
-        durationSeconds: speakTime,
-      });
+      if (audioBlobState) {
+        await speakingService.submitRecordingWithFile(
+          audioBlobState,
+          currentPromptId,
+          speakTime || 60
+        );
+      } else {
+        await speakingService.submitRecording({
+          promptId: currentPromptId,
+          audioUrl: audioUrl || 'blob:audio-recording-session',
+          durationSeconds: speakTime || 60,
+        });
+      }
     } catch {
       // Local fallback
     } finally {

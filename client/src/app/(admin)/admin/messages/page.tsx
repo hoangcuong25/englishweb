@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ActionMenu from '@/components/ui/action-menu';
 import { chatService, ConversationItem, ChatMessageItem } from '@/services/chat.service';
 import { useAuth } from '@/lib/auth-context';
@@ -48,11 +48,64 @@ export default function AdminMessagesPage() {
 
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [studentIsTyping, setStudentIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadConversations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Realtime Socket.IO subscriptions for active conversation
+  useEffect(() => {
+    if (!activeConversation?.id) return;
+
+    chatService.joinConversation(activeConversation.id);
+
+    const unsubNewMsg = chatService.onNewMessage((newMsg) => {
+      if (newMsg.conversationId === activeConversation.id) {
+        const isAdmin = newMsg.senderId === user?.id || newMsg.sender?.role === 'ADMIN';
+        const formatted: ChatMessage = {
+          id: newMsg.id,
+          sender: isAdmin ? 'ADMIN' : 'STUDENT',
+          studentName: isAdmin ? 'Thầy Đông' : activeConversation.student?.fullName || 'Học viên',
+          text: newMsg.content,
+          time: new Date(newMsg.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        };
+        setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, formatted]));
+        if (!isAdmin) {
+          chatService.markAsRead(activeConversation.id).catch(() => {});
+        }
+      }
+    });
+
+    const unsubTyping = chatService.onUserTyping((data) => {
+      if (data.conversationId === activeConversation.id && data.userId !== user?.id) {
+        setStudentIsTyping(data.isTyping);
+      }
+    });
+
+    return () => {
+      chatService.leaveConversation(activeConversation.id);
+      unsubNewMsg();
+      unsubTyping();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversation?.id, user?.id]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputMessage(e.target.value);
+    if (!activeConversation?.id || !user?.id) return;
+
+    chatService.sendTyping(activeConversation.id, user.id, 'Thầy Đông', true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      chatService.sendTyping(activeConversation.id, user.id, 'Thầy Đông', false);
+    }, 2000);
+  };
 
   const loadConversations = async () => {
     setLoading(true);
@@ -349,6 +402,17 @@ export default function AdminMessagesPage() {
               </div>
             );
           })}
+
+          {studentIsTyping && (
+            <div className="flex items-center space-x-2 text-xs text-muted">
+              <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"></span>
+              <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></span>
+              <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></span>
+              <span className="text-[11px] text-primary font-semibold">
+                {activeConversation?.student?.fullName || 'Học viên'} đang soạn tin nhắn...
+              </span>
+            </div>
+          )}
         </div>
 
         <form
@@ -365,7 +429,7 @@ export default function AdminMessagesPage() {
           <input
             type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Phản hồi cho học viên qua WebSocket Gateway..."
             className="flex-1 px-4 py-2.5 rounded-xl border border-line text-xs sm:text-sm focus:outline-none focus:border-primary"
           />

@@ -1679,6 +1679,21 @@ export class MockPrismaService {
       this.notifications.push(newNoti);
       return { ...newNoti };
     },
+    createMany: async (args: any) => {
+      const items = Array.isArray(args.data) ? args.data : [args.data];
+      let count = 0;
+      for (const item of items) {
+        const newNoti = {
+          id: randomUUID(),
+          ...item,
+          isRead: item.isRead || false,
+          createdAt: new Date(),
+        };
+        this.notifications.push(newNoti);
+        count++;
+      }
+      return { count };
+    },
     update: async (args: any) => {
       const idx = this.notifications.findIndex((n) => n.id === args.where.id);
       if (idx === -1) return null;

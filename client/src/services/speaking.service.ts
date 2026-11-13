@@ -87,5 +87,31 @@ export const speakingService = {
     const response = await api.post(`/speaking/admin/submissions/${id}/grade`, data);
     return response.data?.data || response.data;
   },
+
+  async createPrompt(data: Partial<SpeakingPrompt>) {
+    const response = await api.post('/speaking/prompts', data);
+    return response.data?.data || response.data;
+  },
+
+  async updatePrompt(id: string, data: Partial<SpeakingPrompt>) {
+    const response = await api.put(`/speaking/prompts/${id}`, data);
+    return response.data?.data || response.data;
+  },
+
+  async deletePrompt(id: string) {
+    const response = await api.delete(`/speaking/prompts/${id}`);
+    return response.data?.data || response.data;
+  },
+
+  async submitRecordingWithFile(file: Blob | File, promptId: string, durationSeconds: number) {
+    const formData = new FormData();
+    formData.append('audioFile', file, 'speaking_recording.webm');
+    formData.append('promptId', promptId);
+    formData.append('durationSeconds', durationSeconds.toString());
+    const response = await api.post('/speaking/submissions/with-audio', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data?.data || response.data;
+  },
 };
 

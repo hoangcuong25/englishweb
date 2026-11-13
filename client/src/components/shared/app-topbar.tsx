@@ -89,9 +89,46 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
 
   useEffect(() => {
     fetchRealNotifications();
-    const interval = setInterval(fetchRealNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+
+    if (user?.id) {
+      notificationsService.joinUserNotifications(user.id);
+    }
+
+    const unsubUser = notificationsService.onNotificationReceived((newNoti) => {
+      const mapped: NotificationItem = {
+        id: newNoti.id,
+        title: newNoti.title,
+        desc: newNoti.content,
+        time: new Date(newNoti.createdAt || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        type: (newNoti.type?.toLowerCase() as NotificationItem['type']) || 'system',
+        unread: true,
+        link: newNoti.link || undefined,
+      };
+      setNotifications((prev) => [mapped, ...prev.filter((n) => n.id !== mapped.id)]);
+      setHasUnread(true);
+    });
+
+    const unsubBroadcast = notificationsService.onBroadcastNotification((newNoti) => {
+      const mapped: NotificationItem = {
+        id: newNoti.id || `bc-${Date.now()}`,
+        title: newNoti.title,
+        desc: newNoti.content,
+        time: new Date(newNoti.createdAt || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        type: (newNoti.type?.toLowerCase() as NotificationItem['type']) || 'system',
+        unread: true,
+        link: newNoti.link || undefined,
+      };
+      setNotifications((prev) => [mapped, ...prev.filter((n) => n.id !== mapped.id)]);
+      setHasUnread(true);
+    });
+
+    const interval = setInterval(fetchRealNotifications, 60000);
+    return () => {
+      clearInterval(interval);
+      unsubUser();
+      unsubBroadcast();
+    };
+  }, [user?.id]);
 
   const markAllAsRead = async () => {
     try {

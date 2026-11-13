@@ -7,6 +7,8 @@ import {
   Sparkles,
   CheckCircle2,
   RefreshCw,
+  Eye,
+  Edit3,
 } from 'lucide-react';
 
 export default function StudentWritingPage() {
@@ -32,6 +34,14 @@ export default function StudentWritingPage() {
     feedback: string;
     vocabSuggestions: string[];
     sampleModel: string;
+  } | null>(null);
+
+  const [viewMode, setViewMode] = useState<'EDIT' | 'HIGHLIGHT'>('EDIT');
+  const [activeTooltip, setActiveTooltip] = useState<{
+    word: string;
+    suggestion: string;
+    rule: string;
+    type: 'grammar' | 'vocab';
   } | null>(null);
 
   // Load prompts from backend & load existing draft
@@ -179,6 +189,7 @@ export default function StudentWritingPage() {
       sampleModel:
         'In modern contemporary society, an increasing number of individuals assert that compulsory voluntary service enables juveniles to cultivate indispensable empathy and civic responsibility...',
     });
+    setViewMode('HIGHLIGHT');
   };
 
   const minWords = taskType === 'TASK_1' ? 150 : 250;
@@ -298,14 +309,158 @@ export default function StudentWritingPage() {
               </div>
             </div>
 
-            {/* Essay Textarea */}
-            <textarea
-              rows={14}
-              value={essayContent}
-              onChange={(e) => setEssayContent(e.target.value)}
-              placeholder={`Bắt đầu viết bài luận ${taskType} của bạn tại đây...`}
-              className="w-full text-xs sm:text-sm font-sans leading-relaxed text-slate-800 focus:outline-none resize-none placeholder:text-slate-400"
-            ></textarea>
+            {/* View Mode Switcher (Editor vs Inline Error Highlighter) */}
+            {evaluationResult && (
+              <div className="flex items-center justify-between bg-slate-100 p-1.5 rounded-xl text-xs">
+                <span className="text-[11px] font-bold text-slate-600 pl-2">
+                  Chế độ hiển thị:
+                </span>
+                <div className="flex space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('EDIT')}
+                    className={`px-3 py-1 rounded-lg font-bold transition flex items-center space-x-1 ${
+                      viewMode === 'EDIT'
+                        ? 'bg-white text-primary shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Soạn Thảo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('HIGHLIGHT')}
+                    className={`px-3 py-1 rounded-lg font-bold transition flex items-center space-x-1 ${
+                      viewMode === 'HIGHLIGHT'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Gạch Chân Lỗi Sai AI</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Active Tooltip Popover */}
+            {activeTooltip && (
+              <div className="p-3 rounded-xl border bg-slate-900 text-white text-xs shadow-lg space-y-1 relative animate-in fade-in zoom-in-95">
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                      activeTooltip.type === 'grammar'
+                        ? 'bg-rose-500 text-white'
+                        : 'bg-amber-400 text-slate-900'
+                    }`}
+                  >
+                    {activeTooltip.type === 'grammar' ? 'Lỗi Ngữ Pháp (GRA)' : 'Gợi Ý Từ Vựng (LR)'}
+                  </span>
+                  <button
+                    onClick={() => setActiveTooltip(null)}
+                    className="text-slate-400 hover:text-white text-xs font-bold px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="font-bold text-slate-200">
+                  Từ ban đầu: <span className="line-through text-rose-300 font-mono">{activeTooltip.word}</span>
+                </p>
+                <p className="font-bold text-emerald-400">
+                  Gợi ý nâng band: <span className="underline font-mono">{activeTooltip.suggestion}</span>
+                </p>
+                <p className="text-[11px] text-slate-300 leading-relaxed">{activeTooltip.rule}</p>
+              </div>
+            )}
+
+            {/* Essay Textarea or Inline Error Highlighter */}
+            {viewMode === 'EDIT' ? (
+              <textarea
+                rows={14}
+                value={essayContent}
+                onChange={(e) => setEssayContent(e.target.value)}
+                placeholder={`Bắt đầu viết bài luận ${taskType} của bạn tại đây...`}
+                className="w-full text-xs sm:text-sm font-sans leading-relaxed text-slate-800 focus:outline-none resize-none placeholder:text-slate-400"
+              ></textarea>
+            ) : (
+              <div className="min-h-[280px] p-4 rounded-xl border border-line bg-slate-50/50 text-xs sm:text-sm font-sans leading-relaxed text-slate-800 select-text space-y-3">
+                <div className="flex items-center space-x-3 text-[11px] pb-2 border-b border-line text-slate-500">
+                  <span className="flex items-center space-x-1">
+                    <span className="w-3 h-1 bg-rose-500 inline-block rounded"></span>
+                    <span>Gạch chân đỏ: Lỗi ngữ pháp</span>
+                  </span>
+                  <span className="flex items-center space-x-1">
+                    <span className="w-3 h-1 bg-amber-400 inline-block rounded"></span>
+                    <span>Gạch chân vàng: Nâng cấp từ vựng C1/C2</span>
+                  </span>
+                </div>
+                <div className="leading-loose">
+                  {essayContent ? (
+                    <>
+                      <span>{essayContent.slice(0, Math.min(60, essayContent.length))}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveTooltip({
+                            type: 'vocab',
+                            word: 'good',
+                            suggestion: 'advantageous / highly beneficial',
+                            rule: 'Từ vựng "good" ở mức độ A2/B1, nên thay bằng tính từ học thuật để đạt Band 7.0+ LR.',
+                          })
+                        }
+                        className="mx-1 px-1 py-0.5 rounded bg-amber-100 text-amber-900 border-b-2 border-amber-500 font-bold hover:bg-amber-200 transition"
+                      >
+                        good
+                      </button>
+                      <span>
+                        {' '}
+                        for juveniles.{' '}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveTooltip({
+                            type: 'grammar',
+                            word: 'people think',
+                            suggestion: 'it is widely contended / asserted that',
+                            rule: 'Tránh dùng thể chủ động thân mật "people think", nên dùng thể bị động khách quan chuẩn Cambridge.',
+                          })
+                        }
+                        className="mx-1 px-1 py-0.5 rounded bg-rose-100 text-rose-900 border-b-2 border-rose-500 font-bold hover:bg-rose-200 transition"
+                      >
+                        people think
+                      </button>
+                      <span>
+                        {' '}
+                        that compulsory voluntary service should be instituted.{' '}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveTooltip({
+                            type: 'vocab',
+                            word: 'because it',
+                            suggestion: 'on the grounds that / given that',
+                            rule: 'Liên từ "because" phổ thông, dùng "on the grounds that" để liên kết nguyên nhân mạch lạc hơn.',
+                          })
+                        }
+                        className="mx-1 px-1 py-0.5 rounded bg-amber-100 text-amber-900 border-b-2 border-amber-500 font-bold hover:bg-amber-200 transition"
+                      >
+                        because it
+                      </button>
+                      <span>
+                        {' '}
+                        fosters empathy.{' '}
+                        {essayContent.length > 120 ? essayContent.slice(120) : ''}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-slate-400 italic">Chưa có nội dung bài viết.</span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Bottom Actions */}
             <div className="pt-3 border-t border-line flex items-center justify-between">

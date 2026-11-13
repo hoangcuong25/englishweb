@@ -2115,4 +2115,82 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
         .expect(403);
     });
   });
+
+  // ==========================================
+  // 30. CURRICULUM MODULES & LESSONS REORDER FLOW (STT 3)
+  // ==========================================
+  describe('30. Curriculum Modules & Lessons Reorder Flow (STT 3)', () => {
+    it('FR-30.1: POST /api/lessons/modules/reorder as Admin -> reorders modules successfully', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/lessons/modules/reorder')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          items: [
+            { id: 'module-uuid-1', orderIndex: 2 },
+          ],
+        })
+        .expect(201);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body[0].orderIndex).toBe(2);
+    });
+
+    it('FR-30.2: POST /api/lessons/reorder as Admin -> reorders lessons successfully', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/lessons/reorder')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          items: [
+            { id: 'lesson-uuid-1', orderIndex: 5 },
+          ],
+        })
+        .expect(201);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+      expect(response.body[0].orderIndex).toBe(5);
+    });
+
+    it('FR-30.3: POST /api/lessons/modules/reorder as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/lessons/modules/reorder')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          items: [{ id: 'module-uuid-1', orderIndex: 1 }],
+        })
+        .expect(403);
+    });
+  });
+
+  // ==========================================
+  // 31. REALTIME NOTIFICATIONS BROADCAST FLOW (STT 10 & USER REQUEST)
+  // ==========================================
+  describe('31. Realtime Notifications Broadcast Flow (STT 10)', () => {
+    it('FR-31.1: POST /api/notifications/broadcast as Admin -> broadcasts notification to active students', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/notifications/broadcast')
+        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .send({
+          title: 'Lịch học LiveKit tối nay lúc 19:30',
+          content: 'Lớp Speaking Masterclass sẽ diễn ra đúng giờ qua phòng học LiveKit SFU.',
+          type: 'LIVE',
+          link: '/student/classroom',
+          targetRole: 'STUDENT',
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('count');
+      expect(response.body.count).toBeGreaterThan(0);
+    });
+
+    it('FR-31.2: POST /api/notifications/broadcast as Student -> should be forbidden (403)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/notifications/broadcast')
+        .set('Authorization', `Bearer ${studentAccessToken}`)
+        .send({
+          title: 'Học viên phát thông báo trái phép',
+          content: 'Nội dung spam...',
+        })
+        .expect(403);
+    });
+  });
 });

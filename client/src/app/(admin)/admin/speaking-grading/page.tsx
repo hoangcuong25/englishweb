@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { speakingService, SpeakingSubmission } from '@/services/speaking.service';
 import {
   Headphones,
@@ -12,6 +13,7 @@ import {
   Trash2,
   Send,
   RefreshCw,
+  Mic,
 } from 'lucide-react';
 
 interface TimestampComment {
@@ -136,6 +138,24 @@ export default function AdminSpeakingGradingPage() {
         </p>
       </div>
 
+      {/* Tabs */}
+      <div className="flex border-b border-line gap-2">
+        <Link
+          href="/admin/speaking-grading"
+          className="px-4 py-2 text-xs font-bold text-primary border-b-2 border-primary transition flex items-center space-x-2"
+        >
+          <Headphones className="w-4 h-4" />
+          <span>Chấm Điểm Bài Nói Speaking</span>
+        </Link>
+        <Link
+          href="/admin/speaking-prompts"
+          className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition flex items-center space-x-2 border-b-2 border-transparent"
+        >
+          <Mic className="w-4 h-4" />
+          <span>Ngân Hàng Đề Thi Speaking</span>
+        </Link>
+      </div>
+
       {submittedNotice && (
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center space-x-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -209,19 +229,62 @@ export default function AdminSpeakingGradingPage() {
               </div>
             </div>
 
-            {/* Interactive Progress Bar */}
-            <div
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const pos = (e.clientX - rect.left) / rect.width;
-                handleSeek(Math.floor(pos * duration));
-              }}
-              className="w-full bg-slate-800 h-3 rounded-full cursor-pointer relative overflow-hidden group"
-            >
+            {/* Waveform Visualization (Dynamic Audio Waves) */}
+            <div className="h-14 flex items-center justify-between gap-1 px-1 bg-slate-950/60 rounded-xl p-2 border border-slate-800/80">
+              {Array.from({ length: 48 }).map((_, i) => {
+                const isActive = (i / 48) <= (currentTime / duration);
+                const heightMod = Math.sin((i * 0.4) + (isPlaying ? Date.now() / 300 : 0)) * 0.4 + 0.6;
+                const barHeight = Math.max(15, Math.floor(heightMod * 44));
+                return (
+                  <div
+                    key={i}
+                    onClick={() => handleSeek(Math.floor((i / 48) * duration))}
+                    style={{ height: `${barHeight}px` }}
+                    className={`w-1 rounded-full cursor-pointer transition-all duration-100 ${
+                      isActive
+                        ? 'bg-gradient-to-t from-sky-500 to-amber-400 shadow-sm shadow-sky-500/50'
+                        : 'bg-slate-700/60 hover:bg-slate-600'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Interactive Progress Bar with Timestamp Marker Pins */}
+            <div className="relative pt-3 pb-1">
               <div
-                className="bg-primary h-full transition-all duration-150"
-                style={{ width: `${(currentTime / duration) * 100}%` }}
-              ></div>
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const pos = (e.clientX - rect.left) / rect.width;
+                  handleSeek(Math.floor(pos * duration));
+                }}
+                className="w-full bg-slate-800 h-3 rounded-full cursor-pointer relative overflow-hidden group"
+              >
+                <div
+                  className="bg-primary h-full transition-all duration-150"
+                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                ></div>
+              </div>
+
+              {/* Pin markers for each timestamp comment */}
+              {comments.map((c) => {
+                const leftPercent = Math.min(99, Math.max(1, (c.timeSeconds / duration) * 100));
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSeek(c.timeSeconds);
+                    }}
+                    title={`Mốc ${formatSeconds(c.timeSeconds)}: ${c.text}`}
+                    style={{ left: `${leftPercent}%` }}
+                    className="absolute -top-1 -translate-x-1/2 p-1 group z-10 focus:outline-none"
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-slate-900 block group-hover:scale-150 group-hover:bg-amber-300 transition shadow-sm" />
+                  </button>
+                );
+              })}
             </div>
 
             {/* Playback Controls */}

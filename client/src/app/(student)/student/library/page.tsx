@@ -14,6 +14,11 @@ import {
   X,
   ShieldCheck,
   RefreshCw,
+  Maximize2,
+  Minimize2,
+  ChevronLeft,
+  ChevronRight,
+  Bookmark,
 } from 'lucide-react';
 
 interface LibraryMaterial {
@@ -44,6 +49,22 @@ export default function StudentLibraryPage() {
 
   // 15:00 Presigned URL countdown timer
   const [timeLeft, setTimeLeft] = useState(15 * 60);
+
+  // Focus Book Reader State (STT 8)
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages] = useState(24);
+
+  const handlePageChange = (delta: number) => {
+    if (!selectedMaterial) return;
+    const newPage = Math.max(1, Math.min(totalPages, currentPage + delta));
+    setCurrentPage(newPage);
+    try {
+      localStorage.setItem(`reader_page_${selectedMaterial.id}`, String(newPage));
+    } catch {
+      // Ignore
+    }
+  };
 
   const [materials, setMaterials] = useState<LibraryMaterial[]>([
     {
@@ -114,6 +135,16 @@ export default function StudentLibraryPage() {
   const handleOpenSecureMaterial = async (mat: LibraryMaterial) => {
     setSelectedMaterial(mat);
     setLoadingSignedUrl(true);
+    try {
+      const savedPage = localStorage.getItem(`reader_page_${mat.id}`);
+      if (savedPage) {
+        setCurrentPage(Math.max(1, Number(savedPage)));
+      } else {
+        setCurrentPage(1);
+      }
+    } catch {
+      setCurrentPage(1);
+    }
     try {
       const data = await materialsService.getSignedUrl(mat.id);
       setSignedUrlData(data);
@@ -247,10 +278,20 @@ export default function StudentLibraryPage() {
         ))}
       </div>
 
-      {/* Secured Material Viewer Modal (with Watermark & 15:00 Signed URL Countdown) */}
+      {/* Secured Material Viewer Modal (with Watermark & 15:00 Signed URL Countdown & Focus Reader Mode) */}
       {selectedMaterial && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative border border-line">
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm transition-all duration-300 ${
+            isFocusMode ? 'p-0' : 'p-4'
+          }`}
+        >
+          <div
+            className={`bg-white flex flex-col shadow-2xl overflow-hidden relative border border-line transition-all duration-300 ${
+              isFocusMode
+                ? 'w-screen h-screen rounded-none'
+                : 'w-full max-w-4xl h-[85vh] rounded-3xl'
+            }`}
+          >
             {/* Viewer Header */}
             <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -273,15 +314,29 @@ export default function StudentLibraryPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  setSelectedMaterial(null);
-                  setSignedUrlData(null);
-                }}
-                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                {/* Focus Mode Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsFocusMode(!isFocusMode)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center space-x-1"
+                  title={isFocusMode ? 'Thoát toàn màn hình' : 'Chế độ đọc tập trung (Toàn màn hình)'}
+                >
+                  {isFocusMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  <span className="hidden sm:inline">{isFocusMode ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedMaterial(null);
+                    setSignedUrlData(null);
+                    setIsFocusMode(false);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Viewer Content Area with Dynamic Moving Watermark */}
@@ -303,7 +358,7 @@ export default function StudentLibraryPage() {
                     Tài liệu được bảo vệ bản quyền với Dynamic Watermark thời gian thực. Bất kỳ hành vi chụp hoặc quay màn hình đều sẽ hiển thị rõ định danh tài khoản.
                   </p>
                   <div className="p-3 rounded-xl bg-white border border-line text-xs font-mono text-slate-600">
-                    Token Stream: {signedUrlData?.signedUrl ? 'Đã xác thực chữ ký số hợp lệ' : 'Đang xử lý inline'}
+                    Trang {currentPage} / {totalPages} (Đã ghi nhớ vào LocalStorage)
                   </div>
                 </div>
               ) : (
@@ -329,6 +384,38 @@ export default function StudentLibraryPage() {
                 studentId={signedUrlData?.watermark?.userId || user?.id || 'HV-2026'}
               />
             </div>
+
+            {/* Viewer Footer: Reader Page Navigation (For PDF) */}
+            {selectedMaterial.fileType === 'PDF' && (
+              <div className="bg-white border-t border-line px-5 py-3 flex items-center justify-between text-xs">
+                <div className="flex items-center space-x-2 text-slate-600">
+                  <Bookmark className="w-4 h-4 text-primary" />
+                  <span className="font-semibold">Vị trí đọc dở: Trang {currentPage}</span>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    disabled={currentPage <= 1}
+                    onClick={() => handlePageChange(-1)}
+                    className="p-1.5 rounded-lg border border-line bg-slate-50 hover:bg-slate-100 disabled:opacity-30 text-slate-700 transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="font-mono font-bold text-slate-800">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => handlePageChange(1)}
+                    className="p-1.5 rounded-lg border border-line bg-slate-50 hover:bg-slate-100 disabled:opacity-30 text-slate-700 transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
