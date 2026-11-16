@@ -40,7 +40,7 @@ export default function AdminSidebar() {
     <aside className="hidden lg:flex w-64 bg-slate-900 text-slate-300 flex-col h-[calc(100vh-4rem)] sticky top-16 select-none border-r border-slate-800 shrink-0">
       <div className="p-4 border-b border-slate-800">
         <span className="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">
-          Quản Trị Viên & Giảng Viên
+          {t('role_admin', 'Quản Trị Viên & Giảng Viên')}
         </span>
       </div>
 

@@ -86,6 +86,7 @@ export default function HomePage() {
     { code: 'en', label: 'English', tag: 'EN', flag: '🇬🇧' },
     { code: 'zh', label: '简体中文', tag: 'CN', flag: '🇨🇳' },
     { code: 'ja', label: '日本語', tag: 'JP', flag: '🇯🇵' },
+    { code: 'km', label: 'ភាសាខ្មែរ', tag: 'KM', flag: '🇰🇭' },
   ];
 
   const currentLangObj = languages.find((l) => l.code === lang) || languages[0];
@@ -95,6 +96,7 @@ export default function HomePage() {
     const isEn = currentLang === 'en';
     const isZh = currentLang === 'zh';
     const isJa = currentLang === 'ja';
+    const isKm = currentLang === 'km';
 
     return [
       {
@@ -640,7 +642,7 @@ export default function HomePage() {
           {/* Zone 3: Right Controls (Language Selector, Login, Register) */}
           <div className="flex items-center justify-end gap-2.5 sm:gap-4 shrink-0">
             {/* Language Selector Pill with matching popup width */}
-            <div className="relative w-[138px] sm:w-[148px]" ref={langDropdownRef}>
+            <div className="relative w-[145px] sm:w-[160px]" ref={langDropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}

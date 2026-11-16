@@ -243,6 +243,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
     { code: 'en', label: 'English', tag: 'US', flag: '🇺🇸' },
     { code: 'zh', label: '中文 (简体)', tag: 'CN', flag: '🇨🇳' },
     { code: 'ja', label: '日本語', tag: 'JP', flag: '🇯🇵' },
+    { code: 'km', label: 'ភាសាខ្មែរ', tag: 'KM', flag: '🇰🇭' },
   ];
 
   const currentLangObj = languages.find((l) => l.code === lang) || languages[0];
@@ -277,7 +278,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
                     : 'bg-sky-100 text-sky-700'
                 }`}
               >
-                {currentPortal === 'admin' ? 'GIẢNG VIÊN & ADMIN' : 'HỌC VIÊN'}
+                {currentPortal === 'admin' ? t('role_admin', 'GIẢNG VIÊN & ADMIN') : t('role_student', 'HỌC VIÊN')}
               </span>
             </div>
           </Link>
@@ -293,7 +294,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
         {/* Right Controls */}
         <div className="flex items-center space-x-2 sm:space-x-4">
           {/* Language Switcher with exact matching popup width */}
-          <div className="relative w-36 sm:w-40" ref={langRef}>
+          <div className="relative w-38 sm:w-44" ref={langRef}>
             <button
               type="button"
               onClick={() => {
