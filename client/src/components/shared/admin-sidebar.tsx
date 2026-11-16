@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n-context';
 import {
   LayoutDashboard,
@@ -20,6 +20,7 @@ import {
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { t } = useI18n();
 
   const navItems = [
@@ -35,6 +36,13 @@ export default function AdminSidebar() {
     { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },
     { href: '/admin/account', label: t('nav_system_settings', 'Cài đặt hệ thống'), icon: Settings },
   ];
+
+  // Eagerly prefetch all routes on mount so transitions are instant
+  useEffect(() => {
+    navItems.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, []);
 
   return (
     <aside className="hidden lg:flex w-64 bg-slate-900 text-slate-300 flex-col h-[calc(100vh-4rem)] sticky top-16 select-none border-r border-slate-800 shrink-0">
@@ -53,14 +61,16 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+              prefetch={true}
+              onMouseEnter={() => router.prefetch(item.href)}
+              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
                 isActive
                   ? 'bg-primary text-white shadow-md shadow-primary/30'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              <span>{item.label}</span>
+              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+              <span className="truncate">{item.label}</span>
             </Link>
           );
         })}
@@ -77,4 +87,3 @@ export default function AdminSidebar() {
     </aside>
   );
 }
-

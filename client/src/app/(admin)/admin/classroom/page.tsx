@@ -48,7 +48,32 @@ export default function AdminClassroomPage() {
 
   useEffect(() => {
     fetchRooms();
+    const interval = setInterval(fetchRooms, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const isRoomExpired = (endTime?: string) => {
+    if (!endTime) return false;
+    const endMs = new Date(endTime).getTime();
+    if (isNaN(endMs)) return false;
+    return Date.now() > endMs + 30 * 60 * 1000;
+  };
+
+  const getGracePeriodRemainingMins = (endTime?: string) => {
+    if (!endTime) return null;
+    const endMs = new Date(endTime).getTime();
+    if (isNaN(endMs)) return null;
+    const now = Date.now();
+    const expireAt = endMs + 30 * 60 * 1000;
+    if (now > endMs && now < expireAt) {
+      return Math.max(1, Math.ceil((expireAt - now) / 60000));
+    }
+    return null;
+  };
+
+  const validRooms = rooms.filter(
+    (room) => room.status !== 'ENDED' && !isRoomExpired(room.scheduledEndTime)
+  );
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,15 +194,16 @@ export default function AdminClassroomPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-line pb-2">
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-            Các Ca Học Trên Hệ Thống ({rooms.length})
+            Các Ca Học Trên Hệ Thống ({validRooms.length})
           </h3>
         </div>
 
-        {rooms.length > 0 ? (
+        {validRooms.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {rooms.map((room) => {
+            {validRooms.map((room) => {
               const isLive = room.status === 'ACTIVE';
               const roomUrl = `/admin/classroom/${encodeURIComponent(room.name)}`;
+              const graceRemaining = getGracePeriodRemainingMins(room.scheduledEndTime);
 
               return (
                 <div
@@ -185,19 +211,26 @@ export default function AdminClassroomPage() {
                   className="p-5 rounded-3xl bg-white border border-line shadow-xs hover:border-primary/50 transition flex flex-col justify-between space-y-4"
                 >
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-1.5">
                       <span className="text-[10.5px] font-black uppercase px-2.5 py-0.5 rounded-full bg-sky-100 text-primary">
                         {room.course?.title || 'IELTS Masterclass'}
                       </span>
-                      <span
-                        className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                          isLive
-                            ? 'bg-emerald-100 text-emerald-700 animate-pulse'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {isLive ? 'ĐANG MỞ PHÒNG (ACTIVE)' : 'SCHEDULED'}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {graceRemaining !== null && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 animate-pulse border border-amber-300">
+                            Đã hết giờ • Tự đóng sau {graceRemaining}p
+                          </span>
+                        )}
+                        <span
+                          className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                            isLive
+                              ? 'bg-emerald-100 text-emerald-700 animate-pulse'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {isLive ? 'ĐANG MỞ PHÒNG (ACTIVE)' : 'SCHEDULED'}
+                        </span>
+                      </div>
                     </div>
 
                     <h3 className="text-base font-black text-slate-900 leading-snug">

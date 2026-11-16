@@ -31,9 +31,34 @@ export default function StudentClassroomSchedulePage() {
 
   useEffect(() => {
     fetchRooms();
+    const interval = setInterval(fetchRooms, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const activeRoom = rooms.find((r) => r.status === 'ACTIVE') || rooms[0];
+  const isRoomExpired = (endTime?: string) => {
+    if (!endTime) return false;
+    const endMs = new Date(endTime).getTime();
+    if (isNaN(endMs)) return false;
+    return Date.now() > endMs + 30 * 60 * 1000;
+  };
+
+  const getGracePeriodRemainingMins = (endTime?: string) => {
+    if (!endTime) return null;
+    const endMs = new Date(endTime).getTime();
+    if (isNaN(endMs)) return null;
+    const now = Date.now();
+    const expireAt = endMs + 30 * 60 * 1000;
+    if (now > endMs && now < expireAt) {
+      return Math.max(1, Math.ceil((expireAt - now) / 60000));
+    }
+    return null;
+  };
+
+  const validRooms = rooms.filter(
+    (room) => room.status !== 'ENDED' && !isRoomExpired(room.scheduledEndTime)
+  );
+
+  const activeRoom = validRooms.find((r) => r.status === 'ACTIVE') || validRooms[0];
 
   const formatScheduleTime = (startTime?: string, endTime?: string) => {
     if (!startTime) return '19:30 - 21:00 (Hôm nay)';
@@ -119,31 +144,39 @@ export default function StudentClassroomSchedulePage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-line pb-2">
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-            Danh Sách Các Ca Học Đang Mở & Sắp Diễn Ra ({rooms.length})
+            Danh Sách Các Ca Học Đang Mở & Sắp Diễn Ra ({validRooms.length})
           </h3>
         </div>
 
-        {rooms.length > 0 ? (
+        {validRooms.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {rooms.map((room) => {
+            {validRooms.map((room) => {
               const isLive = room.status === 'ACTIVE';
               const roomUrl = `/student/classroom/${encodeURIComponent(room.name)}`;
+              const graceRemaining = getGracePeriodRemainingMins(room.scheduledEndTime);
 
               return (
                 <div
                   key={room.id || room.name}
                   className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3.5 hover:border-primary/50 transition"
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                        isLive
-                          ? 'bg-emerald-100 text-emerald-800 animate-pulse'
-                          : 'bg-sky-100 text-primary'
-                      }`}
-                    >
-                      {isLive ? 'ĐANG DIỄN RA' : 'ĐÃ LÊN LỊCH'}
-                    </span>
+                  <div className="flex items-center justify-between flex-wrap gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                          isLive
+                            ? 'bg-emerald-100 text-emerald-800 animate-pulse'
+                            : 'bg-sky-100 text-primary'
+                        }`}
+                      >
+                        {isLive ? 'ĐANG DIỄN RA' : 'ĐÃ LÊN LỊCH'}
+                      </span>
+                      {graceRemaining !== null && (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 animate-pulse border border-amber-300">
+                          Sắp đóng ({graceRemaining}p)
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
                       <Users className="w-3.5 h-3.5 text-slate-400" />
                       <span>{room._count?.attendanceRecords || 0}/8 học viên</span>

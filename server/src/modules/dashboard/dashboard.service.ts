@@ -6,6 +6,25 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStudentDashboard(userId: string) {
+    const now = new Date();
+    const cutoffTime = new Date(now.getTime() - 30 * 60 * 1000);
+
+    // Auto-end expired classrooms past scheduledEndTime by > 30 minutes
+    try {
+      await this.prisma.classroom.updateMany({
+        where: {
+          status: { in: ['SCHEDULED', 'ACTIVE'] },
+          scheduledEndTime: { lte: cutoffTime },
+        },
+        data: {
+          status: 'ENDED',
+          actualEndTime: now,
+        },
+      });
+    } catch {
+      // Continue even if update fails
+    }
+
     const [
       enrolledCoursesCount,
       enrollments,
@@ -46,6 +65,7 @@ export class DashboardService {
       this.prisma.classroom.findMany({
         where: {
           status: { in: ['SCHEDULED', 'ACTIVE'] },
+          scheduledEndTime: { gt: cutoffTime },
         },
         orderBy: { scheduledStartTime: 'asc' },
         take: 3,
@@ -118,6 +138,25 @@ export class DashboardService {
   }
 
   async getAdminDashboard() {
+    const now = new Date();
+    const cutoffTime = new Date(now.getTime() - 30 * 60 * 1000);
+
+    // Auto-end expired classrooms past scheduledEndTime by > 30 minutes
+    try {
+      await this.prisma.classroom.updateMany({
+        where: {
+          status: { in: ['SCHEDULED', 'ACTIVE'] },
+          scheduledEndTime: { lte: cutoffTime },
+        },
+        data: {
+          status: 'ENDED',
+          actualEndTime: now,
+        },
+      });
+    } catch {
+      // Continue even if update fails
+    }
+
     const [
       totalStudents,
       totalCourses,
@@ -159,7 +198,10 @@ export class DashboardService {
         },
       }),
       this.prisma.classroom.findMany({
-        where: { status: { in: ['ACTIVE', 'SCHEDULED'] } },
+        where: {
+          status: { in: ['ACTIVE', 'SCHEDULED'] },
+          scheduledEndTime: { gt: cutoffTime },
+        },
         orderBy: { scheduledStartTime: 'asc' },
         take: 5,
         include: {

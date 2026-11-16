@@ -555,8 +555,11 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setShowMobileDrawer(false)}
-                    className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
+                    prefetch={true}
+                    onClick={() => {
+                      setTimeout(() => setShowMobileDrawer(false), 50);
+                    }}
+                    className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer touch-manipulation ${
                       isActive
                         ? currentPortal === 'admin'
                           ? 'bg-slate-800 text-white font-bold border-l-4 border-amber-400'

@@ -1,11 +1,11 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccessToken, WebhookReceiver, RoomServiceClient } from 'livekit-server-sdk';
 import { Role, AttendanceStatus, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class LivekitService {
+export class LivekitService implements OnModuleInit {
   private readonly logger = new Logger(LivekitService.name);
   private apiKey: string;
   private apiSecret: string;
@@ -24,9 +24,100 @@ export class LivekitService {
     this.roomService = new RoomServiceClient(this.livekitUrl, this.apiKey, this.apiSecret);
   }
 
+  onModuleInit() {
+    this.autoEndExpiredRooms().catch((err) => {
+      this.logger.error('Initial auto-end expired rooms failed:', err);
+    });
+
+    // Periodically sweep expired rooms every 60 seconds
+    setInterval(() => {
+      this.autoEndExpiredRooms().catch((err) => {
+        this.logger.error('Scheduled auto-end expired rooms error:', err);
+      });
+    }, 60 * 1000);
+  }
+
+  /**
+   * Automatically close/end any classroom that has passed scheduledEndTime by 30+ minutes
+   */
+  async autoEndExpiredRooms(): Promise<number> {
+    try {
+      const now = new Date();
+      // Cutoff time: scheduledEndTime + 30m <= now <=> scheduledEndTime <= now - 30m
+      const cutoffTime = new Date(now.getTime() - 30 * 60 * 1000);
+
+      const expiredRooms = await this.prisma.classroom.findMany({
+        where: {
+          status: { in: ['SCHEDULED', 'ACTIVE'] },
+          scheduledEndTime: { lte: cutoffTime },
+        },
+      });
+
+      if (expiredRooms.length === 0) {
+        return 0;
+      }
+
+      this.logger.log(`Found ${expiredRooms.length} classroom(s) past scheduledEndTime by > 30 minutes. Auto-closing...`);
+
+      for (const room of expiredRooms) {
+        try {
+          await this.roomService.deleteRoom(room.name).catch(() => {});
+        } catch {
+          // Room might already be closed or not created on LiveKit SFU
+        }
+
+        await this.prisma.classroom.update({
+          where: { id: room.id },
+          data: {
+            status: 'ENDED',
+            actualEndTime: room.actualEndTime || new Date(),
+          },
+        });
+
+        this.logger.log(`Classroom "${room.name}" auto-ended and closed (ended after 30 mins).`);
+      }
+
+      return expiredRooms.length;
+    } catch (err) {
+      this.logger.error('Error in autoEndExpiredRooms:', err);
+      return 0;
+    }
+  }
+
   async createToken(roomName: string, identity: string, name: string, role: Role) {
     if (!roomName || !identity) {
       throw new BadRequestException('Room name and user identity are required');
+    }
+
+    const classroom = await this.prisma.classroom.findFirst({
+      where: { name: roomName },
+    });
+
+    if (classroom) {
+      const now = new Date();
+      const expirationTime = new Date(classroom.scheduledEndTime.getTime() + 30 * 60 * 1000);
+
+      // If room is marked ENDED or is past scheduledEndTime + 30 minutes, reject connection
+      if (classroom.status === 'ENDED' || now > expirationTime) {
+        if (classroom.status !== 'ENDED') {
+          await this.endRoom(roomName).catch(() => {});
+        }
+        throw new BadRequestException(
+          'Lớp học đã kết thúc sau 30 phút theo lịch quy định của giảng viên và phòng học đã tự động đóng.',
+        );
+      }
+
+      // If host joins a scheduled room, mark it as ACTIVE
+      const isHost = role === Role.ADMIN;
+      if (isHost && classroom.status === 'SCHEDULED') {
+        await this.prisma.classroom.update({
+          where: { id: classroom.id },
+          data: {
+            status: 'ACTIVE',
+            actualStartTime: classroom.actualStartTime || new Date(),
+          },
+        });
+      }
     }
 
     const at = new AccessToken(this.apiKey, this.apiSecret, {
@@ -52,6 +143,7 @@ export class LivekitService {
       identity,
       role,
       isHost,
+      scheduledEndTime: classroom?.scheduledEndTime || null,
     };
   }
 
@@ -124,9 +216,17 @@ export class LivekitService {
   }
 
   async listRooms() {
+    // 1. Auto-end expired classrooms (> 30 mins after scheduledEndTime)
+    await this.autoEndExpiredRooms();
+
+    // 2. Filter out any rooms where scheduledEndTime + 30m <= now
+    const now = new Date();
+    const cutoffTime = new Date(now.getTime() - 30 * 60 * 1000);
+
     return this.prisma.classroom.findMany({
       where: {
         status: { in: ['SCHEDULED', 'ACTIVE'] },
+        scheduledEndTime: { gt: cutoffTime },
       },
       include: {
         host: {

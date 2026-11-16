@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n-context';
 import {
   LayoutDashboard,
@@ -19,6 +19,7 @@ import {
 
 export default function StudentSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { t } = useI18n();
 
   const navItems = [
@@ -33,6 +34,13 @@ export default function StudentSidebar() {
     { href: '/student/messages', label: t('nav_messages', 'Tin nhắn & Thảo luận'), icon: MessageSquare },
     { href: '/student/account', label: t('nav_account', 'Tài khoản cá nhân'), icon: UserCheck },
   ];
+
+  // Eagerly prefetch all routes on mount so transitions are instant
+  useEffect(() => {
+    navItems.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, []);
 
   return (
     <aside className="hidden lg:flex w-64 bg-white border-r border-line flex-col h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0">
@@ -51,14 +59,16 @@ export default function StudentSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+              prefetch={true}
+              onMouseEnter={() => router.prefetch(item.href)}
+              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
                 isActive
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-primary'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              <span>{item.label}</span>
+              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+              <span className="truncate">{item.label}</span>
             </Link>
           );
         })}
@@ -67,9 +77,10 @@ export default function StudentSidebar() {
       {/* Target Band status */}
       <div className="p-3 m-3 rounded-xl bg-sky-50 border border-sky-100 text-xs">
         <p className="font-bold text-primary">Mục tiêu cá nhân</p>
-        <p className="text-slate-600 mt-0.5">IELTS Band: <strong className="text-primary font-bold">7.0+</strong></p>
+        <p className="text-slate-600 mt-0.5">
+          IELTS Band: <strong className="text-primary font-bold">7.0+</strong>
+        </p>
       </div>
     </aside>
   );
 }
-

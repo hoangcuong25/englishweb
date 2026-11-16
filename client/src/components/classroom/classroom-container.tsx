@@ -62,10 +62,56 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [isEndingClass, setIsEndingClass] = useState(false);
 
+  // Scheduled end time and grace period auto-end
+  const [scheduledEndTime, setScheduledEndTime] = useState<string | null>(null);
+  const [graceRemainingSeconds, setGraceRemainingSeconds] = useState<number | null>(null);
+
   // Participants List (1 Host + Students)
   const [participants, setParticipants] = useState<ClassroomParticipant[]>([]);
 
   const roomRef = useRef<Room | null>(null);
+
+  // Auto-close check: Close room automatically after 30 minutes past scheduledEndTime
+  useEffect(() => {
+    if (!scheduledEndTime) return;
+
+    const checkExpiration = async () => {
+      const endMs = new Date(scheduledEndTime).getTime();
+      if (isNaN(endMs)) return;
+
+      const now = Date.now();
+      const cutoffMs = endMs + 30 * 60 * 1000;
+      const remainingMs = cutoffMs - now;
+
+      if (remainingMs <= 0) {
+        // Class ended after 30 mins -> Auto-close room and disconnect everyone
+        toast.warning('Buổi học đã kết thúc sau 30 phút theo lịch quy định. Hệ thống tự động đóng phòng học.');
+        if (isHost) {
+          try {
+            await api.post('/livekit/end-room', { roomName: roomId });
+            const packet = new TextEncoder().encode(
+              JSON.stringify({ type: 'CLASS_ENDED' }),
+            );
+            roomRef.current?.localParticipant?.publishData(packet, { reliable: true });
+          } catch {
+            // Room might already be closed
+          }
+        }
+        roomRef.current?.disconnect();
+        const targetUrl = isHost ? '/admin/classroom' : '/student/classroom';
+        routerRef.current.push(targetUrl);
+      } else if (remainingMs <= 5 * 60 * 1000) {
+        // Less than 5 minutes remaining
+        setGraceRemainingSeconds(Math.ceil(remainingMs / 1000));
+      } else {
+        setGraceRemainingSeconds(null);
+      }
+    };
+
+    checkExpiration();
+    const interval = setInterval(checkExpiration, 5000);
+    return () => clearInterval(interval);
+  }, [scheduledEndTime, roomId, isHost]);
 
   // Initialize Room Token & Setup
   useEffect(() => {
@@ -78,6 +124,11 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
         // Fetch LiveKit Token from NestJS Backend
         const res = await api.post('/livekit/token', { roomName: roomId });
         const token = res.data?.data?.token || res.data?.token;
+        const endTime = res.data?.data?.scheduledEndTime || res.data?.scheduledEndTime;
+        if (endTime && isMounted) {
+          setScheduledEndTime(endTime);
+        }
+
         if (!token) {
           throw new Error('Failed to retrieve LiveKit token from server response');
         }
@@ -120,9 +171,10 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
                 setWbBgImage(data.bgImage);
               }
             } else if (data.type === 'CLASS_ENDED') {
-              toast.info('Giảng viên đã kết thúc buổi học trực tuyến. Bạn sẽ được chuyển về Dashboard.');
+              toast.info('Giảng viên đã kết thúc buổi học trực tuyến. Bạn sẽ được chuyển về trang quản lý.');
               roomRef.current?.disconnect();
-              routerRef.current.push('/student/dashboard');
+              const targetUrl = isHost ? '/admin/classroom' : '/student/classroom';
+              routerRef.current.push(targetUrl);
             } else if (data.type === 'WB_PERMS') {
               setAllowStudentDrawing(data.allow);
             } else if (data.type === 'CHAT') {
@@ -156,6 +208,17 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
           }
         }
       } catch (err: unknown) {
+        const anyErr = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+        const errorMsg = anyErr.response?.data?.message || anyErr.message || '';
+
+        // If the backend returned a 400 or 404 (e.g. room expired or ended), do NOT enter sandbox
+        if (anyErr.response?.status && anyErr.response.status >= 400) {
+          toast.error(errorMsg || 'Phòng học này đã kết thúc sau 30 phút theo lịch quy định.');
+          const targetUrl = isHost ? '/admin/classroom' : '/student/classroom';
+          routerRef.current.push(targetUrl);
+          return;
+        }
+
         console.warn('LiveKit SFU not reachable on ws://localhost:7880. Entering Interactive Preview Sandbox Mode.', err);
         if (isMounted) {
           setIsSandboxMode(true);
@@ -442,6 +505,15 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>Trực Tiếp</span>
             </span>
+            {graceRemainingSeconds !== null && (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse flex items-center space-x-1">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                <span>
+                  Tự đóng sau {Math.floor(graceRemainingSeconds / 60)}:
+                  {String(graceRemainingSeconds % 60).padStart(2, '0')}
+                </span>
+              </span>
+            )}
             {isSandboxMode && (
               <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
                 Chế độ Thử Nghiệm Tương Tác
