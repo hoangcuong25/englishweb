@@ -12,10 +12,81 @@ export interface LivekitRoom {
   _count?: { attendanceRecords: number };
 }
 
+export interface AdminClassroomHistoryItem {
+  id: string;
+  name: string;
+  course?: { id: string; title: string; slug: string; thumbnail?: string | null } | null;
+  host?: { id: string; fullName: string; email: string };
+  scheduledStartTime: string;
+  scheduledEndTime: string;
+  actualStartTime?: string | null;
+  actualEndTime?: string | null;
+  status: string;
+  isPastOrEnded: boolean;
+  attendeeCount: number;
+  stats: {
+    present: number;
+    late: number;
+    absent: number;
+  };
+  records: Array<{
+    id: string;
+    status: string;
+    totalMinutes: number;
+    firstJoinedAt?: string | null;
+    lastLeftAt?: string | null;
+    student: { id: string; fullName: string; email: string };
+  }>;
+}
+
+export interface StudentClassroomHistoryItem {
+  id: string;
+  name: string;
+  course?: { id: string; title: string; slug: string; thumbnail?: string | null } | null;
+  host?: { id: string; fullName: string };
+  scheduledStartTime: string;
+  scheduledEndTime: string;
+  actualStartTime?: string | null;
+  actualEndTime?: string | null;
+  status: string;
+  hasJoined: boolean;
+  attendanceStatus: 'PRESENT' | 'LATE' | 'ABSENT' | 'UPCOMING' | 'LIVE_NOW' | string;
+  totalMinutes: number;
+  firstJoinedAt?: string | null;
+  lastLeftAt?: string | null;
+  isPastOrEnded: boolean;
+}
+
+export interface StudentClassroomHistoryResponse {
+  summary: {
+    totalPastRooms: number;
+    joinedCount: number;
+    missedCount: number;
+    attendanceRate: number;
+  };
+  history: StudentClassroomHistoryItem[];
+}
+
 export const livekitService = {
   async getRooms(): Promise<LivekitRoom[]> {
     const response = await api.get('/livekit/rooms');
     return response.data?.data || response.data || [];
+  },
+
+  async getAdminHistory(): Promise<AdminClassroomHistoryItem[]> {
+    const response = await api.get('/livekit/admin/history');
+    return response.data?.data || response.data || [];
+  },
+
+  async getStudentHistory(): Promise<StudentClassroomHistoryResponse> {
+    const response = await api.get('/livekit/student/history');
+    return (
+      response.data?.data ||
+      response.data || {
+        summary: { totalPastRooms: 0, joinedCount: 0, missedCount: 0, attendanceRate: 100 },
+        history: [],
+      }
+    );
   },
 
   async createRoom(data: { name: string; courseId?: string; scheduledStartTime: string; scheduledEndTime: string }) {

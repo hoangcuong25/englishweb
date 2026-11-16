@@ -385,4 +385,151 @@ export class LivekitService implements OnModuleInit {
       return { status: 'error', message: err.message };
     }
   }
+
+  /**
+   * Admin: Get all created and taught classrooms history
+   */
+  async getAdminClassroomHistory() {
+    await this.autoEndExpiredRooms().catch(() => {});
+
+    const rooms = await this.prisma.classroom.findMany({
+      orderBy: { scheduledStartTime: 'desc' },
+      include: {
+        host: {
+          select: { id: true, fullName: true, email: true },
+        },
+        course: {
+          select: { id: true, title: true, slug: true, thumbnail: true },
+        },
+        _count: {
+          select: { attendanceRecords: true },
+        },
+        attendanceRecords: {
+          select: {
+            id: true,
+            status: true,
+            totalMinutes: true,
+            firstJoinedAt: true,
+            lastLeftAt: true,
+            student: {
+              select: { id: true, fullName: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    const now = new Date();
+
+    return rooms.map((room) => {
+      const presentCount = room.attendanceRecords.filter((a) => a.status === 'PRESENT').length;
+      const lateCount = room.attendanceRecords.filter((a) => a.status === 'LATE').length;
+      const absentCount = room.attendanceRecords.filter((a) => a.status === 'ABSENT').length;
+      const isPastOrEnded =
+        room.status === 'ENDED' ||
+        now.getTime() > new Date(room.scheduledEndTime).getTime() + 30 * 60 * 1000;
+
+      return {
+        id: room.id,
+        name: room.name,
+        course: room.course,
+        host: room.host,
+        scheduledStartTime: room.scheduledStartTime,
+        scheduledEndTime: room.scheduledEndTime,
+        actualStartTime: room.actualStartTime,
+        actualEndTime: room.actualEndTime,
+        status: room.status,
+        isPastOrEnded,
+        attendeeCount: room._count.attendanceRecords,
+        stats: {
+          present: presentCount,
+          late: lateCount,
+          absent: absentCount,
+        },
+        records: room.attendanceRecords,
+      };
+    });
+  }
+
+  /**
+   * Student: Get history of all classrooms indicating joined vs missed
+   */
+  async getStudentClassroomHistory(studentId: string) {
+    await this.autoEndExpiredRooms().catch(() => {});
+
+    const rooms = await this.prisma.classroom.findMany({
+      orderBy: { scheduledStartTime: 'desc' },
+      include: {
+        host: {
+          select: { id: true, fullName: true, email: true },
+        },
+        course: {
+          select: { id: true, title: true, slug: true, thumbnail: true },
+        },
+        attendanceRecords: {
+          where: { studentId },
+          select: {
+            id: true,
+            status: true,
+            totalMinutes: true,
+            firstJoinedAt: true,
+            lastLeftAt: true,
+            note: true,
+          },
+        },
+      },
+    });
+
+    const now = new Date();
+
+    const history = rooms.map((room) => {
+      const record = room.attendanceRecords?.[0];
+      const isPastOrEnded =
+        room.status === 'ENDED' ||
+        now.getTime() > new Date(room.scheduledEndTime).getTime() + 30 * 60 * 1000;
+
+      const hasJoined = !!record && record.totalMinutes > 0;
+      let attendanceStatus = 'UPCOMING';
+      if (hasJoined) {
+        attendanceStatus = record.status; // PRESENT or LATE
+      } else if (isPastOrEnded) {
+        attendanceStatus = 'ABSENT'; // Chưa join / vắng mặt
+      } else {
+        attendanceStatus = room.status === 'ACTIVE' ? 'LIVE_NOW' : 'SCHEDULED';
+      }
+
+      return {
+        id: room.id,
+        name: room.name,
+        course: room.course,
+        host: room.host,
+        scheduledStartTime: room.scheduledStartTime,
+        scheduledEndTime: room.scheduledEndTime,
+        actualStartTime: room.actualStartTime,
+        actualEndTime: room.actualEndTime,
+        status: room.status,
+        hasJoined,
+        attendanceStatus,
+        totalMinutes: record?.totalMinutes || 0,
+        firstJoinedAt: record?.firstJoinedAt || null,
+        lastLeftAt: record?.lastLeftAt || null,
+        isPastOrEnded,
+      };
+    });
+
+    const pastRooms = history.filter((h) => h.isPastOrEnded);
+    const joinedRooms = pastRooms.filter((h) => h.hasJoined);
+    const missedRooms = pastRooms.filter((h) => !h.hasJoined);
+
+    return {
+      summary: {
+        totalPastRooms: pastRooms.length,
+        joinedCount: joinedRooms.length,
+        missedCount: missedRooms.length,
+        attendanceRate:
+          pastRooms.length > 0 ? Math.round((joinedRooms.length / pastRooms.length) * 100) : 100,
+      },
+      history,
+    };
+  }
 }

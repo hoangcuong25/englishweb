@@ -98,6 +98,25 @@ export class LivekitController {
     return this.livekitService.muteParticipantTrack(roomName, identity, trackSid, muted);
   }
 
+  @Get('admin/history')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin xem toàn bộ lịch sử các lớp học đã tạo và giảng dạy' })
+  @ResponseMessage('Lấy lịch sử lớp học admin thành công')
+  async getAdminHistory() {
+    return this.livekitService.getAdminClassroomHistory();
+  }
+
+  @Get('student/history')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Học viên xem lịch sử các lớp học đã join và chưa join' })
+  @ResponseMessage('Lấy lịch sử lớp học học viên thành công')
+  async getStudentHistory(@CurrentUser('id') studentId: string) {
+    return this.livekitService.getStudentClassroomHistory(studentId);
+  }
+
   @Post('webhook')
   @ApiOperation({ summary: 'LiveKit SFU webhook endpoint for participant events' })
   async handleWebhook(
