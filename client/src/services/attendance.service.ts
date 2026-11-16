@@ -47,8 +47,12 @@ export const attendanceService = {
     return response.data?.data || response.data || [];
   },
 
-  async overrideAttendance(id: string, data: { status: 'PRESENT' | 'LATE' | 'ABSENT'; notes?: string }) {
-    const response = await api.put(`/attendance/${id}/override`, data);
+  async overrideAttendance(id: string, data: { status: 'PRESENT' | 'LATE' | 'ABSENT'; notes?: string; note?: string }) {
+    const payload = {
+      status: data.status,
+      note: data.note || data.notes,
+    };
+    const response = await api.put(`/attendance/${id}/override`, payload);
     return response.data?.data || response.data;
   },
 
