@@ -51,6 +51,12 @@ export const translations: Translations = {
     zh: '咨询预约',
     ja: '無料相談',
   },
+  'nav.blog': {
+    vi: 'Blog & Chia sẻ',
+    en: 'Blog & Insights',
+    zh: '博客分享',
+    ja: 'ブログ＆コラム',
+  },
   'nav.login': {
     vi: 'Đăng nhập',
     en: 'Sign In',

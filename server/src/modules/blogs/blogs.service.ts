@@ -178,7 +178,7 @@ export class BlogsService {
   async findAll(query: QueryBlogsDto, userRole?: Role) {
     const cacheKey = `cache:blogs:${userRole || 'PUBLIC'}:${query.category || 'ALL'}:${query.status || 'ANY'}:${query.page || 1}:${query.search || 'NONE'}`;
     const cached = await this.redisService.getJson<any>(cacheKey);
-    if (cached) {
+    if (cached && cached.total > 0) {
       return cached;
     }
 

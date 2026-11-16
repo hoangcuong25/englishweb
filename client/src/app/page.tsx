@@ -27,7 +27,6 @@ import {
   ShieldCheck,
   Star,
   GraduationCap,
-  UserPlus,
   CheckCheck,
 } from 'lucide-react';
 
@@ -623,6 +622,12 @@ export default function HomePage() {
             >
               {t('nav.techPreview')}
             </button>
+            <Link
+              href="/blog"
+              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
+            >
+              {t('nav.blog')}
+            </Link>
             <button
               type="button"
               onClick={() => scrollToSection('consultation-section')}
@@ -700,18 +705,9 @@ export default function HomePage() {
                 {/* Đăng nhập */}
                 <Link
                   href="/login"
-                  className="px-2 py-2 text-[14px] font-extrabold text-[#1B64B0] hover:text-[#0c4a6e] transition-colors whitespace-nowrap min-w-[70px] text-center"
+                  className="flex items-center gap-2 px-5 py-2 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full transition-all shadow-sm hover:shadow hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
                 >
-                  {t('nav.login')}
-                </Link>
-
-                {/* Đăng ký học viên */}
-                <Link
-                  href="/register"
-                  className="flex items-center gap-2 px-5 py-2.5 text-[14px] font-extrabold text-[#14263D] bg-[#FFB547] hover:bg-[#FFA726] rounded-full transition-all shadow-sm hover:shadow hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
-                >
-                  <UserPlus className="w-4 h-4 text-[#14263D]" />
-                  <span>{t('nav.register')}</span>
+                  <span>{t('nav.login')}</span>
                 </Link>
               </div>
             )}
@@ -752,6 +748,13 @@ export default function HomePage() {
             >
               {t('nav.techPreview')}
             </button>
+            <Link
+              href="/blog"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
+            >
+              {t('nav.blog')}
+            </Link>
             <button
               type="button"
               onClick={() => scrollToSection('consultation-section')}
@@ -761,22 +764,13 @@ export default function HomePage() {
             </button>
             <div className="pt-3 border-t border-[#E1EBF5] flex flex-col gap-2">
               {!user ? (
-                <>
-                  <Link
-                    href="/login"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full text-center py-2.5 text-sm font-extrabold text-[#1B64B0] bg-[#DDF3FC] rounded-full"
-                  >
-                    🔑 {t('nav.loginAccount')}
-                  </Link>
-                  <Link
-                    href="/register"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full text-center py-2.5 text-sm font-extrabold text-[#14263D] bg-[#FFB547] rounded-full shadow-sm"
-                  >
-                    ✨ {t('nav.registerStudent')}
-                  </Link>
-                </>
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 text-sm font-extrabold text-white bg-[#1B64B0] rounded-full shadow-sm"
+                >
+                  🔑 {t('nav.loginAccount')}
+                </Link>
               ) : (
                 <Link
                   href={user.role === 'ADMIN' ? '/admin' : '/student'}
