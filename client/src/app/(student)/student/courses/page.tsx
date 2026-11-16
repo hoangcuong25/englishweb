@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { coursesService, Course, CourseModule, CourseLesson } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
 import {
@@ -314,16 +315,25 @@ export default function StudentCoursesPage() {
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => handleToggleLessonComplete(lesson.id)}
-                          className={`px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm transition ${
-                            isDone
-                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                              : 'bg-primary hover:bg-primary-dark text-white'
-                          }`}
-                        >
-                          {isDone ? 'Đã hoàn thành' : 'Học & Hoàn thành'}
-                        </button>
+                        <div className="flex items-center space-x-2">
+                          <Link
+                            href={`/student/courses/lessons/${lesson.id}`}
+                            className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-primary font-bold text-xs flex items-center space-x-1 transition"
+                          >
+                            <span>Vào Học</span>
+                            <PlayCircle className="w-3.5 h-3.5" />
+                          </Link>
+                          <button
+                            onClick={() => handleToggleLessonComplete(lesson.id)}
+                            className={`px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm transition ${
+                              isDone
+                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                : 'bg-primary hover:bg-primary-dark text-white'
+                            }`}
+                          >
+                            {isDone ? 'Đã hoàn thành' : 'Đánh dấu xong'}
+                          </button>
+                        </div>
                       </div>
                     );
                   })}

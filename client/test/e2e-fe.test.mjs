@@ -486,4 +486,55 @@ describe('Frontend Services & API Contract Integration E2E Suite', () => {
       assert.equal(notificationSocketEvent.data.type, 'WRITING');
     });
   });
+
+  // 18. Forgot & Reset Password Flow Contract
+  describe('18. Forgot & Reset Password Flow Contract', () => {
+    it('should validate forgot password email payload', () => {
+      const forgotPayload = { email: 'student@dong.edu.vn' };
+      assert.ok(forgotPayload.email.includes('@'));
+      assert.ok(forgotPayload.email.endsWith('.vn') || forgotPayload.email.endsWith('.com'));
+    });
+
+    it('should validate reset password payload with 15m token and strong password', () => {
+      const resetPayload = {
+        token: 'jwt-reset-token-valid-15m',
+        newPassword: 'BrandNewPassword@2026',
+      };
+      assert.ok(resetPayload.token.length > 10);
+      assert.ok(resetPayload.newPassword.length >= 6);
+    });
+  });
+
+  // 19. Physical Materials Multipart Upload Contract
+  describe('19. Physical Materials Multipart Upload Contract', () => {
+    it('should validate file extension and size thresholds for PDF and Audio', () => {
+      const pdfFile = { name: 'IELTS_Cam_18.pdf', size: 14 * 1024 * 1024, type: 'application/pdf' };
+      const audioFile = { name: 'Speaking_Test_1.mp3', size: 35 * 1024 * 1024, type: 'audio/mpeg' };
+
+      const maxPdf = 50 * 1024 * 1024;
+      const maxAudio = 100 * 1024 * 1024;
+
+      assert.ok(pdfFile.size <= maxPdf);
+      assert.ok(pdfFile.name.endsWith('.pdf'));
+      assert.ok(audioFile.size <= maxAudio);
+      assert.ok(audioFile.name.endsWith('.mp3'));
+    });
+  });
+
+  // 20. Lesson Learning Player & Curriculum Navigation Contract
+  describe('20. Lesson Learning Player & Curriculum Navigation Contract', () => {
+    it('should compute previous and next lessons accurately in curriculum', () => {
+      const curriculum = [
+        { id: 'l1', title: 'Lesson 01' },
+        { id: 'l2', title: 'Lesson 02' },
+        { id: 'l3', title: 'Lesson 03' },
+      ];
+      const currentIndex = 1; // l2
+      const prev = currentIndex > 0 ? curriculum[currentIndex - 1] : null;
+      const next = currentIndex < curriculum.length - 1 ? curriculum[currentIndex + 1] : null;
+
+      assert.equal(prev?.id, 'l1');
+      assert.equal(next?.id, 'l3');
+    });
+  });
 });

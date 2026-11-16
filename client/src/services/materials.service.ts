@@ -60,6 +60,15 @@ export const materialsService = {
     return response.data;
   },
 
+  async uploadWithFile(formData: FormData) {
+    const response = await api.post('/materials/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   async update(id: string, data: Record<string, unknown>) {
     const response = await api.put(`/materials/${id}`, data);
     return response.data;

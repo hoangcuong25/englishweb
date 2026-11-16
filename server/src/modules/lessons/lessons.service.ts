@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { AppException } from '../../core/common/errors/app.exception';
+import { AppErrorCode } from '../../core/common/errors/error-codes.enum';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { RedisService } from '../../core/redis/redis.service';
@@ -239,6 +241,125 @@ export class LessonsService {
       isEnrolled,
       isCompleted,
       isAccessible,
+    };
+  }
+
+  async getStudyLesson(id: string, userId?: string, role?: Role) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id },
+      include: {
+        module: {
+          include: {
+            course: {
+              include: {
+                modules: {
+                  orderBy: { orderIndex: 'asc' },
+                  include: {
+                    lessons: {
+                      orderBy: { orderIndex: 'asc' },
+                      select: {
+                        id: true,
+                        title: true,
+                        durationMinutes: true,
+                        orderIndex: true,
+                        isFreePreview: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        materials: true,
+        quizzes: {
+          include: {
+            questions: {
+              select: { id: true, type: true, content: true, points: true, orderIndex: true },
+            },
+          },
+        },
+        speakingPrompts: true,
+        writingPrompts: true,
+      },
+    });
+
+    if (!lesson) {
+      throw AppException.notFound(AppErrorCode.LESSON_NOT_FOUND, `Không tìm thấy bài học ID: ${id}`);
+    }
+
+    const courseId = lesson.module.courseId;
+    let isEnrolled = false;
+    let isCompleted = false;
+    const completedLessonIds: string[] = [];
+
+    if (userId) {
+      const enrollment = await this.prisma.enrollment.findUnique({
+        where: {
+          userId_courseId: { userId, courseId },
+        },
+      });
+      isEnrolled = Boolean(enrollment);
+
+      const userProgress = await this.prisma.lessonProgress.findMany({
+        where: { userId },
+      });
+      userProgress.forEach((p) => {
+        if (p.isCompleted) completedLessonIds.push(p.lessonId);
+      });
+      isCompleted = completedLessonIds.includes(id);
+    }
+
+    const isAccessible = role === Role.ADMIN || isEnrolled || lesson.isFreePreview;
+    if (!isAccessible) {
+      throw AppException.forbidden(
+        AppErrorCode.LESSON_LOCKED_CHECKPOINT,
+        'Bạn cần ghi danh vào khóa học này để truy cập toàn bộ nội dung bài học.',
+      );
+    }
+
+    const allCourseLessons: Array<{ id: string; title: string; moduleId: string }> = [];
+    lesson.module.course.modules.forEach((mod) => {
+      mod.lessons.forEach((l) => {
+        allCourseLessons.push({ id: l.id, title: l.title, moduleId: mod.id });
+      });
+    });
+
+    const currentIndex = allCourseLessons.findIndex((l) => l.id === id);
+    const prevLesson = currentIndex > 0 ? allCourseLessons[currentIndex - 1] : null;
+    const nextLesson = currentIndex >= 0 && currentIndex < allCourseLessons.length - 1 ? allCourseLessons[currentIndex + 1] : null;
+
+    return {
+      lesson: {
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.description,
+        videoUrl: lesson.videoUrl,
+        durationMinutes: lesson.durationMinutes,
+        orderIndex: lesson.orderIndex,
+        isCompleted,
+        isFreePreview: lesson.isFreePreview,
+        materials: lesson.materials,
+        quizzes: lesson.quizzes,
+        speakingPrompts: lesson.speakingPrompts,
+        writingPrompts: lesson.writingPrompts,
+      },
+      course: {
+        id: lesson.module.course.id,
+        title: lesson.module.course.title,
+        modules: lesson.module.course.modules.map((m) => ({
+          id: m.id,
+          title: m.title,
+          lessons: m.lessons.map((l) => ({
+            ...l,
+            isCompleted: completedLessonIds.includes(l.id),
+          })),
+        })),
+      },
+      navigation: {
+        prevLesson,
+        nextLesson,
+      },
     };
   }
 

@@ -6,6 +6,10 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AppException } from '../../core/common/errors/app.exception';
+import { AppErrorCode } from '../../core/common/errors/error-codes.enum';
 import { MailService } from '../../core/mail/mail.service';
 import { RedisService } from '../../core/redis/redis.service';
 import * as bcrypt from 'bcrypt';
@@ -511,6 +515,120 @@ export class AuthService {
       accessToken,
       refreshToken: refreshTokenString,
       role,
+    };
+  }
+
+  /**
+   * 11. Request Password Reset Link via Email
+   */
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase() },
+    });
+
+    if (!user) {
+      throw AppException.notFound(
+        AppErrorCode.AUTH_EMAIL_NOT_FOUND,
+        'Không tìm thấy tài khoản với địa chỉ email này.',
+      );
+    }
+
+    if (!user.isActive) {
+      throw AppException.forbidden(
+        AppErrorCode.AUTH_ACCOUNT_DEACTIVATED,
+        'Tài khoản này đã bị tạm khóa. Vui lòng liên hệ quản trị viên.',
+      );
+    }
+
+    const secret = this.configService.get<string>('JWT_SECRET');
+    const resetToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        type: 'PASSWORD_RESET',
+      },
+      {
+        secret,
+        expiresIn: '15m',
+      },
+    );
+
+    try {
+      await this.redisService.set(`password_reset:${user.id}`, resetToken, 15 * 60);
+    } catch {}
+
+    await this.mailService.sendForgotPasswordEmail({
+      email: user.email,
+      fullName: user.fullName,
+      resetToken,
+    });
+
+    return {
+      success: true,
+      message: 'Hướng dẫn đặt lại mật khẩu đã được gửi đến email của bạn.',
+    };
+  }
+
+  /**
+   * 12. Reset Password using token
+   */
+  async resetPassword(dto: ResetPasswordDto) {
+    const secret = this.configService.get<string>('JWT_SECRET');
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(dto.token, { secret });
+    } catch {
+      throw AppException.badRequest(
+        AppErrorCode.AUTH_RESET_TOKEN_EXPIRED,
+        'Mã xác thực đặt lại mật khẩu không hợp lệ hoặc đã hết hạn (quá 15 phút).',
+      );
+    }
+
+    if (payload?.type !== 'PASSWORD_RESET' || !payload?.sub) {
+      throw AppException.badRequest(
+        AppErrorCode.AUTH_RESET_TOKEN_INVALID,
+        'Mã xác thực đặt lại mật khẩu không đúng mục đích.',
+      );
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user) {
+      throw AppException.notFound(
+        AppErrorCode.AUTH_EMAIL_NOT_FOUND,
+        'Không tìm thấy thông tin tài khoản người dùng tương ứng.',
+      );
+    }
+
+    if (dto.newPassword.length < 6) {
+      throw AppException.badRequest(
+        AppErrorCode.AUTH_WEAK_PASSWORD,
+        'Mật khẩu mới phải có tối thiểu 6 ký tự.',
+      );
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(dto.newPassword, salt);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    await this.logoutAll(user.id);
+
+    try {
+      await this.mailService.sendPasswordChangedEmail({
+        email: user.email,
+        fullName: user.fullName,
+      });
+    } catch {}
+
+    return {
+      success: true,
+      message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.',
     };
   }
 }

@@ -278,6 +278,50 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * 3.1. Student Forgot Password Link Email
+   */
+  async sendForgotPasswordEmail(data: {
+    email: string;
+    fullName: string;
+    resetToken: string;
+  }) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
+    const resetLink = `${frontendUrl}/reset-password?token=${data.resetToken}&email=${encodeURIComponent(data.email)}`;
+
+    const subject = `Khôi Phục Mật Khẩu - Teacher Dong Academy`;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 24px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 20px;">Yêu Cầu Đặt Lại Mật Khẩu</h2>
+        </div>
+        <div style="padding: 32px 24px;">
+          <p style="color: #0f172a; font-size: 16px;">Xin chào <strong>${data.fullName}</strong>,</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Hệ thống nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>${data.email}</strong> của bạn.
+          </p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Liên kết dưới đây có hiệu lực trong vòng <strong>15 phút</strong>. Vui lòng bấm vào nút bên dưới để tiến hành đặt lại mật khẩu mới:
+          </p>
+          <div style="text-align: center; margin: 28px 0;">
+            <a href="${resetLink}" style="background-color: #0284c7; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+              Đặt Lại Mật Khẩu
+            </a>
+          </div>
+          <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin-top: 24px;">
+            Nếu bạn không yêu cầu đặt lại mật khẩu, xin hãy bỏ qua email này. Mật khẩu hiện tại của bạn vẫn an toàn.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail({ to: data.email, subject, html });
+  }
+
+  /**
    * 4. IELTS Writing Assessment Approved & Ready (In English)
    */
   async sendWritingGradedEmail(data: {
