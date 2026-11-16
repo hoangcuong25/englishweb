@@ -12,6 +12,7 @@ import { Loader2, Wifi, Monitor, PhoneOff, AlertTriangle, X, LogOut } from 'luci
 import { Room, RoomEvent } from 'livekit-client';
 import { toast } from '@/components/ui/toast';
 import { getWhiteboardSocket } from '@/lib/socket';
+import { livekitService } from '@/services/livekit.service';
 
 interface ClassroomContainerProps {
   roomId: string;
@@ -370,10 +371,20 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
   };
 
   // Host Controls
-  const handleMuteParticipant = (targetIdentity: string) => {
+  const handleMuteParticipant = async (targetIdentity: string) => {
     setParticipants((prev) =>
       prev.map((p) => (p.identity === targetIdentity ? { ...p, isMuted: true } : p)),
     );
+    broadcastData({ type: 'HOST_MUTE', identity: targetIdentity, muted: true });
+    try {
+      await livekitService.muteParticipant({
+        roomName: roomId,
+        identity: targetIdentity,
+        trackSid: '',
+        muted: true,
+      });
+      toast.info(`Đã gửi lệnh tắt mic học viên ${targetIdentity}`);
+    } catch {}
   };
 
   const handleLowerHand = (targetIdentity: string) => {
@@ -387,6 +398,7 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
       prev.map((p) => (!p.isHost ? { ...p, isMuted: true } : p)),
     );
     broadcastData({ type: 'MUTE_ALL' });
+    toast.info('Đã gửi yêu cầu tắt mic toàn bộ học viên');
   };
 
   // Leave / End Class flow

@@ -20,6 +20,8 @@ import { LoginDto } from './dto/login.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateLanguageDto } from './dto/update-language.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Response, Request } from 'express';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
@@ -86,6 +88,24 @@ export class AuthController {
     const result = await this.authService.login(dto, ip, userAgent);
     this.setTokenCookies(res, result.accessToken, result.refreshToken, result.user.role);
     return result;
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Yêu cầu liên kết đặt lại mật khẩu qua email' })
+  @ApiResponse({ status: 200, description: 'Gửi email khôi phục thành công' })
+  @ApiResponse({ status: 404, description: 'Email không tồn tại trong hệ thống' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Đặt lại mật khẩu mới bằng token 15 phút' })
+  @ApiResponse({ status: 200, description: 'Đặt lại mật khẩu thành công' })
+  @ApiResponse({ status: 400, description: 'Token không hợp lệ hoặc đã hết hạn' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @Post('google')

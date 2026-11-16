@@ -11,7 +11,10 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -43,6 +46,20 @@ export class MaterialsController {
   @ApiResponse({ status: 201, description: 'Tạo tài liệu thành công' })
   create(@Body() createMaterialDto: CreateMaterialDto) {
     return this.materialsService.create(createMaterialDto);
+  }
+
+  @Post('upload')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin tải lên tệp tin học liệu số PDF/Audio nhị phân thật' })
+  @ApiResponse({ status: 201, description: 'Tải lên học liệu số thành công' })
+  upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: any,
+  ) {
+    return this.materialsService.uploadFile(file, body);
   }
 
   @Put(':id')

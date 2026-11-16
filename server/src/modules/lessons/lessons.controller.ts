@@ -131,6 +131,15 @@ export class LessonsController {
     return this.lessonsService.reorderLessons(reorderDto.items);
   }
 
+  @Get(':id/study')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lấy dữ liệu chi tiết cho màn hình học bài (LMS Learning Player)' })
+  @ApiParam({ name: 'id', description: 'UUID của bài học' })
+  getStudyLesson(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.lessonsService.getStudyLesson(id, user.id, user.role);
+  }
+
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Lấy chi tiết bài học (nội dung, video, tài liệu, quiz)' })

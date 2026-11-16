@@ -27,6 +27,11 @@ export const lessonsService = {
     return response.data?.data || response.data;
   },
 
+  async getStudyLesson(id: string) {
+    const response = await api.get(`/lessons/${id}/study`);
+    return response.data?.data || response.data;
+  },
+
   async completeLesson(id: string) {
     const response = await api.post(`/lessons/${id}/complete`);
     return response.data;

@@ -111,9 +111,9 @@ export default function LoginPage() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-bold text-slate-700">Mật khẩu</label>
-              <span className="text-[11px] text-primary hover:underline cursor-pointer">
+              <Link href="/forgot-password" className="text-[11px] text-primary hover:underline">
                 Quên mật khẩu?
-              </span>
+              </Link>
             </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

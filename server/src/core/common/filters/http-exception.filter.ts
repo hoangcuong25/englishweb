@@ -73,6 +73,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return 'UNPROCESSABLE_ENTITY';
       case HttpStatus.TOO_MANY_REQUESTS:
         return 'TOO_MANY_REQUESTS';
+      case HttpStatus.PAYLOAD_TOO_LARGE:
+        return 'PAYLOAD_TOO_LARGE';
+      case HttpStatus.UNSUPPORTED_MEDIA_TYPE:
+        return 'UNSUPPORTED_MEDIA_TYPE';
       default:
         return 'INTERNAL_SERVER_ERROR';
     }

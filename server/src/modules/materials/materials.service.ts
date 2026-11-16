@@ -10,6 +10,8 @@ import { PrismaService } from '../../core/prisma/prisma.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { Role, MaterialType } from '@prisma/client';
+import { AppException } from '../../core/common/errors/app.exception';
+import { AppErrorCode } from '../../core/common/errors/error-codes.enum';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -54,6 +56,100 @@ export class MaterialsService {
         durationSeconds: dto.durationSeconds,
         isPrivate: dto.isPrivate ?? true,
         isWatermarked: dto.isWatermarked ?? true,
+      },
+    });
+  }
+
+  async uploadFile(file: Express.Multer.File, body: any) {
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      throw AppException.badRequest(
+        AppErrorCode.MATERIAL_FILE_PAYLOAD_MISSING,
+        'Vui lòng chọn tệp tin PDF hoặc MP3 từ máy tính để tải lên.',
+      );
+    }
+
+    const originalName = (file.originalname || '').toLowerCase();
+    const isPdf = originalName.endsWith('.pdf') || file.mimetype === 'application/pdf';
+    const isAudio =
+      originalName.endsWith('.mp3') ||
+      originalName.endsWith('.wav') ||
+      originalName.endsWith('.m4a') ||
+      file.mimetype.startsWith('audio/');
+
+    if (!isPdf && !isAudio) {
+      throw AppException.unsupportedMediaType(
+        AppErrorCode.MATERIAL_INVALID_MIME_TYPE,
+        'Định dạng tệp không hợp lệ. Hệ thống chỉ hỗ trợ .pdf, .mp3, .wav, .m4a.',
+      );
+    }
+
+    // PDF max 50MB, Audio max 100MB
+    const maxPdfSize = 50 * 1024 * 1024;
+    const maxAudioSize = 100 * 1024 * 1024;
+    if (isPdf && file.size > maxPdfSize) {
+      throw AppException.payloadTooLarge(
+        AppErrorCode.MATERIAL_FILE_SIZE_EXCEEDED,
+        'Dung lượng tệp PDF vượt quá giới hạn 50MB.',
+      );
+    }
+    if (isAudio && file.size > maxAudioSize) {
+      throw AppException.payloadTooLarge(
+        AppErrorCode.MATERIAL_FILE_SIZE_EXCEEDED,
+        'Dung lượng tệp Âm thanh vượt quá giới hạn 100MB.',
+      );
+    }
+
+    const type = isPdf ? MaterialType.PDF : MaterialType.AUDIO;
+
+    // Resolve lesson
+    let lessonId = body.lessonId;
+    if (!lessonId) {
+      const defaultLesson = await this.prisma.lesson.findFirst();
+      if (!defaultLesson) {
+        throw AppException.badRequest(
+          AppErrorCode.LESSON_NOT_FOUND,
+          'Hệ thống chưa có bài học nào để gán học liệu. Vui lòng tạo bài học trước.',
+        );
+      }
+      lessonId = defaultLesson.id;
+    } else {
+      const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+      if (!lesson) {
+        throw AppException.notFound(
+          AppErrorCode.LESSON_NOT_FOUND,
+          `Không tìm thấy bài học ID: ${lessonId} để gán học liệu.`,
+        );
+      }
+    }
+
+    const title = (body.title && body.title.trim()) || file.originalname;
+
+    // Ensure physical storage folder exists
+    const privateStorageDir = path.join(process.cwd(), 'private_storage', 'materials');
+    if (!fs.existsSync(privateStorageDir)) {
+      fs.mkdirSync(privateStorageDir, { recursive: true });
+    }
+
+    const ext = path.extname(file.originalname) || (isPdf ? '.pdf' : '.mp3');
+    const safeBase = title.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
+    const fileName = `${Date.now()}_${safeBase}${ext}`;
+    const targetPath = path.join(privateStorageDir, fileName);
+
+    fs.writeFileSync(targetPath, file.buffer);
+
+    const isPrivate = body.isPrivate !== undefined ? String(body.isPrivate) === 'true' : true;
+    const isWatermarked = body.isWatermarked !== undefined ? String(body.isWatermarked) === 'true' : true;
+
+    return this.prisma.material.create({
+      data: {
+        lessonId,
+        title,
+        type,
+        fileKey: fileName,
+        fileSize: file.size,
+        durationSeconds: isAudio ? (Number(body.durationSeconds) || 300) : null,
+        isPrivate,
+        isWatermarked,
       },
     });
   }

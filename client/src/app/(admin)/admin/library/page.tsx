@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { materialsService } from '@/services/materials.service';
 import { coursesService } from '@/services/courses.service';
 import CustomSelect from '@/components/ui/custom-select';
+import { toast } from '@/components/ui/toast';
+import { handleApiError } from '@/lib/api-error';
 import {
   Upload,
   CheckCircle2,
@@ -88,6 +90,9 @@ export default function AdminLibraryPage() {
   }, []);
 
   // Form State (#materialModal - Form 5 in Plan)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     fileType: 'PDF' as 'PDF' | 'AUDIO_MP3',
@@ -97,19 +102,43 @@ export default function AdminLibraryPage() {
     allowDownload: false,
   });
 
+  const handleFileChange = (file: File | null) => {
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+    setSelectedFile(file);
+    const name = file.name;
+    const isPdf = name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+    const isAudio =
+      name.toLowerCase().endsWith('.mp3') ||
+      name.toLowerCase().endsWith('.wav') ||
+      name.toLowerCase().endsWith('.m4a') ||
+      file.type.startsWith('audio/');
+
+    if (isPdf) {
+      setFormData((prev) => ({
+        ...prev,
+        fileType: 'PDF',
+        title: prev.title.trim() === '' ? name.replace(/\.[^/.]+$/, '') : prev.title,
+      }));
+    } else if (isAudio) {
+      setFormData((prev) => ({
+        ...prev,
+        fileType: 'AUDIO_MP3',
+        title: prev.title.trim() === '' ? name.replace(/\.[^/.]+$/, '') : prev.title,
+      }));
+    }
+  };
+
   const handleUploadMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newMat: MaterialItem = {
-      id: `mat-${Date.now()}`,
-      title: formData.title,
-      fileType: formData.fileType,
-      fileSize: formData.fileType === 'PDF' ? '6.2 MB' : '18.4 MB',
-      courseTitle: formData.courseTitle,
-      isSignedUrl: formData.isSignedUrl,
-      isWatermark: formData.isWatermark,
-      uploadDate: new Date().toLocaleDateString('vi-VN'),
-    };
+    if (!selectedFile) {
+      toast.error('Vui lòng chọn tệp tin PDF hoặc MP3 từ máy tính để tải lên!');
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
       let targetLessonId = '';
       try {
@@ -120,26 +149,35 @@ export default function AdminLibraryPage() {
         }
       } catch {}
 
+      const fd = new FormData();
+      fd.append('file', selectedFile);
+      fd.append('title', formData.title.trim() || selectedFile.name);
+      fd.append('type', formData.fileType === 'AUDIO_MP3' ? 'AUDIO' : 'PDF');
+      fd.append('isPrivate', String(formData.isSignedUrl));
+      fd.append('isWatermarked', String(formData.isWatermark));
       if (targetLessonId) {
-        await materialsService.create({
-          lessonId: targetLessonId,
-          title: formData.title,
-          type: formData.fileType === 'AUDIO_MP3' ? 'AUDIO' : 'PDF',
-          fileKey: `materials/${Date.now()}_${encodeURIComponent(formData.title.toLowerCase())}${formData.fileType === 'PDF' ? '.pdf' : '.mp3'}`,
-          fileSize: formData.fileType === 'PDF' ? 8808000 : 19300000,
-          isPrivate: formData.isSignedUrl,
-          isWatermarked: formData.isWatermark,
-        });
+        fd.append('lessonId', targetLessonId);
       }
-      await fetchMaterials();
-    } catch {
-      // Local fallback
-      setMaterials([...materials, newMat]);
-    }
 
-    setIsModalOpen(false);
-    setNotice(`Đã tải lên và bảo mật học liệu "${newMat.title}" thành công!`);
-    setTimeout(() => setNotice(''), 4000);
+      await materialsService.uploadWithFile(fd);
+      await fetchMaterials();
+      setIsModalOpen(false);
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setFormData({
+        title: '',
+        fileType: 'PDF',
+        courseTitle: 'IELTS Masterclass 7.5+ Intensive',
+        isSignedUrl: true,
+        isWatermark: true,
+        allowDownload: false,
+      });
+      toast.success(`Đã tải lên và mã hóa học liệu "${formData.title || selectedFile.name}" thành công!`);
+    } catch (err) {
+      handleApiError(err, 'Lỗi khi tải lên học liệu số');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteMaterial = async (matId: string) => {
@@ -268,6 +306,74 @@ export default function AdminLibraryPage() {
             </div>
 
             <form onSubmit={handleUploadMaterial} className="space-y-4">
+              {/* File Dropzone Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Tệp tin học liệu (.pdf, .mp3, .wav, .m4a) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.mp3,.wav,.m4a,application/pdf,audio/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFileChange(f);
+                  }}
+                />
+                {!selectedFile ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const f = e.dataTransfer.files?.[0];
+                      if (f) handleFileChange(f);
+                    }}
+                    className="border-2 border-dashed border-sky-300 hover:border-primary bg-sky-50/50 hover:bg-sky-50 rounded-2xl p-5 text-center cursor-pointer transition-all group"
+                  >
+                    <div className="w-12 h-12 mx-auto rounded-full bg-white shadow-sm flex items-center justify-center text-primary group-hover:scale-105 transition-transform mb-2">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-700">
+                      Kéo thả tệp tin vào đây hoặc <span className="text-primary underline">chọn từ thiết bị</span>
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      PDF (tối đa 50MB) • Audio MP3 / WAV (tối đa 100MB)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-3.5 rounded-xl border border-sky-200 bg-sky-50/60">
+                    <div className="flex items-center space-x-3 overflow-hidden">
+                      <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0">
+                        {formData.fileType === 'PDF' ? (
+                          <FileText className="w-5 h-5 text-red-500" />
+                        ) : (
+                          <Music className="w-5 h-5 text-purple-500" />
+                        )}
+                      </div>
+                      <div className="truncate text-left">
+                        <p className="text-xs font-bold text-slate-800 truncate">{selectedFile.name}</p>
+                        <p className="text-[10px] text-slate-500">
+                          {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Sẵn sàng tải lên
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                      title="Chọn lại tệp khác"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Tên tài liệu giáo trình <span className="text-red-500">*</span>
@@ -364,9 +470,17 @@ export default function AdminLibraryPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold text-xs shadow-sm flex items-center space-x-2"
                 >
-                  Tải Lên & Mã Hóa
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Đang Tải Lên...</span>
+                    </>
+                  ) : (
+                    <span>Tải Lên & Mã Hóa</span>
+                  )}
                 </button>
               </div>
             </form>
