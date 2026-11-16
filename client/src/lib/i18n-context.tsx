@@ -673,6 +673,52 @@ export const translations: Translations = {
   btn_cancel: { vi: 'Hủy bỏ', en: 'Cancel', zh: '取消', ja: 'キャンセル' },
   role_student: { vi: 'Học viên', en: 'Student', zh: '学员', ja: '受講生' },
   role_admin: { vi: 'Quản trị viên / Giảng viên', en: 'Admin / Teacher', zh: '管理员 / 讲师', ja: '管理者 / 講師' },
+
+  // Admin Writing Prompts & Review
+  'admin.writing_prompts.title': {
+    vi: 'Ngân Hàng Đề Thi IELTS Writing',
+    en: 'IELTS Writing Prompt Bank',
+    zh: '雅思写作题库管理',
+    ja: 'IELTSライティング問題バンク',
+  },
+  'admin.writing_prompts.subtitle': {
+    vi: 'Quản lý, biên soạn đề bài Task 1 & Task 2, cài đặt thời gian và số từ tối thiểu',
+    en: 'Manage and compile Task 1 & Task 2 prompts, configure time limits and minimum word counts',
+    zh: '管理和编写 Task 1 和 Task 2 题目，设置考试时限及最少字数要求',
+    ja: 'Task 1およびTask 2の問題を管理・作成し、制限時間と最小語数を設定します',
+  },
+  'admin.writing_prompts.btn_new': {
+    vi: 'Thêm đề bài mới',
+    en: 'Add New Prompt',
+    zh: '添加新题目',
+    ja: '新しい問題を追加',
+  },
+  'admin.writing_prompts.search': {
+    vi: 'Tìm kiếm đề bài theo tiêu đề hoặc mô tả...',
+    en: 'Search prompts by title or description...',
+    zh: '按标题或描述搜索题目...',
+    ja: 'タイトルまたは説明で問題を検索...',
+  },
+
+  // Admin Speaking Prompts
+  'admin.speaking_prompts.title': {
+    vi: 'Ngân Hàng Đề Thi IELTS Speaking',
+    en: 'IELTS Speaking Prompt Bank',
+    zh: '雅思口语题库管理',
+    ja: 'IELTSスピーキング問題バンク',
+  },
+  'admin.speaking_prompts.subtitle': {
+    vi: 'Quản lý chủ đề luyện nói Part 1, Part 2 & Part 3, cấu hình thời lượng ghi âm',
+    en: 'Manage speaking topics for Part 1, Part 2 & Part 3, configure recording durations',
+    zh: '管理 Part 1、Part 2 和 Part 3 口语主题，配置录音时长',
+    ja: 'Part 1、Part 2、Part 3のスピーキングトピックを管理し、録音時間を設定します',
+  },
+  'admin.speaking_prompts.btn_new': {
+    vi: 'Thêm chủ đề nói mới',
+    en: 'Add New Speaking Topic',
+    zh: '添加新口语主题',
+    ja: '新しいスピーキングトピックを追加',
+  },
 };
 
 interface I18nContextType {

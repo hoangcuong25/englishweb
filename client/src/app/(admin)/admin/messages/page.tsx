@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ActionMenu from '@/components/ui/action-menu';
 import { chatService, ConversationItem, ChatMessageItem } from '@/services/chat.service';
 import { useAuth } from '@/lib/auth-context';
+import { toast } from '@/components/ui/toast';
 import {
   Send,
   Paperclip,
@@ -381,17 +382,17 @@ export default function AdminMessagesPage() {
                 label: 'Xem học bạ học viên',
                 icon: <GraduationCap className="w-4 h-4 text-primary" />,
                 onClick: () =>
-                  alert(`Thông tin học viên: ${studentName} (${studentEmail})`),
+                  toast.info(`Thông tin học viên: ${studentName} (${studentEmail})`),
               },
               {
                 label: 'Đánh dấu đã hoàn thành hỗ trợ',
                 icon: <UserCheck className="w-4 h-4 text-emerald-600" />,
-                onClick: () => alert('Đã đánh dấu phiên hỗ trợ này là hoàn thành.'),
+                onClick: () => toast.success('Đã đánh dấu phiên hỗ trợ này là hoàn thành.'),
               },
               {
                 label: 'Tắt thông báo hội thoại',
                 icon: <BellOff className="w-4 h-4" />,
-                onClick: () => alert('Đã tắt thông báo cho cuộc hội thoại này.'),
+                onClick: () => toast.info('Đã tắt thông báo cho cuộc hội thoại này.'),
               },
               {
                 label: 'Xóa cuộc hội thoại',

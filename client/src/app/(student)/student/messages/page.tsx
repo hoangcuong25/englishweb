@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ActionMenu from '@/components/ui/action-menu';
 import { chatService, ConversationItem, ChatMessageItem } from '@/services/chat.service';
 import { useAuth } from '@/lib/auth-context';
+import { toast } from '@/components/ui/toast';
 import {
   Send,
   Paperclip,
@@ -331,17 +332,17 @@ export default function StudentMessagesPage() {
               {
                 label: 'Hồ sơ Thầy Đông (8.5)',
                 icon: <User className="w-4 h-4" />,
-                onClick: () => alert('Thông tin: Thầy Đông - Trưởng bộ môn IELTS Masterclass (Speaking 8.5, Writing 8.5)'),
+                onClick: () => toast.info('Thông tin: Thầy Đông - Trưởng bộ môn IELTS Masterclass (Speaking 8.5, Writing 8.5)'),
               },
               {
                 label: 'Xem bài tập đính kèm',
                 icon: <FileText className="w-4 h-4" />,
-                onClick: () => alert('Không có bài tập nào đang được chia sẻ trong đoạn hội thoại này.'),
+                onClick: () => toast.info('Không có bài tập nào đang được chia sẻ trong đoạn hội thoại này.'),
               },
               {
                 label: 'Tắt thông báo trò chuyện',
                 icon: <BellOff className="w-4 h-4" />,
-                onClick: () => alert('Đã tắt thông báo cho cuộc hội thoại này.'),
+                onClick: () => toast.info('Đã tắt thông báo cho cuộc hội thoại này.'),
               },
               {
                 label: 'Xóa lịch sử tin nhắn',

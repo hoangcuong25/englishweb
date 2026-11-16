@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { speakingService, SpeakingPrompt } from '@/services/speaking.service';
+import { useI18n } from '@/lib/i18n-context';
 import {
   Mic,
   Plus,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminSpeakingPromptsPage() {
+  const { t } = useI18n();
   const [prompts, setPrompts] = useState<SpeakingPrompt[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterPart, setFilterPart] = useState<number | 'ALL'>('ALL');
@@ -208,11 +210,11 @@ export default function AdminSpeakingPromptsPage() {
             <span>Phân hệ Quản trị IELTS Speaking Studio</span>
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
-            <span>Ngân Hàng Đề Thi IELTS Speaking (Part 1, 2, 3)</span>
+            <span>{t('admin.speaking_prompts.title', 'Ngân Hàng Đề Thi IELTS Speaking (Part 1, 2, 3)')}</span>
             {loading && <RefreshCw className="w-4 h-4 animate-spin text-primary" />}
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Quản trị các câu hỏi phỏng vấn Part 1, chủ đề Cue Card Part 2 và câu hỏi thảo luận chuyên sâu Part 3.
+            {t('admin.speaking_prompts.subtitle', 'Quản trị các câu hỏi phỏng vấn Part 1, chủ đề Cue Card Part 2 và câu hỏi thảo luận chuyên sâu Part 3.')}
           </p>
         </div>
 
@@ -221,7 +223,7 @@ export default function AdminSpeakingPromptsPage() {
           className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs transition shadow-md shadow-primary/20 flex items-center space-x-1.5"
         >
           <Plus className="w-4 h-4" />
-          <span>Tạo Đề Thi Mới</span>
+          <span>{t('admin.speaking_prompts.btn_new', 'Tạo Đề Thi Mới')}</span>
         </button>
       </div>
 

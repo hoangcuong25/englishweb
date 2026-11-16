@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { livekitService, LivekitRoom } from '@/services/livekit.service';
 import CustomSelect from '@/components/ui/custom-select';
+import { toast } from '@/components/ui/toast';
 import {
   Video,
   Plus,
@@ -79,7 +80,7 @@ export default function AdminClassroomPage() {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Không thể tạo phòng học. Vui lòng kiểm tra lại tên phòng.';
-      alert(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
       setTimeout(() => setNotice(''), 4000);

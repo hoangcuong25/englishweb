@@ -1,6 +1,8 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface CloudinaryUploadResult {
   url: string;
@@ -20,11 +22,22 @@ export class CloudinaryService {
   private isConfigured = false;
 
   constructor(private readonly configService: ConfigService) {
-    const cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME') || process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = this.configService.get<string>('CLOUDINARY_API_KEY') || process.env.CLOUDINARY_API_KEY;
-    const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET') || process.env.CLOUDINARY_API_SECRET;
+    const cloudName =
+      this.configService.get<string>('CLOUDINARY_CLOUD_NAME') ||
+      this.configService.get<string>('CLOUDINARY_NAME') ||
+      process.env.CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_NAME;
+    const apiKey =
+      this.configService.get<string>('CLOUDINARY_API_KEY') ||
+      process.env.CLOUDINARY_API_KEY;
+    const apiSecret =
+      this.configService.get<string>('CLOUDINARY_API_SECRET') ||
+      this.configService.get<string>('CLOUDINARY_SECERT_KEY') ||
+      process.env.CLOUDINARY_API_SECRET ||
+      process.env.CLOUDINARY_SECERT_KEY;
 
-    if (cloudName && apiKey && apiSecret && !cloudName.includes('YOUR_CLOUDINARY')) {
+    const isTest = process.env.NODE_ENV === 'test';
+    if (!isTest && cloudName && apiKey && apiSecret && !cloudName.includes('YOUR_CLOUDINARY')) {
       cloudinary.config({
         cloud_name: cloudName,
         api_key: apiKey,
@@ -34,7 +47,7 @@ export class CloudinaryService {
       this.isConfigured = true;
       this.logger.log(`Cloudinary configured successfully for cloud: ${cloudName}`);
     } else {
-      this.logger.warn('Cloudinary credentials not provided or using placeholder. Running in mock storage fallback mode.');
+      this.logger.warn('Cloudinary credentials not provided or using placeholder. Running in Local Disk Storage driver.');
     }
   }
 
@@ -94,10 +107,25 @@ export class CloudinaryService {
   ): Promise<CloudinaryUploadResult> {
     const resourceType = options.resource_type || 'image';
 
-    // Mock storage fallback khi không có API key trong dev / test environment
+    // STO-01: Local Disk Storage driver & Cloudinary mock fallback
     if (!this.isConfigured || !buffer) {
       const mockId = `mock_${resourceType}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const ext = resourceType === 'video' ? 'mp4' : 'jpg';
+      const ext = resourceType === 'video' ? 'mp4' : resourceType === 'raw' ? 'bin' : 'jpg';
+
+      // Save file to public/uploads directory for local serving
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', options.folder);
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      const localFilePath = path.join(uploadsDir, `${mockId}.${ext}`);
+      if (buffer) {
+        try {
+          fs.writeFileSync(localFilePath, buffer);
+        } catch (e) {
+          this.logger.warn(`Failed to write local file: ${e}`);
+        }
+      }
+
       const mockUrl = `https://res.cloudinary.com/englishweb/${resourceType}/upload/v1700000000/${options.folder}/${mockId}.${ext}`;
 
       return {

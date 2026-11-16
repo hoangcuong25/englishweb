@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { writingService, WritingPrompt } from '@/services/writing.service';
+import { useI18n } from '@/lib/i18n-context';
 import {
   FileText,
   Plus,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminWritingPromptsPage() {
+  const { t } = useI18n();
   const [prompts, setPrompts] = useState<WritingPrompt[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterType, setFilterType] = useState<string>('ALL');
@@ -195,11 +197,11 @@ export default function AdminWritingPromptsPage() {
             <span>Phân hệ Quản trị IELTS Writing</span>
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
-            <span>Ngân Hàng Đề Thi IELTS Writing (Task 1 & Task 2)</span>
+            <span>{t('admin.writing_prompts.title', 'Ngân Hàng Đề Thi IELTS Writing (Task 1 & Task 2)')}</span>
             {loading && <RefreshCw className="w-4 h-4 animate-spin text-primary" />}
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Quản lý danh mục đề bài luyện viết, thiết lập số từ tối thiểu và hình ảnh biểu đồ cho Task 1.
+            {t('admin.writing_prompts.subtitle', 'Quản lý danh mục đề bài luyện viết, thiết lập số từ tối thiểu và hình ảnh biểu đồ cho Task 1.')}
           </p>
         </div>
 
@@ -209,7 +211,7 @@ export default function AdminWritingPromptsPage() {
           className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs transition shadow-md shadow-primary/20 flex items-center space-x-1.5"
         >
           <Plus className="w-4 h-4" />
-          <span>Tạo Đề Bài Mới</span>
+          <span>{t('admin.writing_prompts.btn_new', 'Tạo Đề Bài Mới')}</span>
         </button>
       </div>
 
@@ -273,7 +275,7 @@ export default function AdminWritingPromptsPage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm theo tiêu đề hoặc nội dung..."
+            placeholder={t('admin.writing_prompts.search', 'Tìm kiếm theo tiêu đề hoặc nội dung...')}
             className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl border border-line bg-slate-50 focus:bg-white focus:outline-none focus:border-primary transition"
           />
         </div>

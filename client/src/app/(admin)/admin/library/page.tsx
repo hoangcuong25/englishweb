@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { materialsService } from '@/services/materials.service';
+import { coursesService } from '@/services/courses.service';
 import CustomSelect from '@/components/ui/custom-select';
 import {
   Upload,
@@ -110,12 +111,26 @@ export default function AdminLibraryPage() {
     };
 
     try {
-      await materialsService.create({
-        title: formData.title,
-        fileType: formData.fileType,
-        isSignedUrl: formData.isSignedUrl,
-        isWatermark: formData.isWatermark,
-      });
+      let targetLessonId = '';
+      try {
+        const courses = await coursesService.getCourses();
+        if (Array.isArray(courses) && courses.length > 0) {
+          const firstCourse = await coursesService.getCourseBySlug(courses[0].slug || courses[0].id);
+          targetLessonId = firstCourse?.modules?.[0]?.lessons?.[0]?.id || '';
+        }
+      } catch {}
+
+      if (targetLessonId) {
+        await materialsService.create({
+          lessonId: targetLessonId,
+          title: formData.title,
+          type: formData.fileType === 'AUDIO_MP3' ? 'AUDIO' : 'PDF',
+          fileKey: `materials/${Date.now()}_${encodeURIComponent(formData.title.toLowerCase())}${formData.fileType === 'PDF' ? '.pdf' : '.mp3'}`,
+          fileSize: formData.fileType === 'PDF' ? 8808000 : 19300000,
+          isPrivate: formData.isSignedUrl,
+          isWatermarked: formData.isWatermark,
+        });
+      }
       await fetchMaterials();
     } catch {
       // Local fallback

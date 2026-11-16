@@ -10,6 +10,8 @@ import { ClassroomControls } from './classroom-controls';
 import { ClassroomSidebar, ChatMessage } from './classroom-sidebar';
 import { Loader2, Wifi, Monitor, PhoneOff, AlertTriangle, X, LogOut } from 'lucide-react';
 import { Room, RoomEvent } from 'livekit-client';
+import { toast } from '@/components/ui/toast';
+import { getWhiteboardSocket } from '@/lib/socket';
 
 interface ClassroomContainerProps {
   roomId: string;
@@ -35,6 +37,14 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
 
   // Sidebar States
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isSidebarOpenRef = useRef(isSidebarOpen);
+  isSidebarOpenRef.current = isSidebarOpen;
+
+  const routerRef = useRef(router);
+  routerRef.current = router;
+
+  const setupMockClassroomRef = useRef<(() => void) | null>(null);
+
   const [sidebarTab, setSidebarTab] = useState<'participants' | 'chat'>('chat');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
@@ -110,14 +120,14 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
                 setWbBgImage(data.bgImage);
               }
             } else if (data.type === 'CLASS_ENDED') {
-              alert('Giảng viên đã kết thúc buổi học trực tuyến. Bạn sẽ được chuyển về Dashboard.');
+              toast.info('Giảng viên đã kết thúc buổi học trực tuyến. Bạn sẽ được chuyển về Dashboard.');
               roomRef.current?.disconnect();
-              router.push('/student/dashboard');
+              routerRef.current.push('/student/dashboard');
             } else if (data.type === 'WB_PERMS') {
               setAllowStudentDrawing(data.allow);
             } else if (data.type === 'CHAT') {
               setMessages((prev) => [...prev, { ...data.message, isMe: false }]);
-              if (!isSidebarOpen) {
+              if (!isSidebarOpenRef.current) {
                 setUnreadChatCount((prev) => prev + 1);
               }
             } else if (data.type === 'HAND_RAISE') {
@@ -149,7 +159,7 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
         console.warn('LiveKit SFU not reachable on ws://localhost:7880. Entering Interactive Preview Sandbox Mode.', err);
         if (isMounted) {
           setIsSandboxMode(true);
-          setupMockClassroom();
+          setupMockClassroomRef.current?.();
         }
       } finally {
         if (isMounted) {
@@ -250,13 +260,60 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
     ]);
   }, [user, isHost, isMuted, isVideoOff, isHandRaised]);
 
-  // Broadcast data helper
+  setupMockClassroomRef.current = setupMockClassroom;
+
+  // RT-01: Connect Whiteboard Socket namespace for dual realtime synchronization
+  useEffect(() => {
+    const wbSocket = getWhiteboardSocket();
+    wbSocket.emit('join_room', { roomId, isHost });
+
+    const handleRemoteWhiteboardAction = (data: {
+      type?: string;
+      stroke?: WhiteboardStroke;
+      image?: string | null;
+    }) => {
+      if (!data) return;
+      if (data.type === 'WB_STROKE' && data.stroke) {
+        const stroke = data.stroke;
+        setStrokes((prev) => [...prev, stroke]);
+      } else if (data.type === 'WB_CLEAR') {
+        setStrokes([]);
+      } else if (data.type === 'WB_BG_IMAGE') {
+        setWbBgImage(data.image || null);
+      } else if (data.type === 'WB_UNDO') {
+        setStrokes((prev) => (prev.length > 0 ? prev.slice(0, prev.length - 1) : []));
+      }
+    };
+
+    wbSocket.on('whiteboard_action', handleRemoteWhiteboardAction);
+    return () => {
+      wbSocket.off('whiteboard_action', handleRemoteWhiteboardAction);
+    };
+  }, [roomId, isHost]);
+
+  // Broadcast data helper with dual realtime fallback
   const broadcastData = useCallback((data: Record<string, unknown>) => {
+    let sentViaWebRTC = false;
     if (roomRef.current && isConnected) {
-      const payload = new TextEncoder().encode(JSON.stringify(data));
-      roomRef.current.localParticipant.publishData(payload, { reliable: true });
+      try {
+        const payload = new TextEncoder().encode(JSON.stringify(data));
+        roomRef.current.localParticipant.publishData(payload, { reliable: true });
+        sentViaWebRTC = true;
+      } catch (err) {
+        console.warn('LiveKit DataChannel broadcast error:', err);
+      }
     }
-  }, [isConnected]);
+
+    // RT-01: Dual Realtime Fallback via Whiteboard Socket
+    if (!sentViaWebRTC && data.type && typeof data.type === 'string' && data.type.startsWith('WB_')) {
+      try {
+        const wbSocket = getWhiteboardSocket();
+        wbSocket.emit('whiteboard_action', { roomId, ...data });
+      } catch (socketErr) {
+        console.warn('Whiteboard socket broadcast error:', socketErr);
+      }
+    }
+  }, [isConnected, roomId]);
 
   // Whiteboard Actions
   const handleStrokeComplete = (stroke: WhiteboardStroke) => {

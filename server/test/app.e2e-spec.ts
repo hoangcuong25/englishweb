@@ -26,7 +26,7 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
       .useValue(mockPrisma)
       .compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication({ rawBody: true });
     app.setGlobalPrefix('api');
     app.use(cookieParser());
     app.useGlobalPipes(
@@ -274,13 +274,14 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
       expect(response.body).toHaveProperty('message');
 
       // Verify login with new password works
-      await request(app.getHttpServer())
+      const loginRes = await request(app.getHttpServer())
         .post('/api/auth/login')
         .send({
           email: 'student@englishweb.com',
           password: 'NewStudent@654321',
         })
         .expect(200);
+      studentAccessToken = loginRes.body.accessToken;
     });
 
     it('FR-1.5: POST /api/auth/change-password with wrong old password should fail (400)', async () => {
@@ -1320,6 +1321,7 @@ describe('English Learning LMS & WebRTC E2E Test Suite (Comprehensive)', () => {
 
       expect(response.body.user).toHaveProperty('role', 'STUDENT');
       expect(response.body).toHaveProperty('accessToken');
+      studentAccessToken = response.body.accessToken;
     });
   });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { toast } from '@/components/ui/toast';
 import {
   Pen,
   Highlighter,
@@ -90,6 +91,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
   const [strokes, setStrokes] = useState<WhiteboardStroke[]>([]);
   const [bgImage, setBgImage] = useState<string | null>(backgroundImage || null);
 
+  const strokesRef = useRef<WhiteboardStroke[]>(strokes);
+  strokesRef.current = strokes;
+  const redrawBackgroundRef = useRef<((strokeList: WhiteboardStroke[]) => void) | null>(null);
+
   // High performance drawing refs (outside React State to avoid re-renders)
   const isDrawingRef = useRef(false);
   const currentPointsRef = useRef<Point[]>([]);
@@ -110,12 +115,12 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         bgImageElementRef.current = img;
-        redrawBackground(strokes);
+        redrawBackgroundRef.current?.(strokesRef.current);
       };
       img.src = bgImage;
     } else {
       bgImageElementRef.current = null;
-      redrawBackground(strokes);
+      redrawBackgroundRef.current?.(strokesRef.current);
     }
   }, [bgImage]);
 
@@ -269,6 +274,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     },
     [drawStrokeToContext]
   );
+  redrawBackgroundRef.current = redrawBackground;
 
   // Synchronize remote strokes from LiveKit DataChannel
   useEffect(() => {
@@ -503,7 +509,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn file hình ảnh (PNG, JPG, WebP) của đề bài hoặc tài liệu.');
+      toast.error('Vui lòng chọn file hình ảnh (PNG, JPG, WebP) của đề bài hoặc tài liệu.');
       return;
     }
 

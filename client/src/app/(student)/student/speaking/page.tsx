@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { speakingService } from '@/services/speaking.service';
+import { toast } from '@/components/ui/toast';
 import {
   Square,
   RotateCcw,
@@ -135,7 +136,7 @@ export default function StudentSpeakingPage() {
       mediaRecorderRef.current.start();
       setIsRecording(true);
     } catch {
-      alert('Không thể truy cập microphone. Vui lòng cấp quyền micro cho trình duyệt!');
+      toast.error('Không thể truy cập microphone. Vui lòng cấp quyền micro cho trình duyệt!');
     }
   };
 

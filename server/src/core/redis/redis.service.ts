@@ -41,6 +41,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       process.env.REDIS_URL ||
       '';
 
+    if (!rawUrl && (this.configService.get<string>('REDIS_HOST') || process.env.REDIS_HOST)) {
+      const host = this.configService.get<string>('REDIS_HOST') || process.env.REDIS_HOST;
+      const port = this.configService.get<string>('REDIS_PORT') || process.env.REDIS_PORT || '6379';
+      rawUrl = `redis://${host}:${port}`;
+    }
+
     // Strip wrapping quotes and whitespace if present
     rawUrl = rawUrl.trim().replace(/^["']|["']$/g, '');
 

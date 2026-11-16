@@ -20,6 +20,7 @@ import {
 
 interface StudentUser {
   id: string;
+  code?: string;
   fullName: string;
   email: string;
   phone: string;
@@ -83,7 +84,8 @@ export default function AdminUsersPage() {
       if (Array.isArray(data) && data.length > 0) {
         type RawStudent = UserProfile & { targetBand?: string; enrollments?: { course?: { title?: string } }[] };
         const mapped: StudentUser[] = (data as RawStudent[]).map((u, idx: number) => ({
-          id: u.id ? (u.id.length > 8 ? `HV-${u.id.substring(0, 4).toUpperCase()}` : u.id) : `HV-010${idx + 1}`,
+          id: u.id,
+          code: u.id ? (u.id.length > 8 ? `HV-${u.id.substring(0, 4).toUpperCase()}` : u.id) : `HV-010${idx + 1}`,
           fullName: u.fullName || u.email,
           email: u.email,
           phone: u.phone || '090-xxx-xxxx',
@@ -262,7 +264,7 @@ export default function AdminUsersPage() {
                 <tr key={u.id} className="hover:bg-slate-50/50 transition">
                   <td className="py-3.5 px-4">
                     <p className="font-bold text-slate-800">{u.fullName}</p>
-                    <span className="text-[11px] font-mono text-muted">{u.id}</span>
+                    <span className="text-[11px] font-mono text-muted">{u.code || u.id}</span>
                   </td>
                   <td className="py-3.5 px-4 space-y-0.5">
                     <p className="text-slate-700 flex items-center space-x-1">

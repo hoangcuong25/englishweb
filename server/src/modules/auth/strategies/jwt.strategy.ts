@@ -3,14 +3,22 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../core/prisma/prisma.service';
+import { RedisService } from '../../../core/redis/redis.service';
 import { Request } from 'express';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
+    private redisService: RedisService,
   ) {
+    const jwtSecret = configService.get<string>('JWT_SECRET');
+    if (!jwtSecret) {
+      throw new Error('FATAL SECURITY ERROR: JWT_SECRET environment variable is missing!');
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
@@ -25,11 +33,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'your_super_secret_jwt_key_2026'),
+      secretOrKey: jwtSecret,
     });
   }
 
-  async validate(payload: { sub: string; email: string; role: string }) {
+  async validate(payload: { sub: string; email: string; role: string; sessionId?: string }) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -44,6 +52,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user || !user.isActive) {
       throw new UnauthorizedException('User account is inactive or not found');
+    }
+
+    // SEC-02: Realtime Single Concurrent Session validation for STUDENT
+    if (user.role === Role.STUDENT && payload.sessionId) {
+      const activeSessionId = await this.redisService.get(`user:active_session:${user.id}`);
+      if (activeSessionId && activeSessionId !== payload.sessionId) {
+        throw new UnauthorizedException(
+          'Phiên đăng nhập đã bị vô hiệu hóa do có đăng nhập mới trên thiết bị khác',
+        );
+      }
     }
 
     return user;

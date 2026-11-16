@@ -260,19 +260,30 @@ export class QuizzesService {
       if (studentAns) {
         if (studentAns.selectedOptionId) {
           const selectedOption = q.options.find(
-            (o) => o.id === studentAns.selectedOptionId,
+            (o) =>
+              o.id === studentAns.selectedOptionId ||
+              o.content.trim().toLowerCase() === studentAns.selectedOptionId.trim().toLowerCase(),
           );
           if (selectedOption?.isCorrect) {
             isCorrect = true;
           }
         } else if (studentAns.textAnswer) {
+          const normalizedAns = studentAns.textAnswer.trim().toLowerCase();
           const correctOption = q.options.find((o) => o.isCorrect);
           if (
             correctOption &&
-            correctOption.content.trim().toLowerCase() ===
-              studentAns.textAnswer.trim().toLowerCase()
+            (correctOption.content.trim().toLowerCase() === normalizedAns ||
+              correctOption.id === studentAns.textAnswer)
           ) {
             isCorrect = true;
+          } else {
+            // Also check if any option matches
+            const matchedOpt = q.options.find(
+              (o) => o.content.trim().toLowerCase() === normalizedAns,
+            );
+            if (matchedOpt?.isCorrect) {
+              isCorrect = true;
+            }
           }
         }
       }

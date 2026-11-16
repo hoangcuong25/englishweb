@@ -101,10 +101,14 @@ export class LivekitController {
   @Post('webhook')
   @ApiOperation({ summary: 'LiveKit SFU webhook endpoint for participant events' })
   async handleWebhook(
-    @Req() req: Request,
+    @Req() req: any,
     @Headers('authorization') authHeader: string,
   ) {
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const rawBody = req.rawBody
+      ? req.rawBody.toString('utf-8')
+      : typeof req.body === 'string'
+        ? req.body
+        : JSON.stringify(req.body);
     return this.livekitService.handleWebhook(rawBody, authHeader);
   }
 

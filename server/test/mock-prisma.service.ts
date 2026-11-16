@@ -192,6 +192,91 @@ export class MockPrismaService {
       { id: 'opt-1', questionId: sampleQ.id, content: 'However', isCorrect: true },
       { id: 'opt-2', questionId: sampleQ.id, content: 'Moreover', isCorrect: false },
     );
+
+    // Seed IELTS Academic Reading Mock Test
+    const readingMock = {
+      id: 'mock-reading-cambridge-academic',
+      lessonId: sampleLesson.id,
+      title: 'IELTS Academic Reading Mock Test: The Architecture of Sustainable Smart Cities',
+      description: 'Mô phỏng đề thi Cambridge Reading chia đôi màn hình chuẩn thi thật kèm bài đọc dài.',
+      skill: 'READING',
+      testType: 'FULL_MOCK_TEST',
+      passage: 'READING PASSAGE 1: THE ARCHITECTURE OF SUSTAINABLE SMART CITIES\n\nParagraph A: Over the past two decades, the conceptual paradigm of urban development has pivoted drastically towards environmental sustainability...\n\nParagraph B: One of the pioneering manifestations of this architectural evolution is the Bosco Verticale (Vertical Forest) in Milan, Italy...',
+      timeLimitMinutes: 20,
+      passScore: 80,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.quizzes.push(readingMock);
+
+    const rq1 = {
+      id: 'reading-q-1',
+      quizId: readingMock.id,
+      content: 'Which heading corresponds to the main idea of Paragraph A?',
+      type: 'MATCHING_HEADINGS',
+      skill: 'READING',
+      subCategory: 'Paragraph A',
+      points: 2.0,
+      explanation: 'Đoạn A khái quát các áp lực môi trường và giới thiệu triết lý biophilic architecture.',
+      orderIndex: 1,
+    };
+    this.questions.push(rq1);
+    this.questionOptions.push(
+      { id: 'ro-1', questionId: rq1.id, content: 'i. Financial obstacles and equity challenges', isCorrect: false },
+      { id: 'ro-2', questionId: rq1.id, content: 'ii. Urgent environmental pressures driving biological city planning', isCorrect: true },
+      { id: 'ro-3', questionId: rq1.id, content: 'iii. Maintenance hurdles and water system mechanics', isCorrect: false },
+    );
+
+    const rq2 = {
+      id: 'reading-q-2',
+      quizId: readingMock.id,
+      content: 'According to Paragraph B, the foliage on the Milan towers reduces incoming traffic noise by 25 decibels.',
+      type: 'TRUE_FALSE_NOT_GIVEN',
+      skill: 'READING',
+      subCategory: 'Paragraph B',
+      points: 2.0,
+      explanation: 'Đoạn B nêu rõ: "foliage dampens external traffic resonance by approximately 25 decibels" -> TRUE.',
+      orderIndex: 2,
+    };
+    this.questions.push(rq2);
+    this.questionOptions.push(
+      { id: 'ro-4', questionId: rq2.id, content: 'TRUE', isCorrect: true },
+      { id: 'ro-5', questionId: rq2.id, content: 'FALSE', isCorrect: false },
+      { id: 'ro-6', questionId: rq2.id, content: 'NOT GIVEN', isCorrect: false },
+    );
+
+    // Seed IELTS Listening Mock Test
+    const listeningMock = {
+      id: 'mock-listening-cambridge-section-1',
+      lessonId: sampleLesson.id,
+      title: 'IELTS Listening Mock Test: University Campus Accommodation & Facilities Registration',
+      description: 'Mô phỏng đề thi Cambridge Listening kèm audio player trực quan và phân loại dạng câu hỏi.',
+      skill: 'LISTENING',
+      testType: 'FULL_MOCK_TEST',
+      audioUrl: 'https://actions.google.com/sounds/v1/ambiences/office_room_tone.ogg',
+      timeLimitMinutes: 15,
+      passScore: 80,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.quizzes.push(listeningMock);
+
+    const lq1 = {
+      id: 'listening-q-1',
+      quizId: listeningMock.id,
+      content: 'Complete the student registration card with NO MORE THAN TWO WORDS: "Hall of Residence preference: _______ Hall"',
+      type: 'NOTE_COMPLETION',
+      skill: 'LISTENING',
+      subCategory: 'Campus Hall Preference',
+      points: 2.0,
+      explanation: 'Sinh viên đăng ký tại khu ký túc xá Westlake Hall.',
+      orderIndex: 1,
+    };
+    this.questions.push(lq1);
+    this.questionOptions.push(
+      { id: 'lo-1', questionId: lq1.id, content: 'Westlake', isCorrect: true },
+      { id: 'lo-2', questionId: lq1.id, content: 'Eastlake', isCorrect: false },
+    );
   }
 
   // --- USER REPOSITORY ---

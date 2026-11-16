@@ -288,6 +288,7 @@ export class AuthService {
     // Invalidate user in Redis session store
     await this.redisService.set(`blacklist:user:${userId}`, 'revoked', 7 * 24 * 3600);
     await this.redisService.del(`user:session:${userId}`);
+    await this.redisService.del(`user:active_session:${userId}`);
 
     // Dispatch English security alert email asynchronously
     try {
@@ -347,11 +348,19 @@ export class AuthService {
    */
   async logout(refreshToken?: string) {
     if (refreshToken) {
+      const tokenRecord = await this.prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+        select: { userId: true },
+      });
       await this.prisma.refreshToken.updateMany({
         where: { token: refreshToken, revokedAt: null },
         data: { revokedAt: new Date(), isRevoked: true },
       });
       await this.redisService.set(`blacklist:token:${refreshToken}`, 'revoked', 7 * 24 * 3600);
+      if (tokenRecord?.userId) {
+        await this.redisService.del(`user:session:${tokenRecord.userId}`);
+        await this.redisService.del(`user:active_session:${tokenRecord.userId}`);
+      }
     }
     return { message: 'Logged out successfully' };
   }
@@ -366,6 +375,7 @@ export class AuthService {
     });
     await this.redisService.set(`blacklist:user:${userId}`, 'revoked', 7 * 24 * 3600);
     await this.redisService.del(`user:session:${userId}`);
+    await this.redisService.del(`user:active_session:${userId}`);
     return { message: 'Logged out from all devices successfully' };
   }
 
@@ -465,10 +475,16 @@ export class AuthService {
     ipAddress?: string,
     userAgent?: string,
   ) {
-    const payload = { sub: userId, email, role };
+    const sessionId = randomBytes(16).toString('hex');
+    const payload = { sub: userId, email, role, sessionId };
+
+    const jwtSecret = this.configService.get<string>('JWT_SECRET');
+    if (!jwtSecret) {
+      throw new Error('FATAL SECURITY ERROR: JWT_SECRET environment variable is missing!');
+    }
 
     const accessToken = await this.jwtService.signAsync(payload, {
-      secret: this.configService.get<string>('JWT_SECRET', 'your_super_secret_jwt_key_2026'),
+      secret: jwtSecret,
       expiresIn: '15m', // 15 minutes as per SRS Security Standard
     });
 
@@ -486,6 +502,10 @@ export class AuthService {
         expiresAt,
       },
     });
+
+    if (role === Role.STUDENT) {
+      await this.redisService.set(`user:active_session:${userId}`, sessionId, 7 * 24 * 3600);
+    }
 
     return {
       accessToken,

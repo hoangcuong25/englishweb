@@ -1,4 +1,11 @@
-import { PrismaClient, Role, CourseCategory, QuestionType, NotificationType } from '@prisma/client';
+import {
+  PrismaClient,
+  Role,
+  CourseCategory,
+  QuestionType,
+  SkillType,
+  NotificationType,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -104,6 +111,87 @@ async function main() {
       { questionId: q1.id, content: 'At least 2 minutes uninterrupted speech', isCorrect: false },
       { questionId: q1.id, content: 'As long as possible until examiner stops you', isCorrect: false },
     ],
+  });
+
+  // 6b. Official IELTS Academic Reading Mock Test
+  const readingMock = await prisma.quiz.create({
+    data: {
+      lessonId: lesson1.id,
+      title: 'IELTS Academic Reading Mock Test: The Architecture of Sustainable Smart Cities',
+      description: 'Mô phỏng đề thi Cambridge Reading chia đôi màn hình chuẩn thi thật kèm bài đọc dài.',
+      skill: SkillType.READING,
+      testType: 'FULL_MOCK_TEST',
+      passage: `READING PASSAGE 1: THE ARCHITECTURE OF SUSTAINABLE SMART CITIES\n\nParagraph A: Over the past two decades, the conceptual paradigm of urban development has pivoted drastically towards environmental sustainability...\n\nParagraph B: One of the pioneering manifestations of this architectural evolution is the Bosco Verticale (Vertical Forest) in Milan, Italy...\n\nParagraph C: Despite these celebrated ecological dividends, structural engineers underscore substantial technical and logistical liabilities...`,
+      timeLimitMinutes: 20,
+      passScore: 80,
+    },
+  });
+
+  const rq1 = await prisma.question.create({
+    data: {
+      quizId: readingMock.id,
+      content: 'Which heading corresponds to the main idea of Paragraph A?',
+      type: QuestionType.MATCHING_HEADINGS,
+      skill: SkillType.READING,
+      points: 2.0,
+      explanation: 'Đoạn A khái quát các áp lực môi trường và giới thiệu triết lý biophilic architecture.',
+      orderIndex: 1,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: rq1.id, content: 'i. Financial obstacles and equity challenges', isCorrect: false },
+      { questionId: rq1.id, content: 'ii. Urgent environmental pressures driving biological city planning', isCorrect: true },
+      { questionId: rq1.id, content: 'iii. Maintenance hurdles and water system mechanics', isCorrect: false },
+    ],
+  });
+
+  const rq2 = await prisma.question.create({
+    data: {
+      quizId: readingMock.id,
+      content: 'According to Paragraph B, the foliage on the Milan towers reduces incoming traffic noise by 25 decibels.',
+      type: QuestionType.TRUE_FALSE_NOT_GIVEN,
+      skill: SkillType.READING,
+      points: 2.0,
+      explanation: 'Đoạn B nêu rõ: "foliage dampens external traffic resonance by approximately 25 decibels" -> TRUE.',
+      orderIndex: 2,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: rq2.id, content: 'TRUE', isCorrect: true },
+      { questionId: rq2.id, content: 'FALSE', isCorrect: false },
+      { questionId: rq2.id, content: 'NOT GIVEN', isCorrect: false },
+    ],
+  });
+
+  // 6c. Official IELTS Listening Mock Test
+  const listeningMock = await prisma.quiz.create({
+    data: {
+      lessonId: lesson1.id,
+      title: 'IELTS Listening Mock Test: University Campus Accommodation & Facilities Registration',
+      description: 'Mô phỏng đề thi Cambridge Listening kèm audio player trực quan và phân loại dạng câu hỏi.',
+      skill: SkillType.LISTENING,
+      testType: 'FULL_MOCK_TEST',
+      audioUrl: 'https://actions.google.com/sounds/v1/ambiences/office_room_tone.ogg',
+      timeLimitMinutes: 15,
+      passScore: 80,
+    },
+  });
+
+  const lq1 = await prisma.question.create({
+    data: {
+      quizId: listeningMock.id,
+      content: 'Complete the student registration card with NO MORE THAN TWO WORDS: "Hall of Residence preference: _______ Hall"',
+      type: QuestionType.NOTE_COMPLETION,
+      skill: SkillType.LISTENING,
+      points: 2.0,
+      explanation: 'Sinh viên đăng ký tại khu ký túc xá Westlake Hall.',
+      orderIndex: 1,
+    },
+  });
+  await prisma.questionOption.create({
+    data: { questionId: lq1.id, content: 'Westlake', isCorrect: true },
   });
 
   // 7. Create Speaking Prompt for Lesson 1

@@ -10,6 +10,8 @@ import { PrismaService } from '../../core/prisma/prisma.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { Role, MaterialType } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class MaterialsService {
@@ -20,9 +22,11 @@ export class MaterialsService {
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {
-    this.jwtSecret =
-      this.configService.get<string>('JWT_SECRET') ||
-      'teacher-dong-academy-jwt-secret-key-32chars';
+    const secret = this.configService.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('FATAL SECURITY ERROR: JWT_SECRET environment variable is missing!');
+    }
+    this.jwtSecret = secret;
   }
 
   private maskPhone(phone?: string | null): string {
@@ -286,12 +290,27 @@ export class MaterialsService {
     const contentType =
       material.type === MaterialType.PDF ? 'application/pdf' : 'audio/mpeg';
 
-    // Mock document content buffer for test/verification
-    const buffer = Buffer.from(
-      material.type === MaterialType.PDF
-        ? `%PDF-1.4 Mock Encrypted Secure Document for ${material.title}`
-        : `MOCK_AUDIO_MP3_STREAM_FOR_${material.title}`,
-    );
+    // BIZ-01: Check for physical file in private storage first
+    let buffer: Buffer;
+    const privateStorageDir = path.join(process.cwd(), 'private_storage', 'materials');
+    if (!fs.existsSync(privateStorageDir)) {
+      fs.mkdirSync(privateStorageDir, { recursive: true });
+    }
+
+    const physicalPath = material.fileKey
+      ? path.join(privateStorageDir, material.fileKey)
+      : path.join(privateStorageDir, `${material.id}.${material.type === MaterialType.PDF ? 'pdf' : 'mp3'}`);
+
+    if (fs.existsSync(physicalPath)) {
+      buffer = fs.readFileSync(physicalPath);
+    } else {
+      // Fallback document content buffer for test/verification
+      buffer = Buffer.from(
+        material.type === MaterialType.PDF
+          ? `%PDF-1.4 Mock Encrypted Secure Document for ${material.title}`
+          : `MOCK_AUDIO_MP3_STREAM_FOR_${material.title}`,
+      );
+    }
 
     return {
       material,
