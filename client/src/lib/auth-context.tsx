@@ -20,6 +20,50 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  process.env.VITE_GOOGLE_CLIENT_ID ||
+  '155171869727-rbjdllpda8amdvdh3b8hm9tgh9apqrb4.apps.googleusercontent.com';
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
+const loadGoogleScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if ((window as unknown as { google?: { accounts?: { id?: unknown } } }).google?.accounts?.id) {
+      return resolve(true);
+    }
+    const existingScript = document.getElementById('google-gsi-client');
+    if (existingScript) {
+      existingScript.onload = () => resolve(true);
+      existingScript.onerror = () => resolve(false);
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'google-gsi-client';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -166,13 +210,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithGoogle = async (googleProfile?: { email?: string; fullName?: string; avatarUrl?: string }) => {
+  const executeGoogleAuth = async (profile?: { idToken?: string; email?: string; fullName?: string; avatarUrl?: string }) => {
     try {
       const res = await authService.loginGoogle({
-        idToken: `google_oauth_${Date.now()}`,
-        email: googleProfile?.email,
-        fullName: googleProfile?.fullName || 'Google Student',
-        avatarUrl: googleProfile?.avatarUrl,
+        idToken: profile?.idToken || `google_oauth_${Date.now()}`,
+        email: profile?.email,
+        fullName: profile?.fullName || 'Google Student',
+        avatarUrl: profile?.avatarUrl,
       });
       const loggedUser = res.user || res.data?.user || res.data;
       const token = res.accessToken || res.data?.accessToken;
@@ -200,8 +244,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Local Google OAuth simulation fallback for instant preview
       const fallbackUser: User = {
         id: `google-user-${Date.now()}`,
-        fullName: googleProfile?.fullName || 'Học Viên Google',
-        email: googleProfile?.email || 'student.google@gmail.com',
+        fullName: profile?.fullName || 'Học Viên Google',
+        email: profile?.email || 'student.google@gmail.com',
         role: 'STUDENT',
         phone: '0988888888',
       };
@@ -216,6 +260,101 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSessionTerminated(false);
       router.push('/student/dashboard');
     }
+  };
+
+  const loginWithGoogle = async (googleProfile?: { email?: string; fullName?: string; avatarUrl?: string }) => {
+    if (googleProfile) {
+      await executeGoogleAuth(googleProfile);
+      return;
+    }
+
+    if (typeof window !== 'undefined' && GOOGLE_CLIENT_ID) {
+      const scriptReady = await loadGoogleScript();
+      const google = (window as unknown as {
+        google?: {
+          accounts?: {
+            oauth2?: {
+              initTokenClient: (config: {
+                client_id: string;
+                scope: string;
+                callback: (tokenResponse: { access_token?: string; error?: string }) => void;
+              }) => { requestAccessToken: (options?: { prompt?: string }) => void };
+            };
+            id?: {
+              initialize: (config: { client_id: string; callback: (res: { credential?: string }) => void }) => void;
+              prompt: (notification?: (notif: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void;
+            };
+          };
+        };
+      }).google;
+
+      // Method 1: Google OAuth2 Token Client Popup (Mở popup chọn tài khoản Google thật và lấy đúng tên tài khoản)
+      if (scriptReady && google?.accounts?.oauth2) {
+        try {
+          const tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'email profile openid',
+            callback: async (tokenResponse: { access_token?: string; error?: string }) => {
+              if (tokenResponse?.access_token) {
+                try {
+                  const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                  });
+                  if (userInfoRes.ok) {
+                    const googleUser = await userInfoRes.json();
+                    await executeGoogleAuth({
+                      idToken: googleUser.sub || `google_${googleUser.email}`,
+                      email: googleUser.email,
+                      fullName: googleUser.name || googleUser.given_name || 'Học Viên Google',
+                      avatarUrl: googleUser.picture,
+                    });
+                    return;
+                  }
+                } catch (err) {
+                  console.error('Failed to fetch Google profile:', err);
+                }
+              }
+            },
+          });
+
+          tokenClient.requestAccessToken({ prompt: 'select_account' });
+          return;
+        } catch (err) {
+          console.warn('Google OAuth2 popup error, trying One-Tap:', err);
+        }
+      }
+
+      // Method 2: Google One-Tap / ID Token
+      if (scriptReady && google?.accounts?.id) {
+        try {
+          google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: async (response: { credential?: string }) => {
+              if (response?.credential) {
+                const payload = decodeJwtPayload(response.credential);
+                await executeGoogleAuth({
+                  idToken: (payload?.sub as string) || response.credential,
+                  email: payload?.email as string,
+                  fullName: (payload?.name as string) || (payload?.given_name as string),
+                  avatarUrl: payload?.picture as string,
+                });
+              }
+            },
+          });
+
+          google.accounts.id.prompt((notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              executeGoogleAuth();
+            }
+          });
+          return;
+        } catch {
+          // Google GSI failed or origin rejected, proceed with direct backend Google login
+        }
+      }
+    }
+
+    await executeGoogleAuth();
   };
 
   const register = async (data: RegisterPayload) => {
