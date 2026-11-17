@@ -15,6 +15,7 @@ import {
   Award,
   Sparkles,
   CalendarCheck,
+  Target,
 } from 'lucide-react';
 
 const ENGLISH_CATEGORIES = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'];
@@ -22,7 +23,7 @@ const ENGLISH_CATEGORIES = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'];
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [data, setData] = useState<StudentDashboardData | null>(null);
-  const [metricTab, setMetricTab] = useState<'ielts' | 'skills'>('ielts');
+  const [metricTab, setMetricTab] = useState<'ielts' | 'skills' | 'pedagogy'>('ielts');
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -38,23 +39,52 @@ export default function StudentDashboard() {
     fetchDashboard();
   }, []);
 
-  // Check courses to determine appropriate metric display
-  const hasEnglishEnrollment = useMemo(() => {
-    if (!data?.recentCourses || data.recentCourses.length === 0) return true;
-    return data.recentCourses.some(
+  // Dynamically determine which skill tracks the student is enrolled in
+  const enrolledTracks = useMemo(() => {
+    const courses = data?.recentCourses || [];
+    if (courses.length === 0) {
+      return ['ielts'] as ('ielts' | 'skills' | 'pedagogy')[];
+    }
+
+    const tracks: ('ielts' | 'skills' | 'pedagogy')[] = [];
+
+    const hasEnglish = courses.some(
       (c: { category?: string; isEnglishCourse?: boolean; title?: string }) =>
         (c.category && ENGLISH_CATEGORIES.includes(c.category)) ||
         c.isEnglishCourse === true ||
         (typeof c.title === 'string' && (c.title.includes('IELTS') || c.title.includes('English'))),
     );
+    if (hasEnglish) tracks.push('ielts');
+
+    const hasSkills = courses.some(
+      (c: { category?: string; title?: string }) =>
+        (c.category && ['LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(c.category)) ||
+        (typeof c.title === 'string' &&
+          (c.title.includes('Kỹ Năng') || c.title.includes('Skills') || c.title.includes('Sống'))),
+    );
+    if (hasSkills) tracks.push('skills');
+
+    const hasPedagogy = courses.some(
+      (c: { category?: string; title?: string }) =>
+        c.category === 'PEDAGOGY' ||
+        (typeof c.title === 'string' &&
+          (c.title.includes('Sư Phạm') || c.title.includes('Giảng Dạy') || c.title.includes('Pedagogy'))),
+    );
+    if (hasPedagogy) tracks.push('pedagogy');
+
+    if (tracks.length === 0) {
+      tracks.push('skills');
+    }
+
+    return tracks;
   }, [data]);
 
-  // If student has no English courses, default to skills
+  // Sync active metric tab to the first enrolled track
   useEffect(() => {
-    if (data?.recentCourses && data.recentCourses.length > 0 && !hasEnglishEnrollment) {
-      setMetricTab('skills');
+    if (enrolledTracks.length > 0 && !enrolledTracks.includes(metricTab)) {
+      setMetricTab(enrolledTracks[0]);
     }
-  }, [data, hasEnglishEnrollment]);
+  }, [enrolledTracks, metricTab]);
 
   // Compute stats with fallback
   const overview = data?.overview || {
@@ -166,56 +196,92 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Stat 3: Target Band / Skill Competency Index (Adaptive) */}
+        {/* Stat 3: Target Band / Adaptive Skill Competency Index */}
         <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted">
-              {metricTab === 'ielts' ? 'Điểm IELTS ước tính' : 'Chỉ số tích lũy kỹ năng'}
+              {enrolledTracks.length === 1
+                ? 'Mục tiêu cá nhân'
+                : metricTab === 'ielts'
+                ? 'Mục tiêu Tiếng Anh'
+                : metricTab === 'skills'
+                ? 'Mục tiêu Kỹ Năng'
+                : 'Mục tiêu Sư Phạm'}
             </span>
 
-            {/* Toggle metric pill */}
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[10px] font-extrabold">
-              <button
-                type="button"
-                onClick={() => setMetricTab('ielts')}
-                className={`px-1.5 py-0.5 rounded-md transition ${
-                  metricTab === 'ielts'
-                    ? 'bg-white text-amber-600 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                IELTS
-              </button>
-              <button
-                type="button"
-                onClick={() => setMetricTab('skills')}
-                className={`px-1.5 py-0.5 rounded-md transition ${
-                  metricTab === 'skills'
-                    ? 'bg-white text-emerald-600 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Kỹ Năng
-              </button>
-            </div>
+            {/* Toggle metric pill - only show when student has multiple tracks */}
+            {enrolledTracks.length > 1 && (
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[9.5px] font-extrabold">
+                {enrolledTracks.includes('ielts') && (
+                  <button
+                    type="button"
+                    onClick={() => setMetricTab('ielts')}
+                    className={`px-1.5 py-0.5 rounded-md transition ${
+                      metricTab === 'ielts'
+                        ? 'bg-white text-amber-600 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    Anh ngữ
+                  </button>
+                )}
+                {enrolledTracks.includes('skills') && (
+                  <button
+                    type="button"
+                    onClick={() => setMetricTab('skills')}
+                    className={`px-1.5 py-0.5 rounded-md transition ${
+                      metricTab === 'skills'
+                        ? 'bg-white text-emerald-600 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    Kỹ năng
+                  </button>
+                )}
+                {enrolledTracks.includes('pedagogy') && (
+                  <button
+                    type="button"
+                    onClick={() => setMetricTab('pedagogy')}
+                    className={`px-1.5 py-0.5 rounded-md transition ${
+                      metricTab === 'pedagogy'
+                        ? 'bg-white text-sky-600 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    Sư phạm
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <div>
-            {metricTab === 'ielts' ? (
+            {metricTab === 'ielts' && (
               <>
                 <div className="text-2xl sm:text-3xl font-black text-amber-500 tracking-tight">
                   Band {latestSpeaking?.overallBand ? latestSpeaking.overallBand.toFixed(1) : '7.0+'}
                 </div>
                 <p className="text-[11px] text-muted mt-1">
-                  Mục tiêu cá nhân: <strong>Band 7.5+</strong>
+                  Mục tiêu cá nhân: <strong className="text-amber-600">Band 7.5+ IELTS</strong>
                 </p>
               </>
-            ) : (
+            )}
+            {metricTab === 'skills' && (
               <>
                 <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
                   92/100
                 </div>
                 <p className="text-[11px] text-muted mt-1">
-                  Xếp loại năng lực: <strong className="text-emerald-700">Xuất Sắc ⭐</strong>
+                  Mục tiêu cá nhân: <strong className="text-emerald-700">Tích lũy &ge; 90đ (Xuất Sắc ⭐)</strong>
+                </p>
+              </>
+            )}
+            {metricTab === 'pedagogy' && (
+              <>
+                <div className="text-2xl sm:text-3xl font-black text-sky-600 tracking-tight">
+                  4/5 Modul
+                </div>
+                <p className="text-[11px] text-muted mt-1">
+                  Mục tiêu cá nhân: <strong className="text-sky-700">Chứng chỉ Giỏi ⭐</strong>
                 </p>
               </>
             )}
@@ -236,6 +302,128 @@ export default function StudentDashboard() {
             </div>
             <p className="text-[11px] text-muted mt-1">{attendance.present}/{attendance.totalSessions} buổi đúng giờ (PRESENT)</p>
           </div>
+        </div>
+      </div>
+
+      {/* 2.5. Multi-Skill Goals Tracking Banner - dynamically filtered to student's enrolled track(s) */}
+      <div className="bg-white rounded-3xl border border-line p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-sky-50 text-primary flex items-center justify-center">
+              <Target className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">
+                {enrolledTracks.length === 1 ? 'Mục Tiêu Cá Nhân Của Bạn' : 'Mục Tiêu Cá Nhân Theo Nhóm Kỹ Năng'}
+              </h3>
+              <p className="text-[11px] text-muted">
+                {enrolledTracks.length === 1
+                  ? 'Theo dõi chỉ số tích lũy và mục tiêu hoàn thành lộ trình bạn đang học.'
+                  : 'Theo dõi mục tiêu và chỉ số tích lũy cho toàn bộ các lộ trình bạn đang học tại Academy.'}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-100 self-start sm:self-auto">
+            {enrolledTracks.length === 1 ? 'Lộ Trình Đang Học' : `${enrolledTracks.length} Lộ Trình Đang Học`}
+          </span>
+        </div>
+
+        <div className={`grid gap-4 ${
+          enrolledTracks.length === 1
+            ? 'grid-cols-1 max-w-xl'
+            : enrolledTracks.length === 2
+            ? 'grid-cols-1 sm:grid-cols-2'
+            : 'grid-cols-1 md:grid-cols-3'
+        }`}>
+          {/* Track 1: Tiếng Anh & IELTS */}
+          {enrolledTracks.includes('ielts') && (
+            <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Tiếng Anh & IELTS</span>
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100/90 text-amber-800">
+                  Hiện tại: Band {latestSpeaking?.overallBand ? latestSpeaking.overallBand.toFixed(1) : '7.0'}
+                </span>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-500 font-medium">Mục tiêu cá nhân:</p>
+                <p className="text-sm font-black text-amber-700 mt-0.5">
+                  Target Band 7.5+ Academic
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                  <span>Tiến độ hoàn thành</span>
+                  <span className="text-amber-700 font-extrabold">88%</span>
+                </div>
+                <div className="w-full bg-amber-200/60 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-amber-500 h-full rounded-full" style={{ width: '88%' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Track 2: Kỹ Năng Mềm & Sống */}
+          {enrolledTracks.includes('skills') && (
+            <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200/70 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Kỹ Năng Mềm & Sống</span>
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-800">
+                  Hiện tại: 92/100đ
+                </span>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-500 font-medium">Mục tiêu cá nhân:</p>
+                <p className="text-sm font-black text-emerald-700 mt-0.5">
+                  Tích lũy &ge; 90đ (Xuất Sắc ⭐)
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                  <span>Tiến độ hoàn thành</span>
+                  <span className="text-emerald-700 font-extrabold">92%</span>
+                </div>
+                <div className="w-full bg-emerald-200/60 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: '92%' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Track 3: Sư Phạm & Giảng Dạy EdTech */}
+          {enrolledTracks.includes('pedagogy') && (
+            <div className="p-4 rounded-2xl bg-sky-50/40 border border-sky-200/70 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-sky-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Sư Phạm & Nghiệp Vụ</span>
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100/90 text-sky-800">
+                  Hiện tại: 4/5 Chuyên đề
+                </span>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-500 font-medium">Mục tiêu cá nhân:</p>
+                <p className="text-sm font-black text-sky-700 mt-0.5">
+                  Chứng chỉ Sư Phạm Xuất Sắc ⭐
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                  <span>Tiến độ hoàn thành</span>
+                  <span className="text-sky-700 font-extrabold">80%</span>
+                </div>
+                <div className="w-full bg-sky-200/60 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-sky-500 h-full rounded-full" style={{ width: '80%' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

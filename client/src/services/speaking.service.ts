@@ -82,7 +82,7 @@ export const speakingService = {
       pronunciationScore: number;
       bandScore?: number;
       feedback?: string;
-      timestampFeedback?: any[];
+      timestampFeedback?: TimestampComment[] | Record<string, unknown>[];
       timestampComments?: TimestampComment[];
     },
   ) {

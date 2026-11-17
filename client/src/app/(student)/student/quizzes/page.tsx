@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import { quizzesService } from '@/services/quizzes.service';
+import { coursesService, Course } from '@/services/courses.service';
 import { RadarChart, RadarChartItem } from '@/components/ui/radar-chart';
 import { toast } from '@/components/ui/toast';
 import {
@@ -11,6 +13,9 @@ import {
   XCircle,
   RotateCcw,
   Unlock,
+  Lock,
+  CreditCard,
+  AlertTriangle,
   RefreshCw,
   Award,
   BookOpen,
@@ -63,6 +68,11 @@ export interface QuizTestData {
 }
 
 export default function StudentQuizPage() {
+  // Entitlement / Access State
+  const [accessLoading, setAccessLoading] = useState(true);
+  const [hasEnglishAccess, setHasEnglishAccess] = useState(false);
+  const [availableEnglishCourses, setAvailableEnglishCourses] = useState<Course[]>([]);
+
   // Test Selection State
   const [selectedQuizIndex, setSelectedQuizIndex] = useState<number>(0);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -283,6 +293,49 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
   const activeQuiz = testsList[selectedQuizIndex] || testsList[0];
   const questions = activeQuiz.questions;
   const currentQuestion = questions[currentIdx] || questions[0];
+
+  // Check IELTS entitlement on mount
+  useEffect(() => {
+    const checkAccess = async () => {
+      setAccessLoading(true);
+      try {
+        const accessRes = await coursesService.checkIeltsAccess();
+        if (accessRes && accessRes.hasAccess) {
+          setHasEnglishAccess(true);
+        } else {
+          const myLearning = await coursesService.getMyLearning();
+          if (Array.isArray(myLearning)) {
+            const hasActiveEnglish = myLearning.some(
+              (c: Record<string, unknown>) =>
+                ((c.status as string) === 'ACTIVE' || !c.status) &&
+                (['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(c.category as string) ||
+                 c.isEnglishCourse === true ||
+                 (typeof c.title === 'string' && (c.title.includes('IELTS') || c.title.includes('English'))))
+            );
+            setHasEnglishAccess(hasActiveEnglish);
+          } else {
+            setHasEnglishAccess(false);
+          }
+        }
+
+        // Fetch courses for recommendation if locked
+        const catalog = await coursesService.getCourses();
+        if (Array.isArray(catalog)) {
+          const englishOnly = catalog.filter(
+            (c) =>
+              ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(c.category) ||
+              (c.title && (c.title.includes('IELTS') || c.title.includes('English')))
+          );
+          setAvailableEnglishCourses(englishOnly.slice(0, 4));
+        }
+      } catch {
+        setHasEnglishAccess(false);
+      } finally {
+        setAccessLoading(false);
+      }
+    };
+    checkAccess();
+  }, []);
 
   // Fetch real tests from Backend API on mount
   useEffect(() => {
@@ -599,6 +652,84 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
 
   const isReadingSplitView = activeQuiz.skill === 'READING';
   const isListeningExam = activeQuiz.skill === 'LISTENING';
+
+  if (accessLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <RefreshCw className="w-8 h-8 animate-spin text-sky-600" />
+        <span className="text-xs font-semibold text-slate-500">Đang kiểm tra quyền truy cập phòng thi IELTS Mock Test...</span>
+      </div>
+    );
+  }
+
+  if (!hasEnglishAccess) {
+    return (
+      <div className="max-w-3xl mx-auto my-8 p-8 sm:p-12 rounded-3xl bg-white border border-line shadow-xl text-center space-y-6">
+        <div className="w-20 h-20 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner border border-amber-200">
+          <Lock className="w-10 h-10 text-amber-600" />
+        </div>
+
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+            Phân Hệ Đang Bị Khóa
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            Yêu Cầu Sở Hữu Khóa Học Tiếng Anh Để Làm IELTS Mock Tests
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
+            Hệ thống đề thi thử IELTS Mock Test (Chia đôi màn hình Reading với công cụ Highlight, Nghe audio streaming, Chấm điểm và phân tích Radar Chart dạng bài) chỉ dành cho học viên đăng ký các khóa học <strong>Tiếng Anh</strong> (IELTS, Business English, Kids). Hiện tại tài khoản của bạn chưa có khóa học Tiếng Anh nào được kích hoạt.
+          </p>
+        </div>
+
+        {/* Suggested English Courses */}
+        <div className="pt-4 border-t border-slate-100 space-y-4 text-left">
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider text-center">
+            Đăng ký khóa học Tiếng Anh để kích hoạt phòng thi thử:
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {availableEnglishCourses.map((c) => (
+              <div
+                key={c.id}
+                className="p-5 rounded-2xl border border-slate-200 hover:border-sky-500 bg-slate-50/50 hover:bg-sky-50/20 transition-all flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-black uppercase">
+                    {c.category || 'IELTS'}
+                  </span>
+                  <h4 className="font-extrabold text-sm text-slate-900 leading-snug line-clamp-2">
+                    {c.title}
+                  </h4>
+                  <p className="text-xs text-slate-500 line-clamp-2">
+                    {c.description || 'Chương trình luyện thi IELTS chuẩn Cambridge tích hợp AI.'}
+                  </p>
+                </div>
+
+                <Link
+                  href="/student/courses"
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs shadow-sm transition-all"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>Xem khóa học & Quét QR đăng ký</span>
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center pt-2">
+            <Link
+              href="/student/courses"
+              className="inline-flex items-center gap-2 text-xs font-black text-sky-600 hover:text-sky-700 underline"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Xem tất cả khóa học trên hệ thống</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">

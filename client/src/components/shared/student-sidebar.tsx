@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n-context';
+import { coursesService } from '@/services/courses.service';
 import {
   LayoutDashboard,
   BookOpen,
@@ -13,12 +14,33 @@ import {
   MessageSquare,
   UserCheck,
   Award,
+  Target,
 } from 'lucide-react';
+
+interface StudentGoalItem {
+  track: 'english' | 'skills' | 'pedagogy';
+  label: string;
+  badge: string;
+  value: string;
+  dotColor: string;
+  textColor: string;
+}
 
 export default function StudentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
+
+  const [activeGoals, setActiveGoals] = useState<StudentGoalItem[]>([
+    {
+      track: 'english',
+      label: 'IELTS Band',
+      badge: 'Tiếng Anh',
+      value: '7.5+ Academic',
+      dotColor: 'bg-amber-500',
+      textColor: 'text-amber-600',
+    },
+  ]);
 
   const navItems = [
     { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
@@ -36,6 +58,96 @@ export default function StudentSidebar() {
     navItems.forEach((item) => {
       router.prefetch(item.href);
     });
+
+    let isMounted = true;
+    coursesService.getMyLearning()
+      .then((courses) => {
+        if (!isMounted || !Array.isArray(courses)) return;
+
+        const goals: StudentGoalItem[] = [];
+
+        const hasEnglish = courses.some(
+          (c: Record<string, unknown>) =>
+            ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(c.category as string) ||
+            c.isEnglishCourse === true ||
+            (typeof c.title === 'string' && (c.title.includes('IELTS') || c.title.includes('English'))),
+        );
+        if (hasEnglish) {
+          goals.push({
+            track: 'english',
+            label: 'IELTS Band',
+            badge: 'Tiếng Anh',
+            value: '7.5+ Academic',
+            dotColor: 'bg-amber-500',
+            textColor: 'text-amber-600',
+          });
+        }
+
+        const hasSkills = courses.some(
+          (c: Record<string, unknown>) =>
+            ['LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(c.category as string) ||
+            (typeof c.title === 'string' &&
+              (c.title.includes('Kỹ Năng') || c.title.includes('Skills') || c.title.includes('Sống'))),
+        );
+        if (hasSkills) {
+          goals.push({
+            track: 'skills',
+            label: 'Kỹ Năng Sống',
+            badge: 'Kỹ Năng Mềm',
+            value: '≥ 90đ (Xuất Sắc ⭐)',
+            dotColor: 'bg-emerald-500',
+            textColor: 'text-emerald-600',
+          });
+        }
+
+        const hasPedagogy = courses.some(
+          (c: Record<string, unknown>) =>
+            c.category === 'PEDAGOGY' ||
+            (typeof c.title === 'string' &&
+              (c.title.includes('Sư Phạm') || c.title.includes('Giảng Dạy') || c.title.includes('Pedagogy'))),
+        );
+        if (hasPedagogy) {
+          goals.push({
+            track: 'pedagogy',
+            label: 'Nghiệp Vụ',
+            badge: 'Sư Phạm',
+            value: 'Chứng chỉ Giỏi ⭐',
+            dotColor: 'bg-blue-500',
+            textColor: 'text-blue-600',
+          });
+        }
+
+        if (goals.length > 0) {
+          setActiveGoals(goals);
+        } else if (courses.length > 0) {
+          setActiveGoals([
+            {
+              track: 'skills',
+              label: 'Năng Lực',
+              badge: 'Khóa Học',
+              value: 'Hoàn Thành Xuất Sắc ⭐',
+              dotColor: 'bg-emerald-500',
+              textColor: 'text-emerald-600',
+            },
+          ]);
+        } else {
+          setActiveGoals([
+            {
+              track: 'skills',
+              label: 'Mục Tiêu',
+              badge: 'Học Tập',
+              value: 'Tích Lũy Kỹ Năng ⭐',
+              dotColor: 'bg-primary',
+              textColor: 'text-primary',
+            },
+          ]);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -70,13 +182,47 @@ export default function StudentSidebar() {
         })}
       </nav>
 
-      {/* Target Band status */}
-      <div className="p-3 m-3 rounded-xl bg-sky-50 border border-sky-100 text-xs">
-        <p className="font-bold text-primary">Mục tiêu cá nhân</p>
-        <p className="text-slate-600 mt-0.5">
-          IELTS Band: <strong className="text-primary font-bold">7.0+</strong>
-        </p>
-      </div>
+      {/* Target Personal Goal(s): Dynamically tailored to student's enrolled track(s) */}
+      {activeGoals.length === 1 ? (
+        <div className="p-3 m-3 rounded-2xl bg-sky-50/80 border border-sky-100 text-xs space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-primary" />
+              <span>Mục tiêu cá nhân</span>
+            </p>
+            <span className="text-[9.5px] font-black text-sky-800 bg-sky-100/90 px-1.5 py-0.5 rounded-md">
+              {activeGoals[0].badge}
+            </span>
+          </div>
+          <p className="text-slate-600 text-[11.5px] pt-0.5">
+            {activeGoals[0].label}: <strong className={`font-black ${activeGoals[0].textColor}`}>{activeGoals[0].value}</strong>
+          </p>
+        </div>
+      ) : (
+        <div className="p-3 m-3 rounded-2xl bg-gradient-to-b from-sky-50/90 to-slate-50 border border-sky-100/90 text-xs space-y-2">
+          <div className="flex items-center justify-between border-b border-sky-100/70 pb-1.5">
+            <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-primary" />
+              <span>Mục tiêu cá nhân</span>
+            </p>
+            <span className="text-[9.5px] font-black text-sky-800 bg-sky-100/90 px-1.5 py-0.5 rounded-md">
+              {activeGoals.length} Lộ Trình
+            </span>
+          </div>
+
+          <div className="space-y-1.5 text-[11px]">
+            {activeGoals.map((g, idx) => (
+              <div key={idx} className="p-1.5 rounded-lg bg-white/90 border border-sky-100/70 flex items-center justify-between shadow-2xs">
+                <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${g.dotColor} shrink-0`}></span>
+                  <span>{g.label}:</span>
+                </span>
+                <span className={`font-black ${g.textColor}`}>{g.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

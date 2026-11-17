@@ -11,7 +11,6 @@ import {
   PenTool,
   Mic,
   Lock,
-  Unlock,
   CheckCircle2,
   Sparkles,
   ArrowRight,
@@ -24,6 +23,7 @@ import {
   Check,
   AlertTriangle,
   XCircle,
+  CreditCard,
   TrendingUp,
   TrendingDown,
   ChevronDown,
@@ -63,8 +63,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 24,
     incorrectCount: 14,
     correctCount: 10,
-    commonMistake: 'Bị đánh lừa bởi thông tin gây nhiễu (distractors) khi các nhân vật liên tục thay đổi quan điểm trước khi chốt phương án cuối cùng.',
-    recommendation: 'Gạch chân từ khóa ở cả câu hỏi và các lựa chọn trước khi nghe. Đặc biệt lưu ý các từ nối chuyển ý như "actually", "on second thought", "however".',
+    commonMistake: '',
+    recommendation: 'Đọc trước câu hỏi và các lựa chọn, chú ý theo dõi mạch hội thoại và lưu ý các từ nối chuyển ý khi các nhân vật thảo luận.',
     practiceLink: '/student/quizzes',
     actionText: 'Luyện đề Section 3',
   },
@@ -79,8 +79,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 25,
     incorrectCount: 13,
     correctCount: 12,
-    commonMistake: 'Mất phương hướng khi người nói dùng từ chỉ vị trí tương đối ("adjacent to", "opposite", "bearing east", "corridor on your left").',
-    recommendation: 'Luôn xác định điểm xuất phát (Starting point) và trục Đông - Tây - Nam - Bắc trước khi nghe. Dùng đầu bút rê theo lộ trình người nói.',
+    commonMistake: '',
+    recommendation: 'Xác định điểm xuất phát và các mốc định hướng (trục Đông - Tây - Nam - Bắc, trái/phải) trên sơ đồ trước khi audio bắt đầu.',
     practiceLink: '/student/quizzes',
     actionText: 'Luyện bài tập Bản đồ',
   },
@@ -95,8 +95,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 50,
     incorrectCount: 4,
     correctCount: 46,
-    commonMistake: 'Thỉnh thoảng nhầm lẫn giữa chữ cái có phát âm tương đồng như A/E/I hoặc J/G.',
-    recommendation: 'Phong độ xuất sắc! Duy trì thói quen kiểm tra giới hạn số từ (NO MORE THAN TWO WORDS) và lỗi số ít/số nhiều.',
+    commonMistake: '',
+    recommendation: 'Nắm bắt thông tin cơ bản tốt, duy trì kiểm tra giới hạn số từ (Word limit) và lỗi chính tả tên riêng, chữ số.',
     practiceLink: '/student/quizzes',
     actionText: 'Duy trì luyện tập',
   },
@@ -111,8 +111,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 25,
     incorrectCount: 4,
     correctCount: 21,
-    commonMistake: 'Bỏ sót từ do người giảng bài nói lướt từ loại phụ (articles/prepositions).',
-    recommendation: 'Kỹ năng bắt paraphrasing rất tốt! Hãy tiếp tục rèn luyện kỹ thuật dự đoán loại từ cần điền (noun/verb/adj).',
+    commonMistake: '',
+    recommendation: 'Kỹ năng nghe hiểu bài giảng học thuật vững, tiếp tục rèn luyện dự đoán từ loại cần điền (danh từ/động từ/tính từ).',
     practiceLink: '/student/quizzes',
     actionText: 'Luyện đề Section 4',
   },
@@ -129,8 +129,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 42,
     incorrectCount: 26,
     correctCount: 16,
-    commonMistake: 'Suy diễn chủ quan ngoài bài đọc, nhầm lẫn giữa FALSE (thông tin mâu thuẫn 100%) và NOT GIVEN (tác giả không khẳng định hoặc thiếu căn cứ kết luận).',
-    recommendation: 'Chỉ chọn FALSE khi tìm thấy câu đối lập trực tiếp. Nếu thông tin có vẻ đúng trong thực tế nhưng bài đọc không hề đề cập -> luôn chọn NOT GIVEN.',
+    commonMistake: '',
+    recommendation: 'Căn cứ chính xác vào thông tin trong bài đọc, phân biệt rõ giữa thông tin mâu thuẫn trực tiếp (False) và thông tin không được đề cập (Not Given).',
     practiceLink: '/student/quizzes',
     actionText: 'Luyện 50 câu T/F/NG',
   },
@@ -145,8 +145,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 26,
     incorrectCount: 14,
     correctCount: 12,
-    commonMistake: 'Chỉ đọc lướt câu đầu/câu cuối của đoạn rồi vội chọn heading có chứa từ khóa giống bài đọc, dễ dính bẫy "chi tiết phụ" (supporting detail).',
-    recommendation: 'Đọc tiêu đề SAU KHI đã tóm tắt ý chính của cả đoạn bằng 1 câu văn của riêng mình. Không phụ thuộc vào từ khóa đơn lẻ.',
+    commonMistake: '',
+    recommendation: 'Đọc lướt cả đoạn để nắm ý chính bao quát, tránh chọn tiêu đề chỉ dựa vào một từ khóa đơn lẻ hoặc chi tiết phụ.',
     practiceLink: '/student/quizzes',
     actionText: 'Luyện nối tiêu đề',
   },
@@ -161,8 +161,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 40,
     incorrectCount: 5,
     correctCount: 35,
-    commonMistake: 'Đôi khi viết sai chính tả (spelling) từ vựng trích xuất từ bài đọc.',
-    recommendation: 'Khả năng định vị đoạn văn tương ứng và phân tích ngữ pháp rất nhạy bén! Giữ vững phong độ này.',
+    commonMistake: '',
+    recommendation: 'Kỹ năng định vị thông tin và tìm từ khóa thay thế rất tốt, chú ý kiểm tra chính tả chính xác như trong bài đọc.',
     practiceLink: '/student/quizzes',
     actionText: 'Xem thêm bài tập',
   },
@@ -177,8 +177,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 30,
     incorrectCount: 6,
     correctCount: 24,
-    commonMistake: 'Chọn nhầm phương án có chứa từ khóa bẫy trong đoạn khác.',
-    recommendation: 'Kỹ năng loại trừ phương án sai rất vững chắc, tiếp tục áp dụng cho Passage 3 có độ khó cao hơn.',
+    commonMistake: '',
+    recommendation: 'Khả năng phân tích câu hỏi và loại trừ phương án sai ổn định, tiếp tục áp dụng cho các đoạn văn dài và phức tạp hơn.',
     practiceLink: '/student/quizzes',
     actionText: 'Thử sức Passage 3',
   },
@@ -195,8 +195,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 25,
     incorrectCount: 14,
     correctCount: 11,
-    commonMistake: 'Lặp lại cấu trúc câu đơn S-V-O quá nhiều, lỗi chia thì không đồng nhất giữa các đoạn, thiếu mệnh đề quan hệ rút gọn hoặc đảo ngữ nâng cao.',
-    recommendation: 'Cần bổ sung tối thiểu 3 cấu trúc ăn điểm: Câu đảo ngữ (Not only... but also...), Cleft sentences (It is... that...), và mệnh đề phân từ (V-ing/V-ed clauses).',
+    commonMistake: '',
+    recommendation: 'Chú ý đa dạng hóa cấu trúc câu, kết hợp hài hòa giữa câu đơn, câu ghép và câu phức, đồng thời kiểm tra kỹ thì của động từ.',
     practiceLink: '/student/writing',
     actionText: 'Vào AI Writing Studio',
   },
@@ -211,8 +211,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 25,
     incorrectCount: 12,
     correctCount: 13,
-    commonMistake: 'Dịch từng từ (word-for-word) từ tiếng Việt sang tiếng Anh, sử dụng từ hoa mỹ không đúng ngữ cảnh hoặc dùng sai giới từ đi kèm.',
-    recommendation: 'Học từ theo cụm C-A-V (Collocations) như: "pose a severe threat to", "exert an adverse impact on", "pave the way for".',
+    commonMistake: '',
+    recommendation: 'Ưu tiên sử dụng từ vựng đúng ngữ cảnh và học theo cụm từ cố định (collocations) thay vì dịch máy móc từng từ đơn lẻ.',
     practiceLink: '/student/writing',
     actionText: 'Luyện sửa từ vựng AI',
   },
@@ -227,8 +227,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 25,
     incorrectCount: 3,
     correctCount: 22,
-    commonMistake: 'Đôi khi luận cứ (examples) mang tính cá nhân thay vì khái quát hóa học thuật.',
-    recommendation: 'Bố cục bài viết 4 đoạn (Intro - Body 1 - Body 2 - Conclusion) rất logic và đúng chuẩn Cambridge IELTS Band 7.5+.',
+    commonMistake: '',
+    recommendation: 'Bố cục bài viết rõ ràng, trả lời đầy đủ các phần của đề bài, tiếp tục phát triển luận cứ cụ thể và thuyết phục.',
     practiceLink: '/student/writing',
     actionText: 'Viết bài luận mới',
   },
@@ -243,8 +243,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 25,
     incorrectCount: 4,
     correctCount: 21,
-    commonMistake: 'Lạm dụng liên từ nối ở đầu mỗi câu (However, Moreover, Therefore lặp lại liên tiếp).',
-    recommendation: 'Mạch văn trôi chảy, sử dụng tốt các đại từ thay thế (this phenomenon, such initiatives) để tạo sự gắn kết tự nhiên.',
+    commonMistake: '',
+    recommendation: 'Mạch văn trôi chảy, chuyển đoạn tự nhiên, sử dụng từ nối và đại từ thay thế một cách linh hoạt, tránh lặp từ.',
     practiceLink: '/student/writing',
     actionText: 'Xem nhận xét AI',
   },
@@ -261,8 +261,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 20,
     incorrectCount: 11,
     correctCount: 9,
-    commonMistake: 'Thường nuốt phụ âm cuối (ending sounds -s, -ed, -t) và nói với ngữ điệu đều đều (flat intonation), thiếu nhấn nhá từ khóa biểu cảm.',
-    recommendation: 'Áp dụng phương pháp Shadowing: Nghe audio mẫu của Thầy Đông, bấm dừng và lặp lại y hệt ngữ điệu, ghi âm lại để so sánh sóng âm.',
+    commonMistake: '',
+    recommendation: 'Luyện phát âm rõ ràng các âm đuôi (-s, -ed), chú ý ngắt nghỉ tự nhiên theo cụm từ và nhấn nhá trọng âm câu.',
     practiceLink: '/student/speaking',
     actionText: 'Ghi âm luyện nói ngay',
   },
@@ -277,8 +277,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 20,
     incorrectCount: 10,
     correctCount: 10,
-    commonMistake: 'Xuất hiện khoảng lặng dài (prolonged pauses) hoặc ậm ừ khi gặp câu hỏi mở rộng về triết học, môi trường, xã hội.',
-    recommendation: 'Sử dụng các filler phrases tự nhiên để kéo dài thời gian tư duy: "That is certainly a multi-faceted issue...", "From my personal perspective...".',
+    commonMistake: '',
+    recommendation: 'Phát triển câu trả lời bằng cách nêu lý do và ví dụ thực tế, giữ tốc độ nói ổn định và tự tin khi trình bày quan điểm.',
     practiceLink: '/student/speaking',
     actionText: 'Luyện Part 3 với Thầy',
   },
@@ -293,8 +293,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 20,
     incorrectCount: 2,
     correctCount: 18,
-    commonMistake: 'Trả lời quá ngắn gọn (chỉ 1 câu) khi giám khảo hỏi về sở thích cá nhân.',
-    recommendation: 'Tốc độ nói rất tự nhiên, phát âm rõ ràng, giữ tâm lý thoải mái và tự tin khi bước vào phòng thi.',
+    commonMistake: '',
+    recommendation: 'Phản xạ giao tiếp tự nhiên và trôi chảy, giữ tâm lý thoải mái và mở rộng câu trả lời thêm 1-2 câu giải thích.',
     practiceLink: '/student/speaking',
     actionText: 'Thử bài test mới',
   },
@@ -309,8 +309,8 @@ const DIAGNOSTIC_DATA: DiagnosticItem[] = [
     totalQuestions: 20,
     incorrectCount: 4,
     correctCount: 16,
-    commonMistake: 'Đôi khi trượt thì hiện tại hoàn thành sang quá khứ đơn khi kể lại trải nghiệm.',
-    recommendation: 'Sử dụng linh hoạt câu điều kiện loại 2 trong Speaking Part 2 rất mượt mà. Tiếp tục duy trì phong độ.',
+    commonMistake: '',
+    recommendation: 'Sử dụng ngữ pháp khi nói khá chuẩn xác, tiếp tục luyện tập để phản xạ thì và các cấu trúc câu trở nên tự nhiên hơn.',
     practiceLink: '/student/speaking',
     actionText: 'Ghi âm Part 2',
   },
@@ -322,7 +322,6 @@ export default function StudentIeltsHubPage() {
   const [hasEnglishAccess, setHasEnglishAccess] = useState(false);
   const [enrolledEnglishCourses, setEnrolledEnglishCourses] = useState<Course[]>([]);
   const [availableEnglishCourses, setAvailableEnglishCourses] = useState<Course[]>([]);
-  const [enrollingId, setEnrollingId] = useState<string | null>(null);
 
   // Active Skill Tab: 'overview' | 'listening' | 'reading' | 'writing' | 'speaking'
   const [activeSkill, setActiveSkill] = useState<'overview' | 'listening' | 'reading' | 'writing' | 'speaking'>('overview');
@@ -411,9 +410,10 @@ export default function StudentIeltsHubPage() {
         if (Array.isArray(myLearning)) {
           const englishCourses = myLearning.filter(
             (c: Record<string, unknown>) =>
-              ENGLISH_CATEGORIES.includes(c.category as string) ||
+              ((c.status as string) === 'ACTIVE' || !c.status) &&
+              (ENGLISH_CATEGORIES.includes(c.category as string) ||
               c.isEnglishCourse === true ||
-              (typeof c.title === 'string' && (c.title.includes('IELTS') || c.title.includes('English'))),
+              (typeof c.title === 'string' && (c.title.includes('IELTS') || c.title.includes('English')))),
           );
           if (englishCourses.length > 0) {
             setHasEnglishAccess(true);
@@ -434,11 +434,11 @@ export default function StudentIeltsHubPage() {
             ENGLISH_CATEGORIES.includes(c.category) ||
             (c.title && (c.title.includes('IELTS') || c.title.includes('English'))),
         );
-        setAvailableEnglishCourses(englishOnly.slice(0, 3));
+        setAvailableEnglishCourses(englishOnly.slice(0, 4));
       }
     } catch {
-      // Offline fallback: allow access for seamless demonstration
-      setHasEnglishAccess(true);
+      // Offline fallback: keep locked when not having English course
+      setHasEnglishAccess(false);
     } finally {
       setLoading(false);
     }
@@ -447,21 +447,6 @@ export default function StudentIeltsHubPage() {
   useEffect(() => {
     checkAccess();
   }, []);
-
-  // Quick enroll to unlock IELTS hub
-  const handleUnlockByEnroll = async (course: Course) => {
-    setEnrollingId(course.id);
-    try {
-      await coursesService.enroll(course.id);
-      showToast(`Chúc mừng! Bạn đã đăng ký khóa học "${course.title}" và MỞ KHÓA thành công Phân Hệ IELTS 4 Kỹ Năng!`);
-    } catch {
-      showToast(`Đã mở khóa Phân Hệ IELTS 4 Kỹ Năng với khóa học "${course.title}"!`);
-    } finally {
-      setEnrollingId(null);
-      setHasEnglishAccess(true);
-      setEnrolledEnglishCourses((prev) => [course, ...prev]);
-    }
-  };
 
   // Timer simulation for Speaking recorder
   useEffect(() => {
@@ -668,23 +653,13 @@ export default function StudentIeltsHubPage() {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => handleUnlockByEnroll(c)}
-                    disabled={enrollingId === c.id}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs shadow-sm transition-all disabled:opacity-50"
+                  <Link
+                    href="/student/courses"
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs shadow-sm transition-all"
                   >
-                    {enrollingId === c.id ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Đang kích hoạt...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Unlock className="w-3.5 h-3.5" />
-                        <span>Đăng ký & Mở khóa ngay</span>
-                      </>
-                    )}
-                  </button>
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Xem khóa học & Quét QR đăng ký</span>
+                  </Link>
                 </div>
               ))}
             </div>
@@ -1032,22 +1007,11 @@ export default function StudentIeltsHubPage() {
                                         />
                                       </div>
 
-                                      {/* Reason Callout */}
-                                      <div className="p-2.5 rounded-xl bg-white border border-rose-100 space-y-1">
-                                        <span className="text-[10px] font-black uppercase text-rose-700 flex items-center gap-1">
-                                          <AlertTriangle className="w-3 h-3" />
-                                          Lỗi học viên thường mắc:
-                                        </span>
-                                        <p className="text-slate-600 leading-relaxed text-[11px]">
-                                          {item.commonMistake}
-                                        </p>
-                                      </div>
-
-                                      {/* Teacher Tip Callout */}
+                                      {/* Recommendation Callout */}
                                       <div className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-100 space-y-1">
                                         <span className="text-[10px] font-black uppercase text-sky-800 flex items-center gap-1">
                                           <Sparkles className="w-3 h-3 text-sky-600" />
-                                          Khuyên dùng từ Thầy Đông:
+                                          Lời khuyên ôn tập:
                                         </span>
                                         <p className="text-slate-600 leading-relaxed text-[11px]">
                                           {item.recommendation}
@@ -1141,22 +1105,11 @@ export default function StudentIeltsHubPage() {
                                         />
                                       </div>
 
-                                      {/* Strength Callout */}
-                                      <div className="p-2.5 rounded-xl bg-white border border-emerald-100 space-y-1">
-                                        <span className="text-[10px] font-black uppercase text-emerald-700 flex items-center gap-1">
-                                          <Check className="w-3 h-3" />
-                                          Điểm mạnh nổi bật:
-                                        </span>
-                                        <p className="text-slate-600 leading-relaxed text-[11px]">
-                                          {item.commonMistake}
-                                        </p>
-                                      </div>
-
-                                      {/* Teacher Tip Callout */}
+                                      {/* Recommendation Callout */}
                                       <div className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-100 space-y-1">
                                         <span className="text-[10px] font-black uppercase text-sky-800 flex items-center gap-1">
                                           <Sparkles className="w-3 h-3 text-sky-600" />
-                                          Chiến thuật duy trì phong độ:
+                                          Lời khuyên ôn tập:
                                         </span>
                                         <p className="text-slate-600 leading-relaxed text-[11px]">
                                           {item.recommendation}

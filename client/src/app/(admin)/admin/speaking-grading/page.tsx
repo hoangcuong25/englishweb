@@ -17,7 +17,6 @@ import {
   Mic,
   FileText,
   User,
-  CheckCircle,
 } from 'lucide-react';
 
 interface TimestampComment {
