@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { dashboardService, StudentDashboardData } from '@/services/dashboard.service';
@@ -8,7 +8,6 @@ import {
   BookOpen,
   Video,
   PenTool,
-  Mic,
   CheckCircle2,
   ArrowRight,
   FileText,
@@ -18,9 +17,12 @@ import {
   CalendarCheck,
 } from 'lucide-react';
 
+const ENGLISH_CATEGORIES = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'];
+
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [data, setData] = useState<StudentDashboardData | null>(null);
+  const [metricTab, setMetricTab] = useState<'ielts' | 'skills'>('ielts');
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -35,6 +37,24 @@ export default function StudentDashboard() {
     };
     fetchDashboard();
   }, []);
+
+  // Check courses to determine appropriate metric display
+  const hasEnglishEnrollment = useMemo(() => {
+    if (!data?.recentCourses || data.recentCourses.length === 0) return true;
+    return data.recentCourses.some(
+      (c: { category?: string; isEnglishCourse?: boolean; title?: string }) =>
+        (c.category && ENGLISH_CATEGORIES.includes(c.category)) ||
+        c.isEnglishCourse === true ||
+        (typeof c.title === 'string' && (c.title.includes('IELTS') || c.title.includes('English'))),
+    );
+  }, [data]);
+
+  // If student has no English courses, default to skills
+  useEffect(() => {
+    if (data?.recentCourses && data.recentCourses.length > 0 && !hasEnglishEnrollment) {
+      setMetricTab('skills');
+    }
+  }, [data, hasEnglishEnrollment]);
 
   // Compute stats with fallback
   const overview = data?.overview || {
@@ -146,19 +166,59 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Stat 3: Target Band */}
+        {/* Stat 3: Target Band / Skill Competency Index (Adaptive) */}
         <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted">Điểm IELTS ước tính</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
-              <Award className="w-4 h-4" />
+            <span className="text-xs font-bold text-muted">
+              {metricTab === 'ielts' ? 'Điểm IELTS ước tính' : 'Chỉ số tích lũy kỹ năng'}
+            </span>
+
+            {/* Toggle metric pill */}
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[10px] font-extrabold">
+              <button
+                type="button"
+                onClick={() => setMetricTab('ielts')}
+                className={`px-1.5 py-0.5 rounded-md transition ${
+                  metricTab === 'ielts'
+                    ? 'bg-white text-amber-600 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                IELTS
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetricTab('skills')}
+                className={`px-1.5 py-0.5 rounded-md transition ${
+                  metricTab === 'skills'
+                    ? 'bg-white text-emerald-600 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Kỹ Năng
+              </button>
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-500 tracking-tight">
-              Band {latestSpeaking?.overallBand ? latestSpeaking.overallBand.toFixed(1) : '7.0+'}
-            </div>
-            <p className="text-[11px] text-muted mt-1">Mục tiêu cá nhân: <strong>7.5+</strong></p>
+            {metricTab === 'ielts' ? (
+              <>
+                <div className="text-2xl sm:text-3xl font-black text-amber-500 tracking-tight">
+                  Band {latestSpeaking?.overallBand ? latestSpeaking.overallBand.toFixed(1) : '7.0+'}
+                </div>
+                <p className="text-[11px] text-muted mt-1">
+                  Mục tiêu cá nhân: <strong>Band 7.5+</strong>
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
+                  92/100
+                </div>
+                <p className="text-[11px] text-muted mt-1">
+                  Xếp loại năng lực: <strong className="text-emerald-700">Xuất Sắc ⭐</strong>
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -237,47 +297,56 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Quick Access to Skills Studios */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Quick Access to Learning Hubs & Studios */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Link
-              href="/student/writing"
-              className="p-5 rounded-3xl bg-white border border-line hover:border-purple-300 shadow-xs transition space-y-3 group"
+              href="/student/ielts"
+              className="p-4 rounded-2xl bg-white border border-line hover:border-sky-300 shadow-xs transition space-y-2 group"
             >
-              <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <PenTool className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Award className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900 group-hover:text-purple-600 transition">
-                  AI IELTS Writing Studio
+                <h4 className="text-xs font-black text-slate-900 group-hover:text-sky-600 transition">
+                  IELTS 4 Kỹ Năng
                 </h4>
-                <p className="text-xs text-muted mt-1 leading-relaxed">
-                  Luyện viết Task 1 & 2 với đếm từ thời gian thực và AI Gemini chấm tức thì 4 tiêu chí.
+                <p className="text-[11px] text-muted mt-0.5 line-clamp-2">
+                  Nghe • Đọc • Viết AI • Nói Studio kèm chẩn đoán dạng bài.
                 </p>
-              </div>
-              <div className="flex items-center text-xs font-bold text-purple-600 pt-1">
-                <span>Vào phòng viết bài</span>
-                <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
 
             <Link
-              href="/student/speaking"
-              className="p-5 rounded-3xl bg-white border border-line hover:border-amber-300 shadow-xs transition space-y-3 group"
+              href="/student/writing"
+              className="p-4 rounded-2xl bg-white border border-line hover:border-purple-300 shadow-xs transition space-y-2 group"
             >
-              <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Mic className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <PenTool className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition">
-                  IELTS Speaking Studio
+                <h4 className="text-xs font-black text-slate-900 group-hover:text-purple-600 transition">
+                  AI Writing Studio
                 </h4>
-                <p className="text-xs text-muted mt-1 leading-relaxed">
-                  Ghi âm giọng nói với sóng âm Web Audio API, Thầy Đông chấm 4 tiêu chí kèm timestamp.
+                <p className="text-[11px] text-muted mt-0.5 line-clamp-2">
+                  Đếm từ thời gian thực, AI chấm 4 tiêu chí TR, CC, LR, GRA.
                 </p>
               </div>
-              <div className="flex items-center text-xs font-bold text-amber-600 pt-1">
-                <span>Vào phòng thu âm</span>
-                <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            <Link
+              href="/student/courses"
+              className="p-4 rounded-2xl bg-white border border-line hover:border-emerald-300 shadow-xs transition space-y-2 group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-slate-900 group-hover:text-emerald-600 transition">
+                  Lộ Trình & Khóa Học
+                </h4>
+                <p className="text-[11px] text-muted mt-0.5 line-clamp-2">
+                  Tiếng Anh, Kỹ Năng Sống, Kỹ Năng Mềm & Sư Phạm.
+                </p>
               </div>
             </Link>
           </div>

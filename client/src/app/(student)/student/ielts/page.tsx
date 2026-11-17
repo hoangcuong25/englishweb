@@ -26,6 +26,9 @@ import {
   XCircle,
   TrendingUp,
   TrendingDown,
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
 } from 'lucide-react';
 
 const ENGLISH_CATEGORIES = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'];
@@ -324,9 +327,11 @@ export default function StudentIeltsHubPage() {
   // Active Skill Tab: 'overview' | 'listening' | 'reading' | 'writing' | 'speaking'
   const [activeSkill, setActiveSkill] = useState<'overview' | 'listening' | 'reading' | 'writing' | 'speaking'>('overview');
 
-  // Diagnostic breakdown filters
-  const [diagSkillFilter, setDiagSkillFilter] = useState<'all' | 'listening' | 'reading' | 'writing' | 'speaking'>('all');
+  // Diagnostic breakdown filters & collapse state
+  const [diagSkillFilter, setDiagSkillFilter] = useState<'all' | 'listening' | 'reading' | 'writing' | 'speaking'>('listening');
   const [diagStatusFilter, setDiagStatusFilter] = useState<'all' | 'weak' | 'strong'>('all');
+  const [isDiagnosticSectionOpen, setIsDiagnosticSectionOpen] = useState(true);
+  const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
 
   const filteredDiagnostics = useMemo(() => {
     return DIAGNOSTIC_DATA.filter((item) => {
@@ -335,6 +340,15 @@ export default function StudentIeltsHubPage() {
       return true;
     });
   }, [diagSkillFilter, diagStatusFilter]);
+
+  const toggleExpandItem = (id: string) => {
+    setExpandedItemIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const expandAll = () => setExpandedItemIds(filteredDiagnostics.map((d) => d.id));
+  const collapseAll = () => setExpandedItemIds([]);
 
   // IELTS Estimated Scores across 4 skills
   const [scores] = useState({
@@ -826,245 +840,349 @@ export default function StudentIeltsHubPage() {
                 </div>
               </div>
 
-              {/* SECTION: 4 SKILLS DETAILED QUESTION-TYPE ERROR & ACCURACY DIAGNOSTICS */}
-              <div className="bg-white rounded-3xl border border-line p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-line">
-                  <div className="space-y-1">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black uppercase tracking-wider">
-                      <BarChart3 className="w-3.5 h-3.5" />
-                      <span>Báo Cáo Chẩn Đoán Chuyên Sâu</span>
+              {/* SECTION: 4 SKILLS DETAILED QUESTION-TYPE ERROR & ACCURACY DIAGNOSTICS (COLLAPSIBLE) */}
+              <div className="bg-white rounded-3xl border border-line p-5 sm:p-6 shadow-xs space-y-4">
+                {/* Collapsible Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-black uppercase tracking-wider">
+                        <BarChart3 className="w-3 h-3" />
+                        Chẩn Đoán Dạng Bài
+                      </span>
+                      <span className="text-[11px] font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                        8 Dạng Cần Khắc Phục
+                      </span>
+                      <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        8 Dạng Thế Mạnh
+                      </span>
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                      Phân Tích Dạng Bài Hay Sai & Làm Đúng Theo 4 Kỹ Năng
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                      Phân Tích Dạng Bài Hay Sai & Làm Đúng Theo Kỹ Năng
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                      Hệ thống tự động phân loại các dạng câu hỏi bị sai nhiều (cần khắc phục) và làm đúng nhiều (thế mạnh) trên cả 4 kỹ năng Listening, Reading, Writing, Speaking.
-                    </p>
                   </div>
 
-                  {/* Summary Metric Badges */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-extrabold">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-                      <span>8 Dạng Hay Mất Điểm</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-extrabold">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      <span>8 Dạng Thế Mạnh</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Filter Controls: Skill Tabs & Status Tabs */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                  {/* Skill Filter Pills */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                    <span className="text-[11px] font-black uppercase text-slate-400 mr-1 shrink-0">Kỹ năng:</span>
-                    {[
-                      { key: 'all', label: 'Tất cả 4 Kỹ năng' },
-                      { key: 'listening', label: '🎧 Listening' },
-                      { key: 'reading', label: '📖 Reading' },
-                      { key: 'writing', label: '✍️ Writing' },
-                      { key: 'speaking', label: '🎙️ Speaking' },
-                    ].map((tab) => (
-                      <button
-                        key={tab.key}
-                        onClick={() =>
-                          setDiagSkillFilter(
-                            tab.key as 'all' | 'listening' | 'reading' | 'writing' | 'speaking',
-                          )
-                        }
-                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
-                          diagSkillFilter === tab.key
-                            ? 'bg-sky-600 text-white shadow-sm'
-                            : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/60'
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Status Filter Pills: Weak vs Strong */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[11px] font-black uppercase text-slate-400 mr-1">Hiệu suất:</span>
+                  {/* Toggle Collapse Button */}
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setDiagStatusFilter('all')}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-                        diagStatusFilter === 'all'
-                          ? 'bg-slate-800 text-white shadow-sm'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60'
-                      }`}
+                      type="button"
+                      onClick={() => setIsDiagnosticSectionOpen((prev) => !prev)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
                     >
-                      Tất cả
-                    </button>
-                    <button
-                      onClick={() => setDiagStatusFilter('weak')}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1 ${
-                        diagStatusFilter === 'weak'
-                          ? 'bg-rose-600 text-white shadow-sm'
-                          : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200'
-                      }`}
-                    >
-                      <TrendingDown className="w-3.5 h-3.5" />
-                      <span>Sai nhiều</span>
-                    </button>
-                    <button
-                      onClick={() => setDiagStatusFilter('strong')}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1 ${
-                        diagStatusFilter === 'strong'
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
-                      }`}
-                    >
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      <span>Đúng nhiều</span>
+                      <span>{isDiagnosticSectionOpen ? 'Thu gọn phân tích' : 'Mở rộng phân tích'}</span>
+                      {isDiagnosticSectionOpen ? (
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>
 
-                {/* Diagnostic Cards Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  {filteredDiagnostics.map((item) => {
-                    const isWeak = item.status === 'weak';
-                    const skillColor =
-                      item.skill === 'listening'
-                        ? 'text-sky-600 bg-sky-50 border-sky-200'
-                        : item.skill === 'reading'
-                        ? 'text-blue-600 bg-blue-50 border-blue-200'
-                        : item.skill === 'writing'
-                        ? 'text-purple-600 bg-purple-50 border-purple-200'
-                        : 'text-emerald-600 bg-emerald-50 border-emerald-200';
-
-                    const skillBadgeText =
-                      item.skill === 'listening'
-                        ? 'Listening'
-                        : item.skill === 'reading'
-                        ? 'Reading'
-                        : item.skill === 'writing'
-                        ? 'Writing'
-                        : 'Speaking';
-
-                    return (
-                      <div
-                        key={item.id}
-                        className={`p-6 rounded-3xl border transition-all hover:shadow-md flex flex-col justify-between space-y-4 ${
-                          isWeak
-                            ? 'bg-gradient-to-b from-rose-50/30 via-white to-white border-rose-200 hover:border-rose-400'
-                            : 'bg-gradient-to-b from-emerald-50/30 via-white to-white border-emerald-200 hover:border-emerald-400'
-                        }`}
-                      >
-                        <div className="space-y-3">
-                          {/* Top Badges */}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${skillColor}`}
-                              >
-                                {skillBadgeText}
-                              </span>
-                              <span className="text-[11px] font-bold text-slate-500">
-                                {item.categoryLabel}
-                              </span>
-                            </div>
-
-                            {isWeak ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-black uppercase">
-                                <XCircle className="w-3 h-3 text-rose-600" />
-                                <span>Sai nhiều ({item.errorRate}%)</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>Đúng nhiều ({item.correctRate}%)</span>
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Question Type Title */}
-                          <h3 className="text-base font-extrabold text-slate-900 leading-snug">
-                            {item.typeName}
-                          </h3>
-
-                          {/* Accuracy / Error Progress Bar */}
-                          <div className="space-y-1.5 pt-1">
-                            <div className="flex items-center justify-between text-xs font-bold">
-                              <span className="text-slate-600">
-                                {isWeak ? 'Tỷ lệ trả lời sai:' : 'Tỷ lệ trả lời chính xác:'}
-                              </span>
-                              <span className={isWeak ? 'text-rose-600 font-black' : 'text-emerald-600 font-black'}>
-                                {isWeak
-                                  ? `${item.errorRate}% (${item.incorrectCount}/${item.totalQuestions} câu sai)`
-                                  : `${item.correctRate}% (${item.correctCount}/${item.totalQuestions} câu đúng)`}
-                              </span>
-                            </div>
-
-                            <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden flex">
-                              <div
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  isWeak ? 'bg-rose-500' : 'bg-emerald-500'
-                                }`}
-                                style={{
-                                  width: isWeak ? `${item.errorRate}%` : `${item.correctRate}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Mistake Pattern Box */}
-                          <div
-                            className={`p-3.5 rounded-2xl border text-xs leading-relaxed space-y-1 ${
-                              isWeak
-                                ? 'bg-rose-50/50 border-rose-100 text-rose-950'
-                                : 'bg-emerald-50/50 border-emerald-100 text-emerald-950'
+                {/* Collapsible Content */}
+                {isDiagnosticSectionOpen && (
+                  <div className="space-y-4 pt-1 animate-in fade-in">
+                    {/* Compact Filter Toolbar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/70 p-3 rounded-2xl border border-slate-200/80">
+                      {/* Skill Pills */}
+                      <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                        {[
+                          { key: 'listening', label: '🎧 Listening' },
+                          { key: 'reading', label: '📖 Reading' },
+                          { key: 'writing', label: '✍️ Writing' },
+                          { key: 'speaking', label: '🎙️ Speaking' },
+                          { key: 'all', label: 'Tất cả 4 Kỹ năng' },
+                        ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            onClick={() =>
+                              setDiagSkillFilter(
+                                tab.key as 'all' | 'listening' | 'reading' | 'writing' | 'speaking',
+                              )
+                            }
+                            className={`px-2.5 py-1 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
+                              diagSkillFilter === tab.key
+                                ? 'bg-sky-600 text-white shadow-xs'
+                                : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/60'
                             }`}
                           >
-                            <div className="flex items-center gap-1.5 font-black text-[11px] uppercase tracking-wider">
-                              {isWeak ? (
-                                <>
-                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                  <span className="text-rose-800">Lỗi sai học viên thường gặp:</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                  <span className="text-emerald-800">Điểm mạnh nổi bật:</span>
-                                </>
-                              )}
-                            </div>
-                            <p className="text-slate-700">{item.commonMistake}</p>
-                          </div>
-
-                          {/* Teacher Dong Recommendation Box */}
-                          <div className="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100 text-xs leading-relaxed space-y-1">
-                            <div className="flex items-center gap-1.5 font-black text-[11px] uppercase tracking-wider text-sky-800">
-                              <Sparkles className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                              <span>Chiến thuật bứt phá từ Thầy Đông:</span>
-                            </div>
-                            <p className="text-slate-700">{item.recommendation}</p>
-                          </div>
-                        </div>
-
-                        {/* Action CTA */}
-                        <div className="pt-2 border-t border-slate-100">
-                          {item.practiceLink && (
-                            <Link
-                              href={item.practiceLink}
-                              className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-extrabold transition-all shadow-xs ${
-                                isWeak
-                                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
-                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-                              }`}
-                            >
-                              <span>{item.actionText || 'Luyện tập dạng này ngay'}</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </Link>
-                          )}
-                        </div>
+                            {tab.label}
+                          </button>
+                        ))}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Right controls: Status filter & Expand/Collapse All */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Status Toggle */}
+                        <div className="flex items-center bg-white p-0.5 rounded-xl border border-slate-200">
+                          <button
+                            onClick={() => setDiagStatusFilter('all')}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-extrabold transition ${
+                              diagStatusFilter === 'all' ? 'bg-slate-800 text-white' : 'text-slate-600'
+                            }`}
+                          >
+                            Tất cả
+                          </button>
+                          <button
+                            onClick={() => setDiagStatusFilter('weak')}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 ${
+                              diagStatusFilter === 'weak' ? 'bg-rose-600 text-white' : 'text-rose-700'
+                            }`}
+                          >
+                            <TrendingDown className="w-3 h-3" />
+                            <span>Sai nhiều</span>
+                          </button>
+                          <button
+                            onClick={() => setDiagStatusFilter('strong')}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 ${
+                              diagStatusFilter === 'strong' ? 'bg-emerald-600 text-white' : 'text-emerald-700'
+                            }`}
+                          >
+                            <TrendingUp className="w-3 h-3" />
+                            <span>Đúng nhiều</span>
+                          </button>
+                        </div>
+
+                        {/* Expand All / Collapse All Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (expandedItemIds.length > 0) {
+                              collapseAll();
+                            } else {
+                              expandAll();
+                            }
+                          }}
+                          className="px-2 py-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-[11px] font-bold text-slate-600 flex items-center gap-1 transition"
+                        >
+                          <ChevronsUpDown className="w-3 h-3" />
+                          <span>{expandedItemIds.length > 0 ? 'Thu nhỏ' : 'Mở hết'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 2-Column Collapsible Accordion Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Column 1: Weak items (Sai nhiều) */}
+                      {(diagStatusFilter === 'all' || diagStatusFilter === 'weak') && (
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="text-xs font-black text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
+                              <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                              <span>Dạng bài hay bị sai (Cần khắc phục)</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              {filteredDiagnostics.filter((d) => d.status === 'weak').length} dạng bài
+                            </span>
+                          </div>
+
+                          {filteredDiagnostics
+                            .filter((d) => d.status === 'weak')
+                            .map((item) => {
+                              const isExpanded = expandedItemIds.includes(item.id);
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="rounded-2xl border border-rose-200/90 bg-rose-50/20 overflow-hidden transition-all hover:border-rose-300"
+                                >
+                                  {/* Accordion Header (Click to expand/collapse) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleExpandItem(item.id)}
+                                    className="w-full p-3.5 text-left flex items-center justify-between gap-3 hover:bg-rose-50/40 transition"
+                                  >
+                                    <div className="space-y-0.5 flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black uppercase text-rose-600 bg-rose-100/80 px-1.5 py-0.5 rounded">
+                                          {item.skill}
+                                        </span>
+                                        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                                          {item.typeName}
+                                        </h4>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                                        <span className="text-rose-600 font-bold">
+                                          Sai {item.errorRate}%
+                                        </span>
+                                        <span>•</span>
+                                        <span>{item.incorrectCount}/{item.totalQuestions} câu sai</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="shrink-0 flex items-center gap-1.5 text-slate-400">
+                                      <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">
+                                        {isExpanded ? 'Đóng' : 'Chi tiết'}
+                                      </span>
+                                      <ChevronDown
+                                        className={`w-4 h-4 transition-transform duration-200 ${
+                                          isExpanded ? 'rotate-180 text-rose-600' : ''
+                                        }`}
+                                      />
+                                    </div>
+                                  </button>
+
+                                  {/* Accordion Expanded Body */}
+                                  {isExpanded && (
+                                    <div className="px-3.5 pb-3.5 pt-1 border-t border-rose-100 space-y-2.5 text-xs animate-in fade-in">
+                                      {/* Mini Progress Bar */}
+                                      <div className="w-full h-1.5 rounded-full bg-rose-100 overflow-hidden">
+                                        <div
+                                          className="h-full bg-rose-500 rounded-full"
+                                          style={{ width: `${item.errorRate}%` }}
+                                        />
+                                      </div>
+
+                                      {/* Reason Callout */}
+                                      <div className="p-2.5 rounded-xl bg-white border border-rose-100 space-y-1">
+                                        <span className="text-[10px] font-black uppercase text-rose-700 flex items-center gap-1">
+                                          <AlertTriangle className="w-3 h-3" />
+                                          Lỗi học viên thường mắc:
+                                        </span>
+                                        <p className="text-slate-600 leading-relaxed text-[11px]">
+                                          {item.commonMistake}
+                                        </p>
+                                      </div>
+
+                                      {/* Teacher Tip Callout */}
+                                      <div className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-100 space-y-1">
+                                        <span className="text-[10px] font-black uppercase text-sky-800 flex items-center gap-1">
+                                          <Sparkles className="w-3 h-3 text-sky-600" />
+                                          Khuyên dùng từ Thầy Đông:
+                                        </span>
+                                        <p className="text-slate-600 leading-relaxed text-[11px]">
+                                          {item.recommendation}
+                                        </p>
+                                      </div>
+
+                                      {/* Direct Action Link */}
+                                      {item.practiceLink && (
+                                        <Link
+                                          href={item.practiceLink}
+                                          className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-[11px] shadow-xs transition"
+                                        >
+                                          <span>{item.actionText || 'Luyện tập dạng này'}</span>
+                                          <ArrowRight className="w-3 h-3" />
+                                        </Link>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                        </div>
+                      )}
+
+                      {/* Column 2: Strong items (Đúng nhiều) */}
+                      {(diagStatusFilter === 'all' || diagStatusFilter === 'strong') && (
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="text-xs font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Dạng bài làm đúng nhiều (Thế mạnh)</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              {filteredDiagnostics.filter((d) => d.status === 'strong').length} dạng bài
+                            </span>
+                          </div>
+
+                          {filteredDiagnostics
+                            .filter((d) => d.status === 'strong')
+                            .map((item) => {
+                              const isExpanded = expandedItemIds.includes(item.id);
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="rounded-2xl border border-emerald-200/90 bg-emerald-50/20 overflow-hidden transition-all hover:border-emerald-300"
+                                >
+                                  {/* Accordion Header (Click to expand/collapse) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleExpandItem(item.id)}
+                                    className="w-full p-3.5 text-left flex items-center justify-between gap-3 hover:bg-emerald-50/40 transition"
+                                  >
+                                    <div className="space-y-0.5 flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                                          {item.skill}
+                                        </span>
+                                        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                                          {item.typeName}
+                                        </h4>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                                        <span className="text-emerald-600 font-bold">
+                                          Đúng {item.correctRate}%
+                                        </span>
+                                        <span>•</span>
+                                        <span>{item.correctCount}/{item.totalQuestions} câu đúng</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="shrink-0 flex items-center gap-1.5 text-slate-400">
+                                      <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">
+                                        {isExpanded ? 'Đóng' : 'Chi tiết'}
+                                      </span>
+                                      <ChevronDown
+                                        className={`w-4 h-4 transition-transform duration-200 ${
+                                          isExpanded ? 'rotate-180 text-emerald-600' : ''
+                                        }`}
+                                      />
+                                    </div>
+                                  </button>
+
+                                  {/* Accordion Expanded Body */}
+                                  {isExpanded && (
+                                    <div className="px-3.5 pb-3.5 pt-1 border-t border-emerald-100 space-y-2.5 text-xs animate-in fade-in">
+                                      {/* Mini Progress Bar */}
+                                      <div className="w-full h-1.5 rounded-full bg-emerald-100 overflow-hidden">
+                                        <div
+                                          className="h-full bg-emerald-500 rounded-full"
+                                          style={{ width: `${item.correctRate}%` }}
+                                        />
+                                      </div>
+
+                                      {/* Strength Callout */}
+                                      <div className="p-2.5 rounded-xl bg-white border border-emerald-100 space-y-1">
+                                        <span className="text-[10px] font-black uppercase text-emerald-700 flex items-center gap-1">
+                                          <Check className="w-3 h-3" />
+                                          Điểm mạnh nổi bật:
+                                        </span>
+                                        <p className="text-slate-600 leading-relaxed text-[11px]">
+                                          {item.commonMistake}
+                                        </p>
+                                      </div>
+
+                                      {/* Teacher Tip Callout */}
+                                      <div className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-100 space-y-1">
+                                        <span className="text-[10px] font-black uppercase text-sky-800 flex items-center gap-1">
+                                          <Sparkles className="w-3 h-3 text-sky-600" />
+                                          Chiến thuật duy trì phong độ:
+                                        </span>
+                                        <p className="text-slate-600 leading-relaxed text-[11px]">
+                                          {item.recommendation}
+                                        </p>
+                                      </div>
+
+                                      {/* Direct Action Link */}
+                                      {item.practiceLink && (
+                                        <Link
+                                          href={item.practiceLink}
+                                          className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] shadow-xs transition"
+                                        >
+                                          <span>{item.actionText || 'Luyện tập duy trì'}</span>
+                                          <ArrowRight className="w-3 h-3" />
+                                        </Link>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

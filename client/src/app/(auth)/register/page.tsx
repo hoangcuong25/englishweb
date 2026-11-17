@@ -5,7 +5,84 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import CustomSelect from '@/components/ui/custom-select';
 import GoogleSignInButton from '@/components/auth/google-sign-in-button';
-import { Mail, Lock, User, Phone, AlertCircle, ArrowRight, Target } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  User,
+  Phone,
+  AlertCircle,
+  ArrowRight,
+  Target,
+  Sparkles,
+  BookOpen,
+  Award,
+  Compass,
+} from 'lucide-react';
+
+const LEARNING_FIELD_OPTIONS = [
+  {
+    value: 'ENGLISH',
+    label: 'Tiếng Anh & Luyện Thi IELTS',
+    badge: 'IELTS / Tiếng Anh',
+    icon: <Award className="w-4 h-4 text-sky-600" />,
+  },
+  {
+    value: 'LIFE_SKILLS',
+    label: 'Kỹ Năng Sống & Quản Trị Cảm Xúc',
+    badge: 'Kỹ Năng Sống',
+    icon: <Compass className="w-4 h-4 text-emerald-600" />,
+  },
+  {
+    value: 'SOFT_SKILLS',
+    label: 'Kỹ Năng Mềm & Giao Tiếp Công Sở',
+    badge: 'Kỹ Năng Mềm',
+    icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+  },
+  {
+    value: 'PERSONAL_DEV',
+    label: 'Phát Triển Bản Thân & Quản Trị',
+    badge: 'Phát Triển',
+    icon: <Target className="w-4 h-4 text-amber-600" />,
+  },
+  {
+    value: 'PEDAGOGY',
+    label: 'Phương Pháp Giảng Dạy & Sư Phạm',
+    badge: 'Sư Phạm',
+    icon: <BookOpen className="w-4 h-4 text-blue-600" />,
+  },
+];
+
+const TARGET_OPTIONS_BY_FIELD: Record<
+  string,
+  { value: string; label: string; badge?: string }[]
+> = {
+  ENGLISH: [
+    { value: '6.5', label: 'Mục tiêu Band 6.5 (Tốt nghiệp & Du học)', badge: 'Tiêu chuẩn' },
+    { value: '7.0', label: 'Mục tiêu Band 7.0 (Học bổng & Định cư)', badge: 'Phổ biến' },
+    { value: '7.5', label: 'Mục tiêu Band 7.5+ (Đa quốc gia & Giảng dạy)', badge: 'Cao cấp' },
+    { value: '8.0+', label: 'Mục tiêu Band 8.0+ (Chuyên gia ngôn ngữ)', badge: 'Xuất sắc' },
+  ],
+  LIFE_SKILLS: [
+    { value: 'CRITICAL_THINKING', label: 'Tư duy phản biện & Giải quyết vấn đề', badge: 'Tư duy' },
+    { value: 'EMOTION_MGMT', label: 'Quản trị cảm xúc & Cân bằng cuộc sống', badge: 'Cảm xúc' },
+    { value: 'HABIT_DISCIPLINE', label: 'Kỷ luật bản thân & Thói quen tích cực', badge: 'Kỷ luật' },
+  ],
+  SOFT_SKILLS: [
+    { value: 'PRESENTATION', label: 'Thuyết trình & Hùng biện tự tin trước đám đông', badge: 'Thuyết trình' },
+    { value: 'WORKPLACE_COMM', label: 'Giao tiếp công sở & Xử lý tình huống', badge: 'Giao tiếp' },
+    { value: 'LEADERSHIP', label: 'Lãnh đạo đội nhóm & Quản trị dự án', badge: 'Lãnh đạo' },
+  ],
+  PERSONAL_DEV: [
+    { value: 'TIME_PRODUCTIVITY', label: 'Quản trị thời gian & Tối ưu hiệu suất', badge: 'Hiệu suất' },
+    { value: 'PERSONAL_BRAND', label: 'Xây dựng thương hiệu cá nhân & Đột phá sự nghiệp', badge: 'Sự nghiệp' },
+    { value: 'STRATEGIC_MIND', label: 'Tư duy chiến lược & Định hướng mục tiêu', badge: 'Chiến lược' },
+  ],
+  PEDAGOGY: [
+    { value: 'ACTIVE_TEACHING', label: 'Phương pháp giảng dạy tương tác hiện đại', badge: 'Giảng dạy' },
+    { value: 'EDTECH_DESIGN', label: 'Thiết kế giáo án EdTech & Ứng dụng AI', badge: 'EdTech' },
+    { value: 'CLASS_INSPIRATION', label: 'Nghệ thuật truyền cảm hứng trong lớp học', badge: 'Truyền cảm hứng' },
+  ],
+};
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -14,10 +91,19 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [targetBand, setTargetBand] = useState('7.0');
+  const [learningField, setLearningField] = useState('ENGLISH');
+  const [learningTarget, setLearningTarget] = useState('7.0');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleFieldChange = (newField: string) => {
+    setLearningField(newField);
+    const availableTargets = TARGET_OPTIONS_BY_FIELD[newField] || [];
+    if (availableTargets.length > 0) {
+      setLearningTarget(availableTargets[0].value);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +145,7 @@ export default function RegisterPage() {
             Đăng Ký Tài Khoản Học Viên
           </h1>
           <p className="text-xs text-muted">
-            Tham gia lộ trình luyện thi IELTS & tiếng Anh tương tác WebRTC
+            Học viện đào tạo: Tiếng Anh • Kỹ Năng Sống • Kỹ Năng Mềm • Phát Triển Bản Thân
           </p>
         </div>
 
@@ -99,24 +185,24 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Địa chỉ Email <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nguyenvana@gmail.com"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Địa chỉ Email <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nguyenvana@gmail.com"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Số điện thoại <span className="text-red-500">*</span>
@@ -133,18 +219,26 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Dynamic Learning Field & Target Selector */}
+          <div className="space-y-3 pt-1 border-t border-slate-100">
+            <CustomSelect
+              label="Lĩnh vực học tập quan tâm"
+              value={learningField}
+              onChange={handleFieldChange}
+              options={LEARNING_FIELD_OPTIONS}
+            />
 
             <CustomSelect
-              label="Mục tiêu Band điểm"
-              value={targetBand}
-              onChange={(val) => setTargetBand(val)}
-              options={[
-                { value: '6.0', label: 'Band 6.0', icon: <Target className="w-4 h-4 text-sky-500" /> },
-                { value: '6.5', label: 'Band 6.5', icon: <Target className="w-4 h-4 text-sky-600" /> },
-                { value: '7.0', label: 'Band 7.0', icon: <Target className="w-4 h-4 text-emerald-500" />, badge: 'Standard' },
-                { value: '7.5', label: 'Band 7.5', icon: <Target className="w-4 h-4 text-emerald-600" />, badge: 'High-Impact' },
-                { value: '8.0+', label: 'Band 8.0+', icon: <Target className="w-4 h-4 text-purple-600" />, badge: 'Mastery' },
-              ]}
+              label={
+                learningField === 'ENGLISH'
+                  ? 'Mục tiêu Band điểm IELTS'
+                  : 'Mục tiêu năng lực đầu ra'
+              }
+              value={learningTarget}
+              onChange={(val) => setLearningTarget(val)}
+              options={TARGET_OPTIONS_BY_FIELD[learningField] || []}
             />
           </div>
 

@@ -164,6 +164,7 @@ export class CoursesService {
       ...course,
       studentCount: course._count?.enrollments ?? 0,
       isEnrolled: Boolean(enrollment),
+      enrollmentStatus: enrollment ? (enrollment as any).status : null,
       progressPercent: enrollment ? enrollment.progressPercent : 0,
       modules: course.modules.map((mod) => ({
         ...mod,
@@ -172,7 +173,7 @@ export class CoursesService {
           isCompleted: completedLessonIds.includes(lesson.id),
           isAccessible:
             role === Role.ADMIN ||
-            Boolean(enrollment) ||
+            (Boolean(enrollment) && (enrollment as any).status === 'ACTIVE') ||
             lesson.isFreePreview,
         })),
       })),
@@ -226,6 +227,9 @@ export class CoursesService {
         thumbnail: e.course.thumbnail,
         progressPercent: e.progressPercent,
         enrolledAt: e.enrolledAt,
+        status: (e as any).status || 'ACTIVE',
+        paymentNote: (e as any).paymentNote,
+        paymentAmount: (e as any).paymentAmount,
         totalModules: e.course._count?.modules ?? 0,
         totalLessons,
       };
@@ -255,6 +259,7 @@ export class CoursesService {
     const enrollments = await this.prisma.enrollment.findMany({
       where: {
         userId,
+        status: 'ACTIVE',
         course: {
           OR: [
             { category: { in: englishCategories } },
@@ -371,10 +376,13 @@ export class CoursesService {
           courseId,
         },
       },
-      update: {},
+      update: {
+        status: 'ACTIVE',
+      },
       create: {
         userId,
         courseId,
+        status: 'ACTIVE',
         progressPercent: 0,
       },
       include: {
@@ -386,6 +394,202 @@ export class CoursesService {
 
     return {
       message: 'Ghi danh khóa học thành công',
+      enrollment,
+    };
+  }
+
+  /**
+   * Học viên gửi yêu cầu đăng ký khóa học kèm mã QR chuyển khoản (chờ Admin xác nhận)
+   */
+  async requestEnrollment(
+    courseId: string,
+    userId: string,
+    paymentNote?: string,
+    paymentAmount?: number,
+  ) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
+    }
+
+    const enrollment = await this.prisma.enrollment.upsert({
+      where: {
+        userId_courseId: {
+          userId,
+          courseId,
+        },
+      },
+      update: {
+        status: 'PENDING',
+        paymentNote: paymentNote || `TD ${userId} ${course.slug}`,
+        paymentAmount: paymentAmount || 2500000,
+        enrolledAt: new Date(),
+      },
+      create: {
+        userId,
+        courseId,
+        status: 'PENDING',
+        paymentNote: paymentNote || `TD ${userId} ${course.slug}`,
+        paymentAmount: paymentAmount || 2500000,
+        progressPercent: 0,
+      },
+      include: {
+        course: {
+          select: { id: true, title: true, slug: true, category: true },
+        },
+      },
+    });
+
+    return {
+      message:
+        'Yêu cầu đăng ký đã được ghi nhận. Vui lòng quét mã QR chuyển khoản và chờ Admin xác nhận.',
+      enrollment,
+    };
+  }
+
+  /**
+   * Admin lấy danh sách các yêu cầu đăng ký / ghi danh khóa học
+   */
+  async getAdminEnrollments(status?: string, courseId?: string) {
+    const where: any = {};
+    if (status && status !== 'ALL') {
+      where.status = status;
+    }
+    if (courseId) {
+      where.courseId = courseId;
+    }
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            avatarUrl: true,
+          },
+        },
+        course: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            category: true,
+            thumbnail: true,
+          },
+        },
+      },
+      orderBy: { enrolledAt: 'desc' },
+    });
+
+    return enrollments;
+  }
+
+  /**
+   * Admin đối soát số dư thủ công và duyệt kích hoạt khóa học cho học viên
+   */
+  async approveEnrollment(enrollmentId: string) {
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+      include: { user: true, course: true },
+    });
+
+    if (!enrollment) {
+      throw new NotFoundException(`Không tìm thấy yêu cầu ghi danh ID: ${enrollmentId}`);
+    }
+
+    const updated = await this.prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: {
+        status: 'ACTIVE',
+        approvedAt: new Date(),
+      },
+      include: { user: true, course: true },
+    });
+
+    await this.redisService.delPattern('cache:courses:*');
+
+    return {
+      message: `Đã xác nhận thanh toán & kích hoạt khóa học "${updated.course.title}" cho học viên ${updated.user.fullName}!`,
+      enrollment: updated,
+    };
+  }
+
+  /**
+   * Admin từ chối yêu cầu đăng ký khóa học
+   */
+  async rejectEnrollment(enrollmentId: string) {
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+    });
+
+    if (!enrollment) {
+      throw new NotFoundException(`Không tìm thấy yêu cầu ghi danh ID: ${enrollmentId}`);
+    }
+
+    const updated = await this.prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: {
+        status: 'REJECTED',
+      },
+      include: { user: true, course: true },
+    });
+
+    await this.redisService.delPattern('cache:courses:*');
+
+    return {
+      message: 'Đã từ chối yêu cầu đăng ký khóa học',
+      enrollment: updated,
+    };
+  }
+
+  /**
+   * Admin ghi danh thủ công học viên vào khóa học bất kỳ
+   */
+  async manualEnroll(courseId: string, userId: string) {
+    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) {
+      throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`Không tìm thấy học viên ID: ${userId}`);
+    }
+
+    const enrollment = await this.prisma.enrollment.upsert({
+      where: {
+        userId_courseId: {
+          userId,
+          courseId,
+        },
+      },
+      update: {
+        status: 'ACTIVE',
+        approvedAt: new Date(),
+      },
+      create: {
+        userId,
+        courseId,
+        status: 'ACTIVE',
+        approvedAt: new Date(),
+        progressPercent: 0,
+      },
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        course: { select: { id: true, title: true } },
+      },
+    });
+
+    await this.redisService.delPattern('cache:courses:*');
+
+    return {
+      message: `Đã ghi danh thủ công học viên "${user.fullName}" vào khóa học "${course.title}" thành công!`,
       enrollment,
     };
   }

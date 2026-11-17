@@ -268,13 +268,17 @@ model Material {
 }
 
 model Enrollment {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   courseId        String
-  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progressPercent Float    @default(0)
-  enrolledAt      DateTime @default(now())
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status          String    @default("ACTIVE") // "PENDING" | "ACTIVE" | "REJECTED"
+  paymentNote     String?
+  paymentAmount   Float?
+  progressPercent Float     @default(0)
+  enrolledAt      DateTime  @default(now())
+  approvedAt      DateTime?
 
   @@unique([userId, courseId])
   @@index([userId])
