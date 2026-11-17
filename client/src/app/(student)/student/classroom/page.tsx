@@ -62,6 +62,31 @@ export default function StudentClassroomSchedulePage() {
     }
   };
 
+  // Sync tab with URL search parameter if present
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam === 'history') {
+        setActiveTab('history');
+      }
+    }
+  }, []);
+
+  const handleTabChange = (tab: 'live_sessions' | 'history') => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url.toString());
+    }
+    if (tab === 'history') {
+      fetchHistory();
+    } else {
+      fetchRooms();
+    }
+  };
+
   useEffect(() => {
     fetchRooms();
     fetchHistory();
@@ -169,53 +194,58 @@ export default function StudentClassroomSchedulePage() {
       </div>
 
       {/* Sub-tab Navigation */}
-      <div className="flex items-center gap-3 border-b border-line pb-0.5">
-        <button
-          type="button"
-          onClick={() => setActiveTab('live_sessions')}
-          className={`px-4 py-2.5 text-xs font-black rounded-2xl transition flex items-center gap-2 cursor-pointer ${
-            activeTab === 'live_sessions'
-              ? 'bg-primary text-white shadow-sm shadow-primary/25'
-              : 'bg-white border border-line text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-          }`}
-        >
-          <Video className="w-4 h-4" />
-          <span>Lớp Trực Tuyến & Sắp Diễn Ra</span>
-          <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-3">
+        <div className="p-1 rounded-2xl bg-slate-100 border border-slate-200/80 inline-flex items-center gap-1 shadow-inner">
+          <button
+            type="button"
+            onClick={() => handleTabChange('live_sessions')}
+            className={`px-4 py-2.5 text-xs font-black rounded-xl transition flex items-center gap-2 cursor-pointer ${
               activeTab === 'live_sessions'
-                ? 'bg-white/20 text-white'
-                : 'bg-primary/10 text-primary'
+                ? 'bg-primary text-white shadow-md shadow-primary/25'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
             }`}
           >
-            {validRooms.length}
-          </span>
-        </button>
+            <Video className="w-4 h-4" />
+            <span>Lớp Trực Tuyến & Sắp Diễn Ra</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10.5px] font-black ${
+                activeTab === 'live_sessions'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {validRooms.length}
+            </span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('history');
-            fetchHistory();
-          }}
-          className={`px-4 py-2.5 text-xs font-black rounded-2xl transition flex items-center gap-2 cursor-pointer ${
-            activeTab === 'history'
-              ? 'bg-primary text-white shadow-sm shadow-primary/25'
-              : 'bg-white border border-line text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-          }`}
-        >
-          <History className="w-4 h-4" />
-          <span>Lịch Sử Lớp Học (Đã Join / Chưa Join)</span>
-          <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+          <button
+            type="button"
+            onClick={() => handleTabChange('history')}
+            className={`px-4 py-2.5 text-xs font-black rounded-xl transition flex items-center gap-2 cursor-pointer ${
               activeTab === 'history'
-                ? 'bg-white/20 text-white'
-                : 'bg-slate-100 text-slate-600'
+                ? 'bg-primary text-white shadow-md shadow-primary/25'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
             }`}
           >
-            {historyData.summary.totalPastRooms}
-          </span>
-        </button>
+            <History className="w-4 h-4" />
+            <span>Lịch Sử Lớp Học (Đã Join / Chưa Join)</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10.5px] font-black ${
+                activeTab === 'history'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-sky-100 text-primary'
+              }`}
+            >
+              {historyData.summary.totalPastRooms}
+            </span>
+          </button>
+        </div>
+
+        <p className="text-[11px] text-muted font-medium">
+          {activeTab === 'live_sessions'
+            ? 'Đang xem: Ca học trực tiếp & chuẩn bị vào phòng'
+            : 'Đang xem: Báo cáo chuyên cần cá nhân (Có mặt & Bỏ lỡ)'}
+        </p>
       </div>
 
       {activeTab === 'live_sessions' ? (
@@ -252,12 +282,27 @@ export default function StudentClassroomSchedulePage() {
               </Link>
             </div>
           ) : (
-            <div className="p-8 rounded-3xl bg-white border border-line text-center space-y-3 shadow-xs">
+            <div className="p-8 rounded-3xl bg-white border border-line text-center space-y-4 shadow-xs">
               <Calendar className="w-10 h-10 text-slate-400 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-800">Chưa có ca học trực tuyến nào được lên lịch</h3>
-              <p className="text-xs text-muted max-w-md mx-auto">
-                Thầy Đông sẽ sớm lên lịch các buổi học Speaking & Writing thảo luận. Vui lòng quay lại sau hoặc kiểm tra thông báo.
-              </p>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-800">Chưa có ca học trực tuyến nào đang mở</h3>
+                <p className="text-xs text-muted max-w-md mx-auto">
+                  Thầy Đông sẽ sớm lên lịch các buổi học tiếp theo. Bạn có thể xem lại lịch sử các ca học đã tham gia hoặc đã bỏ lỡ.
+                </p>
+              </div>
+
+              {historyData.summary.totalPastRooms > 0 && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('history')}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-sky-50 text-primary border border-sky-200 hover:bg-sky-100 font-bold text-xs transition shadow-xs cursor-pointer"
+                  >
+                    <History className="w-4 h-4" />
+                    <span>Xem {historyData.summary.totalPastRooms} lớp học trong Lịch Sử (Đã Join / Chưa Join)</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

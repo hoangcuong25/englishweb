@@ -118,6 +118,32 @@ export class LivekitService implements OnModuleInit {
           },
         });
       }
+
+      // If student joins, auto record attendance record (mark as joined)
+      if (!isHost && classroom) {
+        try {
+          await this.prisma.attendanceRecord.upsert({
+            where: {
+              classroomId_studentId: {
+                classroomId: classroom.id,
+                studentId: identity,
+              },
+            },
+            create: {
+              classroomId: classroom.id,
+              studentId: identity,
+              firstJoinedAt: now,
+              status: AttendanceStatus.PRESENT,
+              totalMinutes: 1,
+            },
+            update: {
+              // Keep firstJoinedAt if already set
+            },
+          });
+        } catch (err) {
+          this.logger.warn(`Failed to auto-upsert attendance for student ${identity}: ${err}`);
+        }
+      }
     }
 
     const at = new AccessToken(this.apiKey, this.apiSecret, {
@@ -488,7 +514,12 @@ export class LivekitService implements OnModuleInit {
         room.status === 'ENDED' ||
         now.getTime() > new Date(room.scheduledEndTime).getTime() + 30 * 60 * 1000;
 
-      const hasJoined = !!record && record.totalMinutes > 0;
+      const hasJoined =
+        !!record &&
+        (record.totalMinutes > 0 ||
+          !!record.firstJoinedAt ||
+          record.status === 'PRESENT' ||
+          record.status === 'LATE');
       let attendanceStatus = 'UPCOMING';
       if (hasJoined) {
         attendanceStatus = record.status; // PRESENT or LATE
@@ -510,7 +541,7 @@ export class LivekitService implements OnModuleInit {
         status: room.status,
         hasJoined,
         attendanceStatus,
-        totalMinutes: record?.totalMinutes || 0,
+        totalMinutes: record?.totalMinutes || (hasJoined ? Math.max(1, record?.totalMinutes || 0) : 0),
         firstJoinedAt: record?.firstJoinedAt || null,
         lastLeftAt: record?.lastLeftAt || null,
         isPastOrEnded,

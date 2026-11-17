@@ -80,11 +80,17 @@ export const speakingService = {
       lexicalScore: number;
       grammarScore: number;
       pronunciationScore: number;
-      feedback: string;
+      bandScore?: number;
+      feedback?: string;
+      timestampFeedback?: any[];
       timestampComments?: TimestampComment[];
     },
   ) {
-    const response = await api.post(`/speaking/admin/submissions/${id}/grade`, data);
+    const payload = {
+      ...data,
+      timestampFeedback: data.timestampFeedback || data.timestampComments,
+    };
+    const response = await api.post(`/speaking/admin/submissions/${id}/grade`, payload);
     return response.data?.data || response.data;
   },
 
