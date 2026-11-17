@@ -40,7 +40,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         errorType = resObj.error || exception.name;
       }
     } else if (exception instanceof Error) {
-      errorMessage = exception.message;
+      if (process.env.NODE_ENV === 'production') {
+        errorMessage = 'Đã có lỗi hệ thống xảy ra. Vui lòng liên hệ quản trị viên.';
+      } else {
+        errorMessage = exception.message;
+      }
       this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
     }
 

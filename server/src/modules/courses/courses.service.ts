@@ -68,6 +68,7 @@ export class CoursesService {
         },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100, // PERF-001: Protect against unbounded memory allocation
     });
 
     const result = courses.map((course) => ({

@@ -78,10 +78,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    const rateLimitKey = `rate_limit:login_fail:${dto.email.toLowerCase()}`;
+    const failAttemptsStr = await this.redisService.get(rateLimitKey);
+    const failAttempts = failAttemptsStr ? parseInt(failAttemptsStr, 10) : 0;
+    if (failAttempts >= 5) {
+      throw new UnauthorizedException('Tài khoản đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 5 phút.');
+    }
+
     const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isMatch) {
+      await this.redisService.set(rateLimitKey, String(failAttempts + 1), 300);
       throw new UnauthorizedException('Invalid email or password');
     }
+
+    // Reset failed login attempts on successful credentials match
+    await this.redisService.del(rateLimitKey);
 
     if (!user.isActive) {
       throw new UnauthorizedException('Your account has been deactivated');
@@ -612,6 +623,17 @@ export class AuthService {
    * 11. Request Password Reset Link via Email
    */
   async forgotPassword(dto: ForgotPasswordDto) {
+    const forgotRateKey = `rate_limit:forgot:${dto.email.toLowerCase()}`;
+    const forgotCountStr = await this.redisService.get(forgotRateKey);
+    const forgotCount = forgotCountStr ? parseInt(forgotCountStr, 10) : 0;
+    if (forgotCount >= 3) {
+      throw AppException.badRequest(
+        AppErrorCode.AUTH_RATE_LIMIT_EXCEEDED,
+        'Bạn đã yêu cầu đặt lại mật khẩu quá nhiều lần. Vui lòng đợi 15 phút trước khi thử lại.',
+      );
+    }
+    await this.redisService.set(forgotRateKey, String(forgotCount + 1), 900);
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
@@ -681,6 +703,15 @@ export class AuthService {
       );
     }
 
+    // SEC-004: Check Redis to ensure token has not been used or invalidated (Single-use token enforcement)
+    const storedResetToken = await this.redisService.get(`password_reset:${payload.sub}`);
+    if (!storedResetToken || storedResetToken !== dto.token) {
+      throw AppException.badRequest(
+        AppErrorCode.AUTH_RESET_TOKEN_EXPIRED,
+        'Mã xác thực đặt lại mật khẩu không hợp lệ hoặc đã được sử dụng.',
+      );
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });
@@ -706,6 +737,11 @@ export class AuthService {
       where: { id: user.id },
       data: { passwordHash },
     });
+
+    // Invalidate reset token immediately so it cannot be reused
+    try {
+      await this.redisService.del(`password_reset:${user.id}`);
+    } catch {}
 
     await this.logoutAll(user.id);
 

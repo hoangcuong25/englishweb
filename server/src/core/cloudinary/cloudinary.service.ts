@@ -112,8 +112,15 @@ export class CloudinaryService {
       const mockId = `mock_${resourceType}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const ext = resourceType === 'video' ? 'mp4' : resourceType === 'raw' ? 'bin' : 'jpg';
 
+      // SEC-003: Sanitize folder path against Path Traversal attacks
+      const safeFolder = (options.folder || 'general')
+        .replace(/\\/g, '/')
+        .split('/')
+        .filter(part => part && part !== '..' && part !== '.')
+        .join('/') || 'general';
+
       // Save file to public/uploads directory for local serving
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', options.folder);
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', safeFolder);
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
@@ -126,12 +133,12 @@ export class CloudinaryService {
         }
       }
 
-      const mockUrl = `https://res.cloudinary.com/englishweb/${resourceType}/upload/v1700000000/${options.folder}/${mockId}.${ext}`;
+      const mockUrl = `https://res.cloudinary.com/englishweb/${resourceType}/upload/v1700000000/${safeFolder}/${mockId}.${ext}`;
 
       return {
         url: mockUrl,
         secureUrl: mockUrl,
-        publicId: `${options.folder}/${mockId}`,
+        publicId: `${safeFolder}/${mockId}`,
         resourceType,
         format: ext,
         bytes: buffer ? buffer.length : 1024,

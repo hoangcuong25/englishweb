@@ -211,6 +211,32 @@ export class MaterialsService {
       ];
     }
 
+    // SEC-007: Students can only view materials of enrolled courses or free preview lessons
+    if (user?.role !== Role.ADMIN && user?.id) {
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { userId: user.id },
+        select: { courseId: true },
+      });
+      const enrolledCourseIds = enrollments.map((e) => e.courseId);
+
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { lessonId: null },
+            { lesson: { isFreePreview: true } },
+            {
+              lesson: {
+                module: {
+                  courseId: { in: enrolledCourseIds },
+                },
+              },
+            },
+          ],
+        },
+      ];
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.material.findMany({
         where,

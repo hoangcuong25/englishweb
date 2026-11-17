@@ -1,6 +1,6 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import { ResponseInterceptor } from './core/common/interceptors/response.interceptor';
@@ -29,13 +29,28 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor(reflector));
   app.useGlobalFilters(new AllExceptionsFilter());
 
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ].filter(Boolean) as string[];
+
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile, curl) or any localhost/127.0.0.1 port
-      if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      const isAllowedLocal = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      const isAllowedOrigin = allowedOrigins.includes(origin);
+      const isNgrokInDev =
+        process.env.NODE_ENV !== 'production' && origin.endsWith('.ngrok-free.app');
+
+      if (isAllowedLocal || isAllowedOrigin || isNgrokInDev) {
         callback(null, true);
       } else {
-        callback(null, true);
+        callback(new BadRequestException(`Origin ${origin} not allowed by CORS`));
       }
     },
     credentials: true,
@@ -51,19 +66,25 @@ async function bootstrap() {
     }),
   );
 
-  const config = new DocumentBuilder()
-    .setTitle('English Learning LMS & LiveKit API')
-    .setDescription('Full RESTful API for Website Dạy Tiếng Anh Trực Tuyến (2 Roles: STUDENT & ADMIN)')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('English Learning LMS & LiveKit API')
+      .setDescription('Full RESTful API for Website Dạy Tiếng Anh Trực Tuyến (2 Roles: STUDENT & ADMIN)')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+    console.log(`📚 Swagger Docs: http://localhost:${process.env.PORT || 3001}/api/docs`);
+  }
+
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing in production!');
+  }
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 Backend running on: http://localhost:${port}/api`);
-  console.log(`📚 Swagger Docs: http://localhost:${port}/api/docs`);
 }
 bootstrap();

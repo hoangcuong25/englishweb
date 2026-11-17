@@ -242,7 +242,7 @@ export class WritingService {
   // ==========================================
 
   async getMySubmissions(userId: string) {
-    return this.prisma.writingSubmission.findMany({
+    const list = await this.prisma.writingSubmission.findMany({
       where: { userId },
       include: {
         prompt: {
@@ -250,6 +250,24 @@ export class WritingService {
         },
       },
       orderBy: { submittedAt: 'desc' },
+    });
+
+    // SEC-006: Human-in-the-loop gating - do not leak unapproved AI scores in list
+    return list.map((item) => {
+      if (item.status !== WritingSubmissionStatus.APPROVED) {
+        return {
+          ...item,
+          overallBand: null,
+          taskAchievementScore: null,
+          coherenceCohesionScore: null,
+          lexicalResourceScore: null,
+          grammarScore: null,
+          aiFeedback: null,
+          aiSuggestions: null,
+          sampleBand8Essay: null,
+        };
+      }
+      return item;
     });
   }
 
@@ -275,10 +293,19 @@ export class WritingService {
       if (submission.userId !== userId) {
         throw new ForbiddenException('Bạn không có quyền truy cập bài viết này');
       }
+      // SEC-006: If not yet approved by Teacher/Admin, return submission but hide AI scores & sample essay
       if (submission.status !== WritingSubmissionStatus.APPROVED) {
-        throw new ForbiddenException(
-          'Bài viết đang trong quá trình xét duyệt của giáo viên, kết quả chưa được công bố',
-        );
+        return {
+          ...submission,
+          overallBand: null,
+          taskAchievementScore: null,
+          coherenceCohesionScore: null,
+          lexicalResourceScore: null,
+          grammarScore: null,
+          aiFeedback: null,
+          aiSuggestions: null,
+          sampleBand8Essay: null,
+        };
       }
     }
 
