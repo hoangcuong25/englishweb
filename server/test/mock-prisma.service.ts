@@ -1194,6 +1194,22 @@ export class MockPrismaService {
       if (args?.where?.skill) {
         result = result.filter((q) => q.skill === args.where.skill);
       }
+      if (args?.where?.testType) {
+        result = result.filter((q) => q.testType === args.where.testType);
+      }
+      if (args?.where?.OR) {
+        const query = args.where.OR[0]?.title?.contains || '';
+        if (query) {
+          result = result.filter(
+            (q) =>
+              (q.title && q.title.toLowerCase().includes(query.toLowerCase())) ||
+              (q.description && q.description.toLowerCase().includes(query.toLowerCase())),
+          );
+        }
+      }
+      if (args?.skip !== undefined && args?.take !== undefined) {
+        result = result.slice(args.skip, args.skip + args.take);
+      }
       return result.map((q) => {
         const qs = this.questions
           .filter((quest) => quest.quizId === q.id)
@@ -1365,15 +1381,28 @@ export class MockPrismaService {
     },
   };
 
-  // --- CLASSROOM UPDATE REPOSITORY ---
+  // --- CLASSROOM REPOSITORY ---
   classroom = {
-    findMany: async () => {
-      return this.classrooms.map((c) => ({
+    findMany: async (args?: any) => {
+      let result = [...this.classrooms];
+      if (args?.where?.status?.in) {
+        result = result.filter((c) => args.where.status.in.includes(c.status));
+      } else if (args?.where?.status) {
+        result = result.filter((c) => c.status === args.where.status);
+      }
+      if (args?.where?.scheduledEndTime?.lte) {
+        result = result.filter((c) => new Date(c.scheduledEndTime) <= new Date(args.where.scheduledEndTime.lte));
+      }
+      if (args?.where?.scheduledEndTime?.gt) {
+        result = result.filter((c) => new Date(c.scheduledEndTime) > new Date(args.where.scheduledEndTime.gt));
+      }
+      return result.map((c) => ({
         ...c,
         host: this.users.find((u) => u.id === c.hostId) || null,
         _count: {
           attendanceRecords: this.attendanceRecords.filter((a) => a.classroomId === c.id).length,
         },
+        attendanceRecords: this.attendanceRecords.filter((a) => a.classroomId === c.id),
       }));
     },
     findUnique: async (args: any) => {
@@ -1393,6 +1422,12 @@ export class MockPrismaService {
       };
       this.classrooms.push(newClassroom);
       return { ...newClassroom };
+    },
+    update: async (args: any) => {
+      const idx = this.classrooms.findIndex((c) => c.id === args.where.id || c.name === args.where.name);
+      if (idx === -1) return null;
+      this.classrooms[idx] = { ...this.classrooms[idx], ...args.data, updatedAt: new Date() };
+      return { ...this.classrooms[idx] };
     },
     updateMany: async (args: any) => {
       let count = 0;

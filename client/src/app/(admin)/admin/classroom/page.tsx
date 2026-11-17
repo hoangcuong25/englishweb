@@ -20,13 +20,9 @@ import {
   Users,
   Timer,
   History,
-  Calendar,
   FileSpreadsheet,
-  CheckCircle,
-  AlertCircle,
   ExternalLink,
   Search,
-  BookOpen,
 } from 'lucide-react';
 
 export default function AdminClassroomPage() {

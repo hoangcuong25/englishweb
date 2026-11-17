@@ -6,7 +6,6 @@ import {
   livekitService,
   LivekitRoom,
   StudentClassroomHistoryResponse,
-  StudentClassroomHistoryItem,
 } from '@/services/livekit.service';
 import {
   Video,
@@ -19,7 +18,6 @@ import {
   XCircle,
   AlertCircle,
   Search,
-  BookOpen,
 } from 'lucide-react';
 
 export default function StudentClassroomSchedulePage() {

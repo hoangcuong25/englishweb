@@ -96,7 +96,6 @@ export default function HomePage() {
     const isEn = currentLang === 'en';
     const isZh = currentLang === 'zh';
     const isJa = currentLang === 'ja';
-    const isKm = currentLang === 'km';
 
     return [
       {

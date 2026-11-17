@@ -222,8 +222,8 @@ export const translations: Translations = {
     km: 'ដាក់ពិន្ទុ Speaking',
   },
   nav_admin_quizzes: {
-    vi: 'Ngân hàng đề & Quiz',
-    en: 'Quiz Bank & Tests',
+    vi: 'Đề thi Quiz & Mock Test',
+    en: 'Quiz & Mock Tests',
     zh: '题库与在线测验',
     ja: '問題バンク・小テスト',
     km: 'ធនាគារវិញ្ញាសា & Quiz',

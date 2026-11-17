@@ -30,7 +30,7 @@ export default function AdminSidebar() {
     { href: '/admin/classroom', label: t('nav_admin_classroom', 'Quản trị phòng học LiveKit'), icon: Video },
     { href: '/admin/writing-review', label: t('nav_writing_review', 'Duyệt bài viết IELTS AI'), icon: FileCheck },
     { href: '/admin/speaking-grading', label: t('nav_speaking_grading', 'Chấm bài nói Speaking'), icon: Headphones },
-    { href: '/admin/quizzes', label: t('nav_admin_quizzes', 'Ngân hàng câu hỏi Quiz'), icon: FileQuestion },
+    { href: '/admin/quizzes', label: t('nav_admin_quizzes', 'Đề thi Quiz & Mock Test'), icon: FileQuestion },
     { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },
     { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
     { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },
