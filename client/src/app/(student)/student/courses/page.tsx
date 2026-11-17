@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { coursesService, Course, CourseModule, CourseLesson } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
+import { authService, User } from '@/services/auth.service';
 import {
   BookOpen,
   GraduationCap,
@@ -18,10 +19,14 @@ import {
   ArrowRight,
   ArrowLeft,
   Search,
-  PlusCircle,
   Check,
   Users,
   Layers,
+  QrCode,
+  Copy,
+  CreditCard,
+  X,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface MockLesson {
@@ -57,6 +62,8 @@ const DEFAULT_MY_COURSES: Course[] = [
     totalModules: 4,
     totalLessons: 15,
     enrolledAt: '15/10/2026',
+    enrollmentStatus: 'ACTIVE',
+    price: 4500000,
   },
   {
     id: 'course-business-english',
@@ -71,6 +78,8 @@ const DEFAULT_MY_COURSES: Course[] = [
     totalModules: 3,
     totalLessons: 12,
     enrolledAt: '01/11/2026',
+    enrollmentStatus: 'ACTIVE',
+    price: 3200000,
   },
 ];
 
@@ -86,6 +95,7 @@ const DEFAULT_RECOMMENDED_COURSES: Course[] = [
     thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
     studentCount: 342,
     moduleCount: 4,
+    price: 2800000,
   },
   {
     id: 'rec-2',
@@ -97,6 +107,7 @@ const DEFAULT_RECOMMENDED_COURSES: Course[] = [
     thumbnail: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80',
     studentCount: 215,
     moduleCount: 6,
+    price: 1950000,
   },
   {
     id: 'rec-3',
@@ -106,8 +117,9 @@ const DEFAULT_RECOMMENDED_COURSES: Course[] = [
     category: 'PEDAGOGY',
     level: 'Giảng viên & Trợ giảng',
     thumbnail: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80',
-    studentCount: 128,
+    studentCount: 180,
     moduleCount: 5,
+    price: 3600000,
   },
   {
     id: 'rec-4',
@@ -189,10 +201,24 @@ export default function StudentCoursesPage() {
 
   // Filters & Loading
   const [loading, setLoading] = useState(false);
-  const [enrollingId, setEnrollingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // User and VietQR Payment states
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [qrModalCourse, setQrModalCourse] = useState<Course | null>(null);
+  const [paymentNote, setPaymentNote] = useState<string>('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState<boolean>(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, fieldName: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2000);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -204,6 +230,12 @@ export default function StudentCoursesPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Fetch current user
+        try {
+          const me = await authService.getMe();
+          if (me) setCurrentUser(me);
+        } catch {}
+
         // 1. Fetch My Enrolled Courses
         const myLearningRes = await coursesService.getMyLearning();
         if (Array.isArray(myLearningRes) && myLearningRes.length > 0) {
@@ -219,6 +251,8 @@ export default function StudentCoursesPage() {
             totalModules: (c.totalModules as number) || 4,
             totalLessons: (c.totalLessons as number) || 12,
             enrolledAt: c.enrolledAt ? new Date(c.enrolledAt as string).toLocaleDateString('vi-VN') : 'Gần đây',
+            enrollmentStatus: (c.status as 'ACTIVE' | 'PENDING' | 'REJECTED') || 'ACTIVE',
+            price: Number(c.price || (c.paymentAmount as number) || 2490000),
           }));
           setMyCourses(mappedEnrolled);
           setSelectedCourse(mappedEnrolled[0]);
@@ -246,6 +280,11 @@ export default function StudentCoursesPage() {
 
   // Open Curriculum for a specific Course
   const handleOpenCurriculum = async (course: Course) => {
+    if (course.enrollmentStatus === 'PENDING') {
+      handleOpenPaymentModal(course);
+      return;
+    }
+
     setSelectedCourse(course);
     setActiveTab('curriculum');
     setLoading(true);
@@ -294,32 +333,48 @@ export default function StudentCoursesPage() {
     }
   };
 
-  // Handle Enrollment into Recommended Course
-  const handleEnrollCourse = async (course: Course) => {
-    setEnrollingId(course.id);
-    try {
-      await coursesService.enroll(course.id);
-      showToast(`Chúc mừng bạn đã đăng ký khóa học "${course.title}" thành công!`);
-    } catch {
-      // Local fallback simulation
-      showToast(`Đã thêm khóa học "${course.title}" vào danh sách học của bạn!`);
-    } finally {
-      setEnrollingId(null);
+  // Confirm VietQR Payment & Request Admin Approval
+  const handleConfirmPayment = async () => {
+    if (!qrModalCourse) return;
+    setIsSubmittingPayment(true);
+    const coursePrice = Number(qrModalCourse.price || 2490000);
+    const syntax = `TD ${currentUser?.phone ? currentUser.phone.replace(/[^0-9]/g, '') : 'HV'} ${(qrModalCourse.slug || qrModalCourse.id).slice(0, 10).toUpperCase().replace(/[^A-Z0-9]/g, '')}`;
+    const fullNote = paymentNote.trim() ? `${syntax} - ${paymentNote.trim()}` : syntax;
 
-      // Add to myCourses
+    try {
+      await coursesService.requestEnroll(qrModalCourse.id, {
+        paymentNote: fullNote,
+        paymentAmount: coursePrice,
+      });
+      showToast('🎉 Gửi thông tin chuyển khoản thành công! Thầy Đông và BQT sẽ kiểm tra sao kê và kích hoạt khóa học cho bạn.');
+    } catch {
+      showToast('🎉 Đã ghi nhận thông tin chuyển khoản! Đang chờ Admin xác nhận giao dịch.');
+    } finally {
+      setIsSubmittingPayment(false);
+
       const newlyEnrolled: Course = {
-        ...course,
+        ...qrModalCourse,
         progress: 0,
         progressPercent: 0,
-        totalModules: course.moduleCount || 4,
+        totalModules: qrModalCourse.moduleCount || 4,
         totalLessons: 12,
         enrolledAt: new Date().toLocaleDateString('vi-VN'),
+        enrollmentStatus: 'PENDING',
+        price: coursePrice,
       };
 
-      setMyCourses((prev) => [newlyEnrolled, ...prev]);
-      setRecommendedCourses((prev) => prev.filter((c) => c.id !== course.id));
+      setMyCourses((prev) => [newlyEnrolled, ...prev.filter((c) => c.id !== qrModalCourse.id)]);
+      setRecommendedCourses((prev) => prev.filter((c) => c.id !== qrModalCourse.id));
+      setQrModalCourse(null);
+      setPaymentNote('');
       setActiveTab('my-courses');
     }
+  };
+
+  // Handle Opening VietQR Payment Modal for Course
+  const handleOpenPaymentModal = (course: Course) => {
+    setQrModalCourse(course);
+    setPaymentNote(currentUser?.phone ? `SĐT: ${currentUser.phone}` : '');
   };
 
   // Toggle lesson complete state
@@ -532,11 +587,21 @@ export default function StudentCoursesPage() {
                         {/* Course Header Banner */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {renderCategoryBadge(course.category)}
                               <span className="text-[11px] font-bold text-slate-400">
                                 {course.level || 'Academic'}
                               </span>
+                              {course.enrollmentStatus === 'PENDING' ? (
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase flex items-center gap-1 border border-amber-300">
+                                  <Clock className="w-3 h-3 text-amber-600 animate-spin" />
+                                  <span>Chờ Admin duyệt CK</span>
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
+                                  Đang học
+                                </span>
+                              )}
                             </div>
                             <h3 className="text-lg font-black text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2">
                               {course.title}
@@ -549,50 +614,79 @@ export default function StudentCoursesPage() {
                           {course.description || 'Chương trình đào tạo tương tác trực tuyến chuẩn EdTech.'}
                         </p>
 
-                        {/* Progress Bar */}
-                        <div className="space-y-1.5 pt-1">
-                          <div className="flex items-center justify-between text-xs font-bold">
-                            <span className="text-slate-600 flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5 text-sky-600" />
-                              <span>Tiến độ học tập</span>
-                            </span>
-                            <span className="text-sky-600 font-extrabold">{progress}%</span>
+                        {course.enrollmentStatus === 'PENDING' ? (
+                          <div className="space-y-3 pt-2">
+                            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
+                              <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 animate-spin" />
+                              <div>
+                                <p className="font-extrabold text-amber-950">Chờ xác nhận giao dịch ngân hàng</p>
+                                <p className="text-[11px] text-amber-800 mt-0.5">
+                                  Admin Thầy Đông đang đối soát sao kê để kích hoạt khóa học vào tài khoản của bạn.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+                              <span>Ghi danh: {course.enrolledAt || 'Hôm nay'}</span>
+                              <span className="font-bold text-sky-700">Học phí: {(course.price || 2490000).toLocaleString('vi-VN')} đ</span>
+                            </div>
+                            <div className="pt-2">
+                              <button
+                                onClick={() => handleOpenPaymentModal(course)}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-amber-500/20 transition-all"
+                              >
+                                <QrCode className="w-4 h-4" />
+                                <span>Xem lại mã QR & Thông tin chuyển khoản</span>
+                              </button>
+                            </div>
                           </div>
-                          <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                            <div
-                              className="bg-gradient-to-r from-sky-500 to-sky-600 h-2.5 rounded-full transition-all duration-700"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
+                        ) : (
+                          <>
+                            {/* Progress Bar */}
+                            <div className="space-y-1.5 pt-1">
+                              <div className="flex items-center justify-between text-xs font-bold">
+                                <span className="text-slate-600 flex items-center gap-1.5">
+                                  <Clock className="w-3.5 h-3.5 text-sky-600" />
+                                  <span>Tiến độ học tập</span>
+                                </span>
+                                <span className="text-sky-600 font-extrabold">{progress}%</span>
+                              </div>
+                              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                <div
+                                  className="bg-gradient-to-r from-sky-500 to-sky-600 h-2.5 rounded-full transition-all duration-700"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
 
-                        {/* Meta Info */}
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
-                          <span>{course.totalModules || 4} Chuyên đề Modules</span>
-                          <span>•</span>
-                          <span>{course.totalLessons || 15} Bài học & Quiz</span>
-                          <span>•</span>
-                          <span>Ghi danh: {course.enrolledAt || '15/10/2026'}</span>
-                        </div>
-                      </div>
+                            {/* Meta Info */}
+                            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                              <span>{course.totalModules || 4} Chuyên đề Modules</span>
+                              <span>•</span>
+                              <span>{course.totalLessons || 15} Bài học & Quiz</span>
+                              <span>•</span>
+                              <span>Ghi danh: {course.enrolledAt || '15/10/2026'}</span>
+                            </div>
 
-                      {/* Action Buttons */}
-                      <div className="pt-5 mt-4 border-t border-slate-100 flex items-center gap-3">
-                        <button
-                          onClick={() => handleOpenCurriculum(course)}
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 font-extrabold text-xs sm:text-sm border border-sky-100 transition-all"
-                        >
-                          <Layers className="w-4 h-4" />
-                          <span>Xem đề cương bài học</span>
-                        </button>
+                            {/* Action Buttons */}
+                            <div className="pt-5 mt-4 border-t border-slate-100 flex items-center gap-3">
+                              <button
+                                onClick={() => handleOpenCurriculum(course)}
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 font-extrabold text-xs sm:text-sm border border-sky-100 transition-all"
+                              >
+                                <Layers className="w-4 h-4" />
+                                <span>Xem đề cương bài học</span>
+                              </button>
 
-                        <button
-                          onClick={() => handleOpenCurriculum(course)}
-                          className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
-                        >
-                          <PlayCircle className="w-4 h-4" />
-                          <span>Vào học ngay</span>
-                        </button>
+                              <button
+                                onClick={() => handleOpenCurriculum(course)}
+                                className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                              >
+                                <PlayCircle className="w-4 h-4" />
+                                <span>Vào học ngay</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -671,14 +765,11 @@ export default function StudentCoursesPage() {
 
           {/* Recommended Courses Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
-            {filteredRecommended.map((course) => {
-              const isEnrolling = enrollingId === course.id;
-
-              return (
-                <div
-                  key={course.id}
-                  className="bg-white rounded-3xl border border-line p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
-                >
+            {filteredRecommended.map((course) => (
+              <div
+                key={course.id}
+                className="bg-white rounded-3xl border border-line p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+              >
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex flex-col gap-1.5">
@@ -698,41 +789,28 @@ export default function StudentCoursesPage() {
                       {course.description || 'Chương trình đào tạo chuyên sâu kết hợp thực hành WebRTC LiveKit và trí tuệ nhân tạo AI.'}
                     </p>
 
-                    <div className="flex items-center gap-4 text-xs font-bold text-slate-600 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-600 pt-2 border-t border-slate-100">
                       <span className="flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5 text-sky-600" />
                         <span>{course.studentCount || 150} học viên</span>
                       </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-sky-600" />
-                        <span>{course.moduleCount || 4} Chuyên đề Modules</span>
+                      <span className="text-sm font-black text-sky-700">
+                        {(course.price || 2490000).toLocaleString('vi-VN')} đ
                       </span>
                     </div>
                   </div>
 
                   <div className="pt-5 mt-4 border-t border-slate-100 flex items-center gap-3">
                     <button
-                      onClick={() => handleEnrollCourse(course)}
-                      disabled={isEnrolling}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
+                      onClick={() => handleOpenPaymentModal(course)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
                     >
-                      {isEnrolling ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span>Đang đăng ký...</span>
-                        </>
-                      ) : (
-                        <>
-                          <PlusCircle className="w-4 h-4" />
-                          <span>Đăng ký tham gia học ngay</span>
-                        </>
-                      )}
+                      <QrCode className="w-4 h-4" />
+                      <span>Đăng ký & Quét mã QR chuyển khoản</span>
                     </button>
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         </div>
       )}
@@ -930,6 +1008,213 @@ export default function StudentCoursesPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ================= PAYMENT QR MODAL ================= */}
+      {qrModalCourse && (() => {
+        const price = Number(qrModalCourse.price || 2490000);
+        const userPhone = currentUser?.phone ? currentUser.phone.replace(/[^0-9]/g, '') : 'HV';
+        const courseCode = (qrModalCourse.slug || qrModalCourse.id)
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .slice(0, 10)
+          .toUpperCase();
+        const transferSyntax = `TD ${userPhone} ${courseCode}`;
+        const qrUrl = `https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${price}&addInfo=${encodeURIComponent(transferSyntax)}&accountName=NGUYEN%20VAN%20DONG`;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Thanh Toán Đăng Ký Khóa Học</h3>
+                    <p className="text-xs text-slate-500 font-medium">Chuyển khoản VietQR Ngân hàng Quân Đội (MB Bank)</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQrModalCourse(null)}
+                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Course Card Preview */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    {renderCategoryBadge(qrModalCourse.category)}
+                    <span className="text-[11px] font-bold text-slate-400">{qrModalCourse.level || 'Academic'}</span>
+                  </div>
+                  <h4 className="text-sm font-extrabold text-slate-800 line-clamp-1">{qrModalCourse.title}</h4>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[11px] font-bold text-slate-400 block">Học phí</span>
+                  <span className="text-base font-black text-sky-600">{price.toLocaleString('vi-VN')} đ</span>
+                </div>
+              </div>
+
+              {/* QR Code Container */}
+              <div className="bg-gradient-to-b from-sky-50/50 to-white rounded-2xl p-4 border border-sky-100 flex flex-col items-center text-center space-y-2.5">
+                <p className="text-xs font-bold text-slate-700">Mở App Ngân hàng bất kỳ & Quét mã QR thanh toán</p>
+                <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-200">
+                  <img
+                    src={qrUrl}
+                    alt="VietQR Code"
+                    className="w-52 h-auto rounded-xl mx-auto object-contain"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Số tiền và nội dung chuyển khoản đã được gán sẵn tự động
+                </p>
+              </div>
+
+              {/* Bank Details Table with 1-click Copy */}
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-500 font-semibold">Ngân hàng:</span>
+                  <span className="font-extrabold text-slate-800">MB Bank (Ngân Hàng TMCP Quân Đội)</span>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-500 font-semibold">Số tài khoản:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-slate-900 font-mono tracking-wider">0987654321</span>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard('0987654321', 'accountNo')}
+                      className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                    >
+                      {copiedField === 'accountNo' ? (
+                        <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                      ) : (
+                        <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-500 font-semibold">Chủ tài khoản:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-slate-900">NGUYEN VAN DONG</span>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard('NGUYEN VAN DONG', 'accountName')}
+                      className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                    >
+                      {copiedField === 'accountName' ? (
+                        <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                      ) : (
+                        <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-500 font-semibold">Số tiền:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-sky-600 font-mono">{price.toLocaleString('vi-VN')} đ</span>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(String(price), 'amount')}
+                      className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                    >
+                      {copiedField === 'amount' ? (
+                        <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                      ) : (
+                        <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-sky-50 border border-sky-100">
+                  <span className="text-sky-900 font-semibold">Cú pháp CK:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-sky-900 font-mono">{transferSyntax}</span>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(transferSyntax, 'syntax')}
+                      className="text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1 text-[11px]"
+                    >
+                      {copiedField === 'syntax' ? (
+                        <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                      ) : (
+                        <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Student Note Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Ghi chú thêm (không bắt buộc):
+                </label>
+                <input
+                  type="text"
+                  placeholder="VD: Nguyễn Văn A - 0912345678, đã CK lúc 14h..."
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+
+              {/* Guide Note */}
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  Sau khi bạn chuyển khoản thành công trên app ngân hàng, hãy bấm nút <strong className="text-amber-950 font-black">&ldquo;Tôi đã chuyển khoản thành công&rdquo;</strong>. Admin Thầy Đông sẽ đối soát sao kê và kích hoạt khóa học vào tài khoản của bạn ngay!
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setQrModalCourse(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition"
+                >
+                  Để sau / Đóng
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingPayment}
+                  onClick={handleConfirmPayment}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs shadow-md shadow-sky-600/20 transition disabled:opacity-50"
+                >
+                  {isSubmittingPayment ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Đang gửi thông tin...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Tôi đã chuyển khoản thành công</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-bottom duration-300">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>

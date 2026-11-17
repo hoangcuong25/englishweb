@@ -118,10 +118,72 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.STUDENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Học viên ghi danh tham gia khóa học' })
+  @ApiOperation({ summary: 'Học viên ghi danh trực tiếp tham gia khóa học' })
   @ApiParam({ name: 'id', description: 'UUID của khóa học cần ghi danh' })
   enroll(@Param('id') id: string, @CurrentUser() user: any) {
     return this.coursesService.enrollCourse(id, user.id);
+  }
+
+  @Post(':id/enroll-request')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STUDENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Học viên gửi yêu cầu đăng ký kèm xác nhận chuyển khoản QR' })
+  @ApiParam({ name: 'id', description: 'UUID của khóa học' })
+  requestEnroll(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() body: { paymentNote?: string; paymentAmount?: number },
+  ) {
+    return this.coursesService.requestEnrollment(
+      id,
+      user.id,
+      body?.paymentNote,
+      body?.paymentAmount,
+    );
+  }
+
+  @Get('admin/enrollments')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin lấy danh sách tất cả yêu cầu đăng ký / ghi danh khóa học' })
+  @ApiQuery({ name: 'status', required: false, description: 'PENDING | ACTIVE | REJECTED' })
+  @ApiQuery({ name: 'courseId', required: false, description: 'Lọc theo khóa học' })
+  getAdminEnrollments(
+    @Query('status') status?: string,
+    @Query('courseId') courseId?: string,
+  ) {
+    return this.coursesService.getAdminEnrollments(status, courseId);
+  }
+
+  @Put('admin/enrollments/:id/approve')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin xác nhận chuyển khoản thành công và kích hoạt khóa học cho học viên' })
+  @ApiParam({ name: 'id', description: 'UUID của enrollment' })
+  approveEnrollment(@Param('id') id: string) {
+    return this.coursesService.approveEnrollment(id);
+  }
+
+  @Put('admin/enrollments/:id/reject')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin từ chối yêu cầu đăng ký khóa học' })
+  @ApiParam({ name: 'id', description: 'UUID của enrollment' })
+  rejectEnrollment(@Param('id') id: string) {
+    return this.coursesService.rejectEnrollment(id);
+  }
+
+  @Post('admin/manual-enroll')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin ghi danh thủ công học viên vào khóa học' })
+  manualEnroll(@Body() body: { courseId: string; userId: string }) {
+    return this.coursesService.manualEnroll(body.courseId, body.userId);
   }
 
   @Post(':id/thumbnail')

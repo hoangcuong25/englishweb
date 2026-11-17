@@ -21,6 +21,37 @@ export interface Course {
   isEnrolled?: boolean;
   totalModules?: number;
   totalLessons?: number;
+  price?: number;
+  status?: string;
+  enrollmentStatus?: 'ACTIVE' | 'PENDING' | 'REJECTED';
+}
+
+export interface CourseEnrollment {
+  id: string;
+  userId: string;
+  courseId: string;
+  status: 'PENDING' | 'ACTIVE' | 'REJECTED';
+  progressPercent: number;
+  paymentNote?: string;
+  paymentAmount?: number;
+  enrolledAt: string;
+  approvedAt?: string;
+  user?: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    avatarUrl?: string;
+  };
+  course?: {
+    id: string;
+    title: string;
+    slug: string;
+    thumbnailUrl?: string;
+    thumbnail?: string;
+    category?: string;
+    price?: number;
+  };
 }
 
 export interface CourseModule {
@@ -64,6 +95,33 @@ export const coursesService = {
   async enroll(courseId: string) {
     const response = await api.post(`/courses/${courseId}/enroll`);
     return response.data;
+  },
+
+  async requestEnroll(courseId: string, payload?: { paymentNote?: string; paymentAmount?: number }) {
+    const response = await api.post(`/courses/${courseId}/enroll-request`, payload || {});
+    return response.data?.data || response.data;
+  },
+
+  async getAdminEnrollments(status?: string, courseId?: string): Promise<CourseEnrollment[]> {
+    const response = await api.get('/courses/admin/enrollments', {
+      params: { status, courseId },
+    });
+    return response.data?.data || response.data || [];
+  },
+
+  async approveEnrollment(enrollmentId: string) {
+    const response = await api.put(`/courses/admin/enrollments/${enrollmentId}/approve`);
+    return response.data?.data || response.data;
+  },
+
+  async rejectEnrollment(enrollmentId: string) {
+    const response = await api.put(`/courses/admin/enrollments/${enrollmentId}/reject`);
+    return response.data?.data || response.data;
+  },
+
+  async manualEnroll(payload: { courseId: string; userId: string; note?: string }) {
+    const response = await api.post('/courses/admin/manual-enroll', payload);
+    return response.data?.data || response.data;
   },
 
   async checkIeltsAccess(): Promise<{ hasAccess: boolean; enrolledEnglishCourses: Course[]; message?: string }> {

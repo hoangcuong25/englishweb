@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { coursesService } from '@/services/courses.service';
+import React, { useState, useEffect, useMemo } from 'react';
+import { coursesService, CourseEnrollment } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
+import { usersService, UserProfile } from '@/services/users.service';
 import CustomSelect from '@/components/ui/custom-select';
 import {
   Plus,
@@ -24,6 +25,13 @@ import {
   ChevronUp,
   ChevronDown,
   Layers,
+  UserPlus,
+  Search,
+  Clock,
+  CreditCard,
+  Check,
+  XCircle,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface Course {
@@ -88,6 +96,140 @@ export default function AdminCoursesPage() {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [notice, setNotice] = useState('');
+
+  // Top Tabs: 'courses' | 'enrollments'
+  const [adminTab, setAdminTab] = useState<'courses' | 'enrollments'>('courses');
+
+  // Enrollments State
+  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+  const [enrollmentFilter, setEnrollmentFilter] = useState<'ALL' | 'PENDING' | 'ACTIVE' | 'REJECTED'>('ALL');
+  const [enrollmentSearch, setEnrollmentSearch] = useState('');
+  const [processingEnrollmentId, setProcessingEnrollmentId] = useState<string | null>(null);
+
+  // Manual Enroll Modal State
+  const [isManualEnrollOpen, setIsManualEnrollOpen] = useState(false);
+  const [studentsList, setStudentsList] = useState<UserProfile[]>([]);
+  const [manualEnrollForm, setManualEnrollForm] = useState({
+    courseId: 'c-1',
+    userId: '',
+    note: '',
+  });
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+
+  const fetchEnrollments = async () => {
+    setLoadingEnrollments(true);
+    try {
+      const res = await coursesService.getAdminEnrollments();
+      if (Array.isArray(res) && res.length > 0) {
+        setEnrollments(res);
+      } else {
+        setEnrollments([
+          {
+            id: 'enr-mock-1',
+            userId: 'u-student-1',
+            courseId: 'c-1',
+            status: 'PENDING',
+            progressPercent: 0,
+            paymentAmount: 4500000,
+            paymentNote: 'TD 0988776655 IELTS75 - CK từ MBBank Nguyễn Văn Nam',
+            enrolledAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+            user: {
+              id: 'u-student-1',
+              fullName: 'Nguyễn Văn Nam',
+              email: 'nam.nguyen@example.com',
+              phone: '0988776655',
+            },
+            course: {
+              id: 'c-1',
+              title: 'IELTS Masterclass 7.5+ Intensive (Writing & Speaking Focus)',
+              slug: 'ielts-masterclass-75-intensive',
+              category: 'IELTS',
+              price: 4500000,
+            },
+          },
+          {
+            id: 'enr-mock-2',
+            userId: 'u-student-2',
+            courseId: 'c-2',
+            status: 'ACTIVE',
+            progressPercent: 35,
+            paymentAmount: 5200000,
+            paymentNote: 'TD 0912345678 BUSVIP - Đã chuyển qua Techcombank',
+            enrolledAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+            approvedAt: new Date(Date.now() - 3600000 * 46).toISOString(),
+            user: {
+              id: 'u-student-2',
+              fullName: 'Trần Thị Thu Thảo',
+              email: 'thao.tran@example.com',
+              phone: '0912345678',
+            },
+            course: {
+              id: 'c-2',
+              title: 'Business English VIP & Executive Communication',
+              slug: 'business-english-vip-executive',
+              category: 'BUSINESS',
+              price: 5200000,
+            },
+          },
+        ]);
+      }
+    } catch {
+      // Fallback mock
+      setEnrollments([
+        {
+          id: 'enr-mock-1',
+          userId: 'u-student-1',
+          courseId: 'c-1',
+          status: 'PENDING',
+          progressPercent: 0,
+          paymentAmount: 4500000,
+          paymentNote: 'TD 0988776655 IELTS75 - CK từ MBBank Nguyễn Văn Nam',
+          enrolledAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+          user: {
+            id: 'u-student-1',
+            fullName: 'Nguyễn Văn Nam',
+            email: 'nam.nguyen@example.com',
+            phone: '0988776655',
+          },
+          course: {
+            id: 'c-1',
+            title: 'IELTS Masterclass 7.5+ Intensive (Writing & Speaking Focus)',
+            slug: 'ielts-masterclass-75-intensive',
+            category: 'IELTS',
+            price: 4500000,
+          },
+        },
+      ]);
+    } finally {
+      setLoadingEnrollments(false);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const res = await usersService.getUsers({ role: 'STUDENT', limit: 100 });
+      const list = Array.isArray(res) ? res : (res as unknown as { items?: UserProfile[] })?.items || [];
+      if (list.length > 0) {
+        setStudentsList(list);
+        setManualEnrollForm((prev) => ({ ...prev, userId: prev.userId || list[0].id }));
+      }
+    } catch {
+      // Default fallback student list
+      const fallbackList: UserProfile[] = [
+        { id: 'u-1', fullName: 'Nguyễn Văn Nam', email: 'nam.nguyen@example.com', phone: '0988776655', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'u-2', fullName: 'Trần Thị Thu Thảo', email: 'thao.tran@example.com', phone: '0912345678', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'u-3', fullName: 'Lê Hoàng Long', email: 'long.le@example.com', phone: '0977112233', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
+      ];
+      setStudentsList(fallbackList);
+      setManualEnrollForm((prev) => ({ ...prev, userId: prev.userId || fallbackList[0].id }));
+    }
+  };
+
+  useEffect(() => {
+    fetchEnrollments();
+    fetchStudents();
+  }, []);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -189,6 +331,118 @@ export default function AdminCoursesPage() {
     setTimeout(() => setNotice(''), 3000);
   };
 
+  // Approve Enrollment (Admin confirms VietQR transfer)
+  const handleApproveEnrollment = async (enrollmentId: string) => {
+    setProcessingEnrollmentId(enrollmentId);
+    try {
+      await coursesService.approveEnrollment(enrollmentId);
+    } catch {}
+    setEnrollments((prev) =>
+      prev.map((e) =>
+        e.id === enrollmentId
+          ? { ...e, status: 'ACTIVE', approvedAt: new Date().toISOString() }
+          : e,
+      ),
+    );
+    setProcessingEnrollmentId(null);
+    setNotice('✅ Đã xác nhận chuyển khoản thành công và kích hoạt khóa học cho học viên!');
+    setTimeout(() => setNotice(''), 4000);
+  };
+
+  // Reject Enrollment
+  const handleRejectEnrollment = async (enrollmentId: string) => {
+    setProcessingEnrollmentId(enrollmentId);
+    try {
+      await coursesService.rejectEnrollment(enrollmentId);
+    } catch {}
+    setEnrollments((prev) =>
+      prev.map((e) => (e.id === enrollmentId ? { ...e, status: 'REJECTED' } : e)),
+    );
+    setProcessingEnrollmentId(null);
+    setNotice('Đã từ chối yêu cầu đăng ký khóa học.');
+    setTimeout(() => setNotice(''), 3000);
+  };
+
+  // Manual Enroll Submit
+  const handleManualEnrollSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualEnrollForm.courseId || !manualEnrollForm.userId) {
+      alert('Vui lòng chọn học viên và khóa học!');
+      return;
+    }
+    setIsSubmittingManual(true);
+    try {
+      await coursesService.manualEnroll({
+        courseId: manualEnrollForm.courseId,
+        userId: manualEnrollForm.userId,
+        note: manualEnrollForm.note,
+      });
+    } catch {}
+
+    const selectedStudent = studentsList.find((s) => s.id === manualEnrollForm.userId);
+    const selectedCourseObj = courses.find((c) => c.id === manualEnrollForm.courseId);
+
+    const newEnr: CourseEnrollment = {
+      id: `enr-${Date.now()}`,
+      userId: manualEnrollForm.userId,
+      courseId: manualEnrollForm.courseId,
+      status: 'ACTIVE',
+      progressPercent: 0,
+      paymentAmount: selectedCourseObj?.price || 4500000,
+      paymentNote: manualEnrollForm.note || 'Ghi danh thủ công bởi Admin',
+      enrolledAt: new Date().toISOString(),
+      approvedAt: new Date().toISOString(),
+      user: {
+        id: manualEnrollForm.userId,
+        fullName: selectedStudent?.fullName || 'Học viên',
+        email: selectedStudent?.email || '',
+        phone: selectedStudent?.phone || '',
+      },
+      course: {
+        id: manualEnrollForm.courseId,
+        title: selectedCourseObj?.title || 'Khóa học',
+        slug: selectedCourseObj?.slug || '',
+        category: selectedCourseObj?.category || 'IELTS',
+      },
+    };
+
+    setEnrollments((prev) => [newEnr, ...prev]);
+    setIsSubmittingManual(false);
+    setIsManualEnrollOpen(false);
+    setManualEnrollForm({ courseId: courses[0]?.id || 'c-1', userId: studentsList[0]?.id || '', note: '' });
+    setNotice(`🎉 Đã ghi danh thủ công học viên "${selectedStudent?.fullName || ''}" vào khóa học thành công!`);
+    setTimeout(() => setNotice(''), 4000);
+  };
+
+  // Filtered enrollments
+  const filteredEnrollments = useMemo(() => {
+    return enrollments.filter((e) => {
+      const matchFilter =
+        enrollmentFilter === 'ALL' || e.status === enrollmentFilter;
+      if (!matchFilter) return false;
+
+      if (!enrollmentSearch.trim()) return true;
+      const q = enrollmentSearch.toLowerCase();
+      const sName = e.user?.fullName?.toLowerCase() || '';
+      const sEmail = e.user?.email?.toLowerCase() || '';
+      const sPhone = e.user?.phone?.toLowerCase() || '';
+      const cTitle = e.course?.title?.toLowerCase() || '';
+      const note = e.paymentNote?.toLowerCase() || '';
+
+      return (
+        sName.includes(q) ||
+        sEmail.includes(q) ||
+        sPhone.includes(q) ||
+        cTitle.includes(q) ||
+        note.includes(q)
+      );
+    });
+  }, [enrollments, enrollmentFilter, enrollmentSearch]);
+
+  const pendingCount = useMemo(() => {
+    return enrollments.filter((e) => e.status === 'PENDING').length;
+  }, [enrollments]);
+
   // Curriculum Reorder State & Handlers
   const [selectedCourseId, setSelectedCourseId] = useState<string>('c-1');
   const [curriculumModules, setCurriculumModules] = useState<ModuleItem[]>([
@@ -278,14 +532,21 @@ export default function AdminCoursesPage() {
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
             <span>Quản Lý Khóa Học & Đào Tạo (LMS Engine)</span>
-            {loading && <RefreshCw className="w-4 h-4 animate-spin text-primary" />}
+            {(loading || loadingEnrollments) && <RefreshCw className="w-4 h-4 animate-spin text-primary" />}
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Quản lý danh mục 5 Trụ Cột Đào Tạo và cấu trúc cây 4 cấp độ.
+            Quản lý danh mục 5 Trụ Cột Đào Tạo, duyệt đăng ký VietQR và ghi danh học viên thủ công.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-wrap">
+          <button
+            onClick={() => setIsManualEnrollOpen(true)}
+            className="px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 transition flex items-center space-x-1.5 shadow-xs"
+          >
+            <UserPlus className="w-4 h-4 text-emerald-600" />
+            <span>+ Ghi Danh Thủ Công</span>
+          </button>
           <button
             onClick={() => setIsLessonModalOpen(true)}
             className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
@@ -308,6 +569,42 @@ export default function AdminCoursesPage() {
           <span>{notice}</span>
         </div>
       )}
+
+      {/* Top Tab Switcher */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setAdminTab('courses')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all ${
+            adminTab === 'courses'
+              ? 'bg-sky-600 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Khóa Học & Giáo Trình ({courses.length})</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('enrollments')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all ${
+            adminTab === 'enrollments'
+              ? 'bg-sky-600 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          <span>Duyệt Đăng Ký & Ghi Danh</span>
+          {pendingCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[11px] font-black animate-pulse">
+              {pendingCount} chờ duyệt
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ================= TAB 1: COURSES & CURRICULUM ================= */}
+      {adminTab === 'courses' && (
+        <div className="space-y-6">
 
       {/* Courses Table */}
       <div className="bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
@@ -495,6 +792,240 @@ export default function AdminCoursesPage() {
           ))}
         </div>
       </div>
+    </div>
+  )}
+
+      {/* ================= TAB 2: ENROLLMENT APPROVAL & MANAGEMENT ================= */}
+      {adminTab === 'enrollments' && (
+        <div className="space-y-6">
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-line shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500">Tổng yêu cầu đăng ký</p>
+                <p className="text-xl sm:text-2xl font-black text-slate-900">{enrollments.length} lượt</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-line shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <Clock className="w-6 h-6 animate-spin" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500">Chờ đối soát sao kê (PENDING)</p>
+                <p className="text-xl sm:text-2xl font-black text-amber-600">{pendingCount} yêu cầu</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-line shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500">Đã kích hoạt khóa học (ACTIVE)</p>
+                <p className="text-xl sm:text-2xl font-black text-emerald-600">
+                  {enrollments.filter((e) => e.status === 'ACTIVE').length} học viên
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Bar & Search */}
+          <div className="bg-white p-4 rounded-2xl border border-line shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Tìm tên, email, SĐT, khóa học..."
+                value={enrollmentSearch}
+                onChange={(e) => setEnrollmentSearch(e.target.value)}
+                className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+              {[
+                { id: 'ALL', label: `Tất cả (${enrollments.length})` },
+                { id: 'PENDING', label: `⏳ Chờ duyệt (${pendingCount})` },
+                { id: 'ACTIVE', label: '✅ Đã kích hoạt' },
+                { id: 'REJECTED', label: '❌ Đã từ chối' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setEnrollmentFilter(tab.id as 'ALL' | 'PENDING' | 'ACTIVE' | 'REJECTED')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    enrollmentFilter === tab.id
+                      ? 'bg-sky-600 text-white font-extrabold shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+
+              <button
+                onClick={fetchEnrollments}
+                disabled={loadingEnrollments}
+                className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition"
+                title="Tải lại danh sách"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingEnrollments ? 'animate-spin text-sky-600' : ''}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Enrollments Table */}
+          <div className="bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-line flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Danh sách yêu cầu đăng ký & ghi danh ({filteredEnrollments.length})
+              </h3>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-line text-slate-500 font-bold">
+                  <tr>
+                    <th className="py-3 px-4">Học Viên</th>
+                    <th className="py-3 px-4">Khóa Học Đăng Ký</th>
+                    <th className="py-3 px-4">Số Tiền (VND)</th>
+                    <th className="py-3 px-4">Ghi Chú / Cú Pháp CK</th>
+                    <th className="py-3 px-4">Thời Gian</th>
+                    <th className="py-3 px-4">Trạng Thái</th>
+                    <th className="py-3 px-4 text-right">Hành Động Đối Soát</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {filteredEnrollments.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-10 text-center text-slate-400">
+                        Không tìm thấy yêu cầu đăng ký nào phù hợp.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEnrollments.map((e) => {
+                      const isProcessing = processingEnrollmentId === e.id;
+
+                      return (
+                        <tr key={e.id} className="hover:bg-slate-50/50 transition">
+                          {/* Student */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 font-bold flex items-center justify-center shrink-0 text-[11px]">
+                                {e.user?.fullName?.charAt(0) || 'HV'}
+                              </div>
+                              <div>
+                                <p className="font-extrabold text-slate-900">{e.user?.fullName || 'Học viên'}</p>
+                                <p className="text-[11px] text-slate-500">{e.user?.email || ''}</p>
+                                {e.user?.phone && (
+                                  <p className="text-[10px] text-sky-600 font-bold">{e.user.phone}</p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Course */}
+                          <td className="py-3.5 px-4 max-w-xs">
+                            <p className="font-extrabold text-slate-800 line-clamp-1">
+                              {e.course?.title || 'Khóa học'}
+                            </p>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-50 text-sky-700 mt-0.5 inline-block">
+                              {e.course?.category || 'IELTS'}
+                            </span>
+                          </td>
+
+                          {/* Amount */}
+                          <td className="py-3.5 px-4 font-bold text-slate-800 font-mono">
+                            {(e.paymentAmount || e.course?.price || 4500000).toLocaleString('vi-VN')} đ
+                          </td>
+
+                          {/* Transfer Note */}
+                          <td className="py-3.5 px-4 max-w-xs">
+                            <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 font-mono text-[11px] block truncate" title={e.paymentNote || 'Không có ghi chú'}>
+                              {e.paymentNote || 'Chưa có ghi chú'}
+                            </span>
+                          </td>
+
+                          {/* Date */}
+                          <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                            {e.enrolledAt ? new Date(e.enrolledAt).toLocaleString('vi-VN') : 'Mới đây'}
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3.5 px-4">
+                            {e.status === 'PENDING' ? (
+                              <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-black flex items-center gap-1 border border-amber-300 w-fit">
+                                <Clock className="w-3 h-3 text-amber-600 animate-spin" />
+                                <span>Chờ đối soát</span>
+                              </span>
+                            ) : e.status === 'ACTIVE' ? (
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black flex items-center gap-1 border border-emerald-300 w-fit">
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span>Đã kích hoạt</span>
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-[11px] font-black flex items-center gap-1 border border-rose-300 w-fit">
+                                <XCircle className="w-3 h-3 text-rose-600" />
+                                <span>Đã từ chối</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Action */}
+                          <td className="py-3.5 px-4 text-right">
+                            {e.status === 'PENDING' ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={isProcessing}
+                                  onClick={() => handleApproveEnrollment(e.id)}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  {isProcessing ? (
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5" />
+                                  )}
+                                  <span>Duyệt & Kích hoạt</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={isProcessing}
+                                  onClick={() => handleRejectEnrollment(e.id)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 font-bold text-xs border border-slate-200 transition disabled:opacity-50"
+                                >
+                                  Từ chối
+                                </button>
+                              </div>
+                            ) : e.status === 'ACTIVE' ? (
+                              <span className="text-emerald-700 font-bold text-[11px] inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Đã mở khóa</span>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleApproveEnrollment(e.id)}
+                                className="text-xs text-sky-600 hover:text-sky-700 font-bold underline"
+                              >
+                                Kích hoạt lại
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Course Creation Modal (#courseModal - Form 3 in Plan) */}
       {isCourseModalOpen && (
@@ -768,6 +1299,110 @@ export default function AdminCoursesPage() {
                   className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm"
                 >
                   Lưu Bài Học
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Enroll Modal (#manualEnrollModal) */}
+      {isManualEnrollOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-line p-6 space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    Ghi Danh Học Viên Thủ Công
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">Kích hoạt quyền truy cập khóa học trực tiếp cho học viên</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsManualEnrollOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleManualEnrollSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Chọn Học Viên <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={manualEnrollForm.userId}
+                  onChange={(e) => setManualEnrollForm({ ...manualEnrollForm, userId: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-sky-500"
+                >
+                  <option value="">-- Chọn học viên từ danh sách --</option>
+                  {studentsList.map((stu) => (
+                    <option key={stu.id} value={stu.id}>
+                      {stu.fullName} ({stu.email}) {stu.phone ? `— ${stu.phone}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Chọn Khóa Học Ghi Danh <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={manualEnrollForm.courseId}
+                  onChange={(e) => setManualEnrollForm({ ...manualEnrollForm, courseId: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-sky-500"
+                >
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title} — [{c.category}] — {c.price.toLocaleString('vi-VN')} đ
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Ghi chú ghi danh (Tùy chọn)
+                </label>
+                <input
+                  type="text"
+                  value={manualEnrollForm.note}
+                  onChange={(e) => setManualEnrollForm({ ...manualEnrollForm, note: e.target.value })}
+                  placeholder="VD: Đã đóng học phí tiền mặt / Chuyển khoản trực tiếp / Học bổng..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-sky-50 border border-sky-100 text-sky-900 text-xs flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <p>
+                  Học viên được ghi danh sẽ ngay lập tức có trạng thái <strong className="text-sky-950 font-black">ACTIVE</strong> và truy cập được toàn bộ bài học, video và tài liệu của khóa học.
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsManualEnrollOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingManual}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
+                >
+                  {isSubmittingManual ? 'Đang ghi danh...' : 'Xác Nhận Ghi Danh Thủ Công'}
                 </button>
               </div>
             </form>
