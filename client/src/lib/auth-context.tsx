@@ -11,7 +11,7 @@ interface AuthContextType {
   sessionTerminated: boolean;
   login: (data: LoginPayload, requiredRole?: 'STUDENT' | 'ADMIN') => Promise<void>;
   loginDemo: (role: 'STUDENT' | 'ADMIN') => void;
-  loginWithGoogle: (profile?: { email?: string; fullName?: string; avatarUrl?: string }) => Promise<void>;
+  loginWithGoogle: (profile?: { idToken?: string; email?: string; fullName?: string; avatarUrl?: string }) => Promise<void>;
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -246,6 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: `google-user-${Date.now()}`,
         fullName: profile?.fullName || 'Học Viên Google',
         email: profile?.email || 'student.google@gmail.com',
+        avatarUrl: profile?.avatarUrl,
         role: 'STUDENT',
         phone: '0988888888',
       };

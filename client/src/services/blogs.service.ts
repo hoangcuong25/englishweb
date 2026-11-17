@@ -80,5 +80,15 @@ export const blogsService = {
     const response = await api.delete(`/blogs/${id}`);
     return response.data;
   },
+
+  async uploadImage(file: File): Promise<{ secureUrl: string; url?: string; publicId?: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/media/upload/image?folder=teacher_dong_academy/blogs/content', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const payload = response.data?.data || response.data;
+    return payload;
+  },
 };
 

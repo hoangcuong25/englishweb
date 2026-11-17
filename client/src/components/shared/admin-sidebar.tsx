@@ -16,6 +16,7 @@ import {
   Users,
   MessageSquare,
   Settings,
+  Newspaper,
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -33,6 +34,7 @@ export default function AdminSidebar() {
     { href: '/admin/quizzes', label: t('nav_admin_quizzes', 'Đề thi Quiz & Mock Test'), icon: FileQuestion },
     { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },
     { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
+    { href: '/admin/blogs', label: t('nav_admin_blogs', 'Quản lý bài viết Blog'), icon: Newspaper },
     { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },
     { href: '/admin/account', label: t('nav_system_settings', 'Cài đặt hệ thống'), icon: Settings },
   ];

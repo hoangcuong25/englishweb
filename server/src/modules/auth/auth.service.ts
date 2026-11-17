@@ -132,11 +132,39 @@ export class AuthService {
    * 3. Google OAuth 2.0 Login / Auto-Registration
    */
   async googleAuth(dto: GoogleAuthDto, ipAddress?: string, userAgent?: string) {
-    // In production, verify idToken with Google OAuth Client SDK
-    const googleId = dto.idToken;
-    const realEmail = dto.email ? dto.email.trim().toLowerCase() : null;
+    let googleId = dto.idToken;
+    let email = dto.email;
+    let fullName = dto.fullName;
+    let avatarUrl = dto.avatarUrl;
+
+    // Auto decode payload if idToken is a JWT from Google Identity Services
+    if (dto.idToken && dto.idToken.includes('.')) {
+      try {
+        const parts = dto.idToken.split('.');
+        if (parts.length === 3) {
+          const payloadJson = Buffer.from(parts[1], 'base64').toString('utf-8');
+          const payload = JSON.parse(payloadJson);
+          if (payload.sub) {
+            googleId = payload.sub;
+          }
+          if (!email && payload.email) {
+            email = payload.email;
+          }
+          if (!fullName && (payload.name || payload.given_name)) {
+            fullName = payload.name || payload.given_name;
+          }
+          if (!avatarUrl && payload.picture) {
+            avatarUrl = payload.picture;
+          }
+        }
+      } catch (err) {
+        // Fallback to original dto
+      }
+    }
+
+    const realEmail = email ? email.trim().toLowerCase() : null;
     const fallbackEmail = `google_${googleId}@englishweb.com`.toLowerCase();
-    const email = realEmail || fallbackEmail;
+    const resolvedEmail = realEmail || fallbackEmail;
 
     // Check if google account is already linked
     let googleAccount = await this.prisma.googleAccount.findUnique({
@@ -151,11 +179,11 @@ export class AuthService {
       const updateData: { fullName?: string; avatarUrl?: string; email?: string } = {};
 
       // Sync latest Google name & avatar if changed
-      if (dto.fullName && dto.fullName !== 'Google Student' && dto.fullName !== user.fullName) {
-        updateData.fullName = dto.fullName;
+      if (fullName && fullName !== 'Google Student' && user.fullName !== fullName) {
+        updateData.fullName = fullName;
       }
-      if (dto.avatarUrl && user.avatarUrl !== dto.avatarUrl) {
-        updateData.avatarUrl = dto.avatarUrl;
+      if (avatarUrl && user.avatarUrl !== avatarUrl) {
+        updateData.avatarUrl = avatarUrl;
       }
       // Sync real Google email into user profile
       if (realEmail && user.email !== realEmail) {
@@ -182,7 +210,7 @@ export class AuthService {
     } else {
       // Check if user with this email exists
       let existingUser = await this.prisma.user.findUnique({
-        where: { email },
+        where: { email: resolvedEmail },
       });
 
       if (existingUser) {
@@ -190,9 +218,9 @@ export class AuthService {
         googleAccount = await this.prisma.googleAccount.create({
           data: {
             googleId,
-            email,
+            email: resolvedEmail,
             userId: existingUser.id,
-            avatarUrl: dto.avatarUrl,
+            avatarUrl,
           },
           include: { user: true },
         });
@@ -200,10 +228,10 @@ export class AuthService {
           where: { id: existingUser.id },
           data: {
             fullName:
-              dto.fullName && dto.fullName !== 'Google Student'
-                ? dto.fullName
+              fullName && fullName !== 'Google Student'
+                ? fullName
                 : existingUser.fullName,
-            avatarUrl: dto.avatarUrl || existingUser.avatarUrl,
+            avatarUrl: avatarUrl || existingUser.avatarUrl,
             email: realEmail || existingUser.email,
           },
         });
@@ -211,15 +239,15 @@ export class AuthService {
         // Create new user with real Google account name, email & link Google account
         user = await this.prisma.user.create({
           data: {
-            email,
-            fullName: dto.fullName || 'Google Student',
-            avatarUrl: dto.avatarUrl,
+            email: resolvedEmail,
+            fullName: fullName || 'Google Student',
+            avatarUrl,
             role: Role.STUDENT,
             googleAccount: {
               create: {
                 googleId,
-                email,
-                avatarUrl: dto.avatarUrl,
+                email: resolvedEmail,
+                avatarUrl,
               },
             },
           },
@@ -258,8 +286,27 @@ export class AuthService {
    * 4. Link Google Account
    */
   async linkGoogle(userId: string, dto: GoogleAuthDto) {
+    let googleId = dto.idToken;
+    let email = dto.email;
+    let avatarUrl = dto.avatarUrl;
+
+    if (dto.idToken && dto.idToken.includes('.')) {
+      try {
+        const parts = dto.idToken.split('.');
+        if (parts.length === 3) {
+          const payloadJson = Buffer.from(parts[1], 'base64').toString('utf-8');
+          const payload = JSON.parse(payloadJson);
+          if (payload.sub) googleId = payload.sub;
+          if (!email && payload.email) email = payload.email;
+          if (!avatarUrl && payload.picture) avatarUrl = payload.picture;
+        }
+      } catch (err) {
+        // Fallback
+      }
+    }
+
     const existing = await this.prisma.googleAccount.findUnique({
-      where: { googleId: dto.idToken },
+      where: { googleId },
     });
 
     if (existing) {
@@ -268,10 +315,10 @@ export class AuthService {
 
     await this.prisma.googleAccount.create({
       data: {
-        googleId: dto.idToken,
-        email: dto.email || 'linked@gmail.com',
+        googleId,
+        email: email || 'linked@gmail.com',
         userId,
-        avatarUrl: dto.avatarUrl,
+        avatarUrl,
       },
     });
 

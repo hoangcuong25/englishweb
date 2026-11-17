@@ -8,10 +8,19 @@ export interface Course {
   category: string;
   level: string;
   thumbnailUrl?: string;
-  published: boolean;
+  thumbnail?: string;
+  published?: boolean;
+  isPublished?: boolean;
   enrollmentCount?: number;
+  studentCount?: number;
+  moduleCount?: number;
   modules?: CourseModule[];
   progress?: number;
+  progressPercent?: number;
+  enrolledAt?: string;
+  isEnrolled?: boolean;
+  totalModules?: number;
+  totalLessons?: number;
 }
 
 export interface CourseModule {
@@ -55,6 +64,15 @@ export const coursesService = {
   async enroll(courseId: string) {
     const response = await api.post(`/courses/${courseId}/enroll`);
     return response.data;
+  },
+
+  async checkIeltsAccess(): Promise<{ hasAccess: boolean; enrolledEnglishCourses: Course[]; message?: string }> {
+    try {
+      const response = await api.get('/courses/ielts-access');
+      return response.data?.data || response.data || { hasAccess: false, enrolledEnglishCourses: [] };
+    } catch {
+      return { hasAccess: false, enrolledEnglishCourses: [] };
+    }
   },
 
   async createCourse(data: Record<string, unknown>) {

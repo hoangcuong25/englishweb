@@ -90,6 +90,27 @@ export default function BlogDetailPage() {
     return sections.map((sec, idx) => {
       const trimmed = sec.trim();
 
+      // Markdown Image ![alt](url)
+      const imgMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
+      if (imgMatch) {
+        const altText = imgMatch[1];
+        const imgUrl = imgMatch[2];
+        return (
+          <figure key={idx} className="my-6 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200/80 shadow-xs">
+            <img
+              src={imgUrl}
+              alt={altText || 'Ảnh minh họa bài viết'}
+              className="w-full max-h-[520px] object-cover rounded-t-xl"
+            />
+            {altText && (
+              <figcaption className="text-center text-xs text-slate-500 py-2.5 px-4 italic bg-white border-t border-slate-100">
+                {altText}
+              </figcaption>
+            )}
+          </figure>
+        );
+      }
+
       // Heading 2 (## ...)
       if (trimmed.startsWith('## ')) {
         return (

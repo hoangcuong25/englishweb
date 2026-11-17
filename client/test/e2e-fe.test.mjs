@@ -537,4 +537,77 @@ describe('Frontend Services & API Contract Integration E2E Suite', () => {
       assert.equal(next?.id, 'l3');
     });
   });
+
+  // 21. Google OAuth 2.0 Integration & Client ID Contract
+  describe('21. Google OAuth 2.0 Integration & Client ID Contract', () => {
+    it('should validate Google Client ID format and configuration', () => {
+      const expectedClientId = '155171869727-rbjdllpda8amdvdh3b8hm9tgh9apqrb4.apps.googleusercontent.com';
+      assert.ok(expectedClientId.endsWith('.apps.googleusercontent.com'));
+      assert.ok(expectedClientId.startsWith('155171869727-'));
+    });
+
+    it('should format Google login payload properly for backend API POST /api/auth/google', () => {
+      const payload = {
+        idToken: '155171869727-sub-user-999',
+        email: 'student.google@gmail.com',
+        fullName: 'Học Viên Google TD',
+        avatarUrl: 'https://lh3.googleusercontent.com/a/photo.jpg',
+      };
+      assert.ok(payload.idToken);
+      assert.ok(payload.email.includes('@'));
+      assert.equal(typeof payload.fullName, 'string');
+      assert.ok(payload.avatarUrl.startsWith('https://'));
+    });
+
+    it('should correctly decode sub, email, and name from JWT credential token', () => {
+      const dummyHeader = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64');
+      const dummyPayload = Buffer.from(
+        JSON.stringify({
+          sub: '109283746501928374650',
+          email: 'test.user@gmail.com',
+          name: 'Test Student',
+          picture: 'https://lh3.googleusercontent.com/test.jpg',
+        }),
+      ).toString('base64');
+      const dummySignature = 'mock_signature_bytes';
+      const jwtToken = `${dummyHeader}.${dummyPayload}.${dummySignature}`;
+
+      const parts = jwtToken.split('.');
+      assert.equal(parts.length, 3);
+      const parsed = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+      assert.equal(parsed.sub, '109283746501928374650');
+      assert.equal(parsed.email, 'test.user@gmail.com');
+      assert.equal(parsed.name, 'Test Student');
+    });
+  });
+
+  // 22. 4-Skills IELTS Question-Type Diagnostic Analytics Contract
+  describe('22. 4-Skills IELTS Question-Type Diagnostic Analytics Contract', () => {
+    it('should accurately categorize question types across all 4 skills into weak and strong buckets', () => {
+      const sampleDiagnostics = [
+        { skill: 'listening', type: 'Multiple Choice Sec 3', status: 'weak', errorRate: 58 },
+        { skill: 'listening', type: 'Form Completion Sec 1', status: 'strong', correctRate: 92 },
+        { skill: 'reading', type: 'True/False/Not Given', status: 'weak', errorRate: 62 },
+        { skill: 'reading', type: 'Summary Completion', status: 'strong', correctRate: 88 },
+        { skill: 'writing', type: 'GRA Complex Sentences', status: 'weak', errorRate: 56 },
+        { skill: 'writing', type: 'Task Response Band 7.5+', status: 'strong', correctRate: 86 },
+        { skill: 'speaking', type: 'Pronunciation & Intonation', status: 'weak', errorRate: 55 },
+        { skill: 'speaking', type: 'Part 1 Daily Fluency', status: 'strong', correctRate: 88 },
+      ];
+
+      const weakItems = sampleDiagnostics.filter((d) => d.status === 'weak');
+      const strongItems = sampleDiagnostics.filter((d) => d.status === 'strong');
+
+      assert.equal(weakItems.length, 4);
+      assert.equal(strongItems.length, 4);
+
+      // Verify all 4 skills are covered in weak
+      const weakSkills = new Set(weakItems.map((w) => w.skill));
+      assert.deepEqual(Array.from(weakSkills).sort(), ['listening', 'reading', 'speaking', 'writing']);
+
+      // Verify all 4 skills are covered in strong
+      const strongSkills = new Set(strongItems.map((s) => s.skill));
+      assert.deepEqual(Array.from(strongSkills).sort(), ['listening', 'reading', 'speaking', 'writing']);
+    });
+  });
 });

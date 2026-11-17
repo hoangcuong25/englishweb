@@ -116,6 +116,13 @@ export const translations: Translations = {
     ja: 'マイコース',
     km: 'វគ្គសិក្សារបស់ខ្ញុំ',
   },
+  nav_ielts_hub: {
+    vi: 'IELTS 4 Kỹ Năng (Nghe • Nói • Đọc • Viết)',
+    en: 'IELTS 4 Skills (L • R • W • S)',
+    zh: '雅思听说读写四项全能',
+    ja: 'IELTS 4技能総合演習',
+    km: 'ជំនាញ IELTS ទាំង ៤',
+  },
   nav_library: {
     vi: 'Học liệu số & Bảo mật',
     en: 'Digital Library',
@@ -178,6 +185,13 @@ export const translations: Translations = {
     zh: '学员与用户管理',
     ja: '受講生・ユーザー管理',
     km: 'គ្រប់គ្រងសិស្ស',
+  },
+  nav_admin_blogs: {
+    vi: 'Quản lý bài viết Blog',
+    en: 'Blog Posts Management',
+    zh: '博客文章管理',
+    ja: 'ブログ記事管理',
+    km: 'គ្រប់គ្រងអត្ថបទប្លុក',
   },
   nav_admin_dashboard: {
     vi: 'Tổng quan quản trị',
