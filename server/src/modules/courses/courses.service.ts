@@ -21,11 +21,14 @@ export class CoursesService {
 
   getCategories() {
     return [
-      { key: CourseCategory.IELTS, nameVi: '1. English Proficiency (IELTS/TOEIC)', code: 'p1' },
-      { key: CourseCategory.BUSINESS, nameVi: '2. Professional Development (Business English)', code: 'p2' },
-      { key: CourseCategory.PEDAGOGY, nameVi: '3. Năng lực sư phạm & Ứng dụng AI', code: 'p3' },
-      { key: CourseCategory.LIFE_SKILLS, nameVi: '4. Kỹ năng sống & Phát triển bản thân', code: 'p4' },
-      { key: CourseCategory.KIDS, nameVi: '5. English for Kids & Trải nghiệm thực tế', code: 'p5' },
+      { key: CourseCategory.ENGLISH, nameVi: 'Tiếng Anh (IELTS / Giao tiếp / Học thuật)', isEnglish: true, group: 'TIẾNG ANH' },
+      { key: CourseCategory.IELTS, nameVi: 'Luyện thi IELTS Chuyên Sâu (4 Kỹ Năng)', isEnglish: true, group: 'TIẾNG ANH' },
+      { key: CourseCategory.BUSINESS, nameVi: 'Business English (Tiếng Anh Thương Mại)', isEnglish: true, group: 'TIẾNG ANH' },
+      { key: CourseCategory.KIDS, nameVi: 'English for Kids (Tiếng Anh Thiếu Nhi)', isEnglish: true, group: 'TIẾNG ANH' },
+      { key: CourseCategory.LIFE_SKILLS, nameVi: 'Kỹ Năng Sống', isEnglish: false, group: 'KỸ NĂNG & PHÁT TRIỂN' },
+      { key: CourseCategory.SOFT_SKILLS, nameVi: 'Kỹ Năng Mềm', isEnglish: false, group: 'KỸ NĂNG & PHÁT TRIỂN' },
+      { key: CourseCategory.PERSONAL_DEV, nameVi: 'Phát Triển Bản Thân', isEnglish: false, group: 'KỸ NĂNG & PHÁT TRIỂN' },
+      { key: CourseCategory.PEDAGOGY, nameVi: 'Năng Lực Sư Phạm & Giảng Dạy', isEnglish: false, group: 'KỸ NĂNG & PHÁT TRIỂN' },
     ];
   }
 
@@ -204,12 +207,22 @@ export class CoursesService {
         totalLessons += m.lessons.length;
       });
 
+      const isEnglish = (
+        [
+          CourseCategory.ENGLISH,
+          CourseCategory.IELTS,
+          CourseCategory.BUSINESS,
+          CourseCategory.KIDS,
+        ] as CourseCategory[]
+      ).includes(e.course.category) || !!(e.course as any).isEnglishCourse;
+
       return {
         enrollmentId: e.id,
         courseId: e.course.id,
         title: e.course.title,
         slug: e.course.slug,
         category: e.course.category,
+        isEnglishCourse: isEnglish,
         thumbnail: e.course.thumbnail,
         progressPercent: e.progressPercent,
         enrolledAt: e.enrolledAt,
@@ -217,6 +230,60 @@ export class CoursesService {
         totalLessons,
       };
     });
+  }
+
+  /**
+   * Kiểm tra quyền truy cập phân hệ IELTS 4 Kỹ Năng:
+   * Yêu cầu học viên phải sở hữu ít nhất 1 khóa học Tiếng Anh (ENGLISH, IELTS, BUSINESS, KIDS).
+   */
+  async checkIeltsAccess(userId: string, role?: Role) {
+    if (role === Role.ADMIN) {
+      return {
+        hasAccess: true,
+        reason: 'ADMIN_FULL_ACCESS',
+        enrolledEnglishCourses: [],
+      };
+    }
+
+    const englishCategories: CourseCategory[] = [
+      CourseCategory.ENGLISH,
+      CourseCategory.IELTS,
+      CourseCategory.BUSINESS,
+      CourseCategory.KIDS,
+    ];
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        userId,
+        course: {
+          OR: [
+            { category: { in: englishCategories } },
+            { isEnglishCourse: true },
+          ],
+        },
+      },
+      include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            category: true,
+            thumbnail: true,
+          },
+        },
+      },
+    });
+
+    const hasAccess = enrollments.length > 0;
+
+    return {
+      hasAccess,
+      enrolledEnglishCourses: enrollments.map((e) => e.course),
+      message: hasAccess
+        ? 'Học viên đã mở khóa trọn bộ phân hệ IELTS 4 Kỹ Năng.'
+        : 'Phân hệ IELTS 4 Kỹ Năng chỉ dành riêng cho học viên đăng ký các khóa học Tiếng Anh. Hãy đăng ký khóa học Tiếng Anh để mở khóa!',
+    };
   }
 
   async createCourse(dto: CreateCourseDto) {
@@ -228,12 +295,22 @@ export class CoursesService {
       throw new ConflictException(`Đường dẫn slug "${dto.slug}" đã tồn tại trên hệ thống`);
     }
 
+    const isEnglishCourse = (
+      [
+        CourseCategory.ENGLISH,
+        CourseCategory.IELTS,
+        CourseCategory.BUSINESS,
+        CourseCategory.KIDS,
+      ] as CourseCategory[]
+    ).includes(dto.category);
+
     const created = await this.prisma.course.create({
       data: {
         title: dto.title,
         slug: dto.slug,
         description: dto.description,
         category: dto.category,
+        isEnglishCourse,
         thumbnail: dto.thumbnail,
         isPublished: dto.isPublished ?? false,
       },

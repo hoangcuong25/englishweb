@@ -150,6 +150,15 @@ export default function BlogListPage() {
 
           {/* Right Auth Action */}
           <div className="flex items-center gap-3">
+            {user?.role === 'ADMIN' && (
+              <Link
+                href="/admin/blogs"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900 text-amber-300 text-xs font-extrabold hover:bg-slate-800 transition-all shadow-xs border border-amber-400/30"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Quản lý Blog (Admin)</span>
+              </Link>
+            )}
             {user ? (
               <Link
                 href={user.role === 'ADMIN' ? '/admin' : '/student'}

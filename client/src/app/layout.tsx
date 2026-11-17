@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { I18nProvider } from '@/lib/i18n-context';
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className="min-h-screen bg-bg text-text antialiased font-sans">
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <I18nProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>

@@ -132,9 +132,37 @@ export class AuthService {
    * 3. Google OAuth 2.0 Login / Auto-Registration
    */
   async googleAuth(dto: GoogleAuthDto, ipAddress?: string, userAgent?: string) {
-    // In production, verify idToken with Google OAuth Client SDK
-    const googleId = dto.idToken;
-    const email = (dto.email || `google_${googleId}@englishweb.com`).toLowerCase();
+    let googleId = dto.idToken;
+    let email = dto.email;
+    let fullName = dto.fullName;
+    let avatarUrl = dto.avatarUrl;
+
+    // Auto decode payload if idToken is a JWT from Google Identity Services
+    if (dto.idToken && dto.idToken.includes('.')) {
+      try {
+        const parts = dto.idToken.split('.');
+        if (parts.length === 3) {
+          const payloadJson = Buffer.from(parts[1], 'base64').toString('utf-8');
+          const payload = JSON.parse(payloadJson);
+          if (payload.sub) {
+            googleId = payload.sub;
+          }
+          if (!email && payload.email) {
+            email = payload.email;
+          }
+          if (!fullName && (payload.name || payload.given_name)) {
+            fullName = payload.name || payload.given_name;
+          }
+          if (!avatarUrl && payload.picture) {
+            avatarUrl = payload.picture;
+          }
+        }
+      } catch (err) {
+        // Fallback to original dto
+      }
+    }
+
+    email = (email || `google_${googleId}@englishweb.com`).toLowerCase();
 
     // Check if google account is already linked
     let googleAccount = await this.prisma.googleAccount.findUnique({
@@ -159,7 +187,7 @@ export class AuthService {
             googleId,
             email,
             userId: existingUser.id,
-            avatarUrl: dto.avatarUrl,
+            avatarUrl,
           },
           include: { user: true },
         });
@@ -169,14 +197,14 @@ export class AuthService {
         user = await this.prisma.user.create({
           data: {
             email,
-            fullName: dto.fullName || 'Google Student',
-            avatarUrl: dto.avatarUrl,
+            fullName: fullName || 'Google Student',
+            avatarUrl,
             role: Role.STUDENT,
             googleAccount: {
               create: {
                 googleId,
                 email,
-                avatarUrl: dto.avatarUrl,
+                avatarUrl,
               },
             },
           },
@@ -215,8 +243,27 @@ export class AuthService {
    * 4. Link Google Account
    */
   async linkGoogle(userId: string, dto: GoogleAuthDto) {
+    let googleId = dto.idToken;
+    let email = dto.email;
+    let avatarUrl = dto.avatarUrl;
+
+    if (dto.idToken && dto.idToken.includes('.')) {
+      try {
+        const parts = dto.idToken.split('.');
+        if (parts.length === 3) {
+          const payloadJson = Buffer.from(parts[1], 'base64').toString('utf-8');
+          const payload = JSON.parse(payloadJson);
+          if (payload.sub) googleId = payload.sub;
+          if (!email && payload.email) email = payload.email;
+          if (!avatarUrl && payload.picture) avatarUrl = payload.picture;
+        }
+      } catch (err) {
+        // Fallback
+      }
+    }
+
     const existing = await this.prisma.googleAccount.findUnique({
-      where: { googleId: dto.idToken },
+      where: { googleId },
     });
 
     if (existing) {
@@ -225,10 +272,10 @@ export class AuthService {
 
     await this.prisma.googleAccount.create({
       data: {
-        googleId: dto.idToken,
-        email: dto.email || 'linked@gmail.com',
+        googleId,
+        email: email || 'linked@gmail.com',
         userId,
-        avatarUrl: dto.avatarUrl,
+        avatarUrl,
       },
     });
 

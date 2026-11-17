@@ -25,11 +25,14 @@ enum Language {
 }
 
 enum CourseCategory {
+  ENGLISH
   IELTS
   BUSINESS
   KIDS
   PEDAGOGY
   LIFE_SKILLS
+  SOFT_SKILLS
+  PERSONAL_DEV
 }
 
 enum MaterialType {
@@ -190,15 +193,16 @@ model GoogleAccount {
 // ==========================================
 
 model Course {
-  id          String         @id @default(uuid())
-  title       String
-  slug        String         @unique
-  description String?        @db.Text
-  category    CourseCategory @default(IELTS)
-  thumbnail   String?
-  isPublished Boolean        @default(false)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id              String         @id @default(uuid())
+  title           String
+  slug            String         @unique
+  description     String?        @db.Text
+  category        CourseCategory @default(IELTS)
+  isEnglishCourse Boolean        @default(true)
+  thumbnail       String?
+  isPublished     Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   modules     CourseModule[]
   enrollments Enrollment[]

@@ -53,6 +53,14 @@ export class CoursesController {
     return this.coursesService.findMyLearning(user.id);
   }
 
+  @Get('ielts-access')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Kiểm tra học viên có quyền truy cập phân hệ IELTS 4 kỹ năng hay không (yêu cầu sở hữu khóa Tiếng Anh)' })
+  checkIeltsAccess(@CurrentUser() user: any) {
+    return this.coursesService.checkIeltsAccess(user.id, user.role);
+  }
+
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Lấy danh sách khóa học (lọc theo trụ cột danh mục và từ khóa tìm kiếm)' })
