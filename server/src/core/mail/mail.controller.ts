@@ -16,12 +16,19 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 
 @ApiTags('Mail Service')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 @Controller('mail')
 export class MailController {
   constructor(private readonly mailService: MailService) {}
 
   @Get('status')
-  @ApiOperation({ summary: 'Get current email dispatch status and configured sender' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin get current email dispatch status and configured sender' })
+  @ApiResponse({ status: 200, description: 'Email service status information' })
   getStatus() {
     return this.mailService.getStatus();
   }

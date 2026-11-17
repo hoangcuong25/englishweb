@@ -171,9 +171,10 @@ export class LivekitController {
 
   @Post('rooms/:roomName/whiteboard/clear')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Clear whiteboard strokes' })
+  @ApiOperation({ summary: 'Clear whiteboard strokes (Admin only)' })
   @ResponseMessage('Xóa bảng trắng thành công')
   async clearWhiteboard(
     @Param('roomName') roomName: string,

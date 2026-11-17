@@ -19,16 +19,21 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from './cloudinary.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('Cloudinary Media Storage')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 @Controller('media')
 export class MediaController {
   constructor(private readonly cloudinaryService: CloudinaryService) {}
 
   @Post('upload/image')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Upload hình ảnh lên Cloudinary (avatar, thumbnail, blog cover, tài liệu)' })
   @ApiConsumes('multipart/form-data')
   @ApiQuery({ name: 'folder', required: false, description: 'Tên thư mục trên Cloudinary' })
@@ -53,6 +58,7 @@ export class MediaController {
   }
 
   @Post('upload/video')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Upload video lên Cloudinary (bài giảng video, blog review, speaking clip)' })
   @ApiConsumes('multipart/form-data')
   @ApiQuery({ name: 'folder', required: false, description: 'Tên thư mục trên Cloudinary' })
@@ -77,6 +83,7 @@ export class MediaController {
   }
 
   @Delete(':publicId')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Xóa asset khỏi Cloudinary' })
   @ApiQuery({ name: 'resourceType', required: false, enum: ['image', 'video'] })
   @ResponseMessage('Xóa asset khỏi Cloudinary thành công')

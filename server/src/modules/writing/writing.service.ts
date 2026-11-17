@@ -271,8 +271,15 @@ export class WritingService {
       throw new NotFoundException(`Không tìm thấy bài nộp Writing ID: ${id}`);
     }
 
-    if (role !== Role.ADMIN && submission.userId !== userId) {
-      throw new ForbiddenException('Bạn không có quyền truy cập bài viết này');
+    if (role !== Role.ADMIN) {
+      if (submission.userId !== userId) {
+        throw new ForbiddenException('Bạn không có quyền truy cập bài viết này');
+      }
+      if (submission.status !== WritingSubmissionStatus.APPROVED) {
+        throw new ForbiddenException(
+          'Bài viết đang trong quá trình xét duyệt của giáo viên, kết quả chưa được công bố',
+        );
+      }
     }
 
     return submission;

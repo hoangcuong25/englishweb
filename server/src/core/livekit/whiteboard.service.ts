@@ -96,9 +96,9 @@ export class WhiteboardService {
   ) {
     const state = this.getOrCreateRoom(roomName);
 
-    // Nếu là STUDENT mà chưa được cấp quyền thì không được xóa
-    if (user.role === Role.STUDENT && !state.allowStudentDrawing) {
-      throw new ForbiddenException('Bạn chưa được cấp quyền thao tác bảng trắng');
+    // Chỉ Admin/Giáo viên mới có quyền xóa toàn bộ bảng trắng
+    if (user.role !== Role.ADMIN) {
+      throw new ForbiddenException('Chỉ giáo viên/Admin mới có quyền xóa toàn bộ bảng trắng');
     }
 
     state.strokes = [];
