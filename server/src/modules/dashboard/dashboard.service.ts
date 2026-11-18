@@ -168,7 +168,7 @@ export class DashboardService {
       pendingSpeakingGradings,
       recentStudents,
       activeOrUpcomingClassrooms,
-      attendanceRecords,
+      attendanceStatusGroups,
       recentWritingSubmissions,
       recentSpeakingSubmissions,
     ] = await Promise.all([
@@ -210,7 +210,10 @@ export class DashboardService {
           _count: { select: { attendanceRecords: true } },
         },
       }),
-      this.prisma.attendanceRecord.findMany(),
+      this.prisma.attendanceRecord.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
       this.prisma.writingSubmission.findMany({
         orderBy: { submittedAt: 'desc' },
         take: 5,
@@ -229,10 +232,18 @@ export class DashboardService {
       }),
     ]);
 
-    const totalAttendance = attendanceRecords.length;
-    const presentCount = attendanceRecords.filter((a) => a.status === 'PRESENT').length;
-    const lateCount = attendanceRecords.filter((a) => a.status === 'LATE').length;
-    const absentCount = attendanceRecords.filter((a) => a.status === 'ABSENT').length;
+    let totalAttendance = 0;
+    let presentCount = 0;
+    let lateCount = 0;
+    let absentCount = 0;
+
+    for (const g of attendanceStatusGroups as any[]) {
+      const count = g._count?._all || 0;
+      totalAttendance += count;
+      if (g.status === 'PRESENT') presentCount = count;
+      else if (g.status === 'LATE') lateCount = count;
+      else if (g.status === 'ABSENT') absentCount = count;
+    }
 
     const presentRate = totalAttendance > 0 ? Math.round((presentCount / totalAttendance) * 100) : 0;
     const lateRate = totalAttendance > 0 ? Math.round((lateCount / totalAttendance) * 100) : 0;

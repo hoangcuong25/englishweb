@@ -89,28 +89,46 @@ export class ChatService {
       orderBy: { lastMessageAt: 'desc' },
     });
 
-    const result = await Promise.all(
-      conversations.map(async (conv) => {
-        const lastMessage = await this.prisma.message.findFirst({
-          where: { conversationId: conv.id },
-          orderBy: { createdAt: 'desc' },
-        });
-        const unreadCount = await this.prisma.message.count({
-          where: {
-            conversationId: conv.id,
-            senderId: { not: userId },
-            isRead: false,
-          },
-        });
-        return {
-          ...conv,
-          lastMessage,
-          unreadCount,
-        };
-      }),
-    );
+    if (conversations.length === 0) {
+      return [];
+    }
 
-    return result;
+    const convIds = conversations.map((c) => c.id);
+
+    // Optimized: batch fetch unread counts and recent messages in 2 queries instead of 2N queries
+    const [unreadGroups, recentMessages] = await Promise.all([
+      this.prisma.message.groupBy({
+        by: ['conversationId'],
+        where: {
+          conversationId: { in: convIds },
+          senderId: { not: userId },
+          isRead: false,
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.message.findMany({
+        where: { conversationId: { in: convIds } },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const unreadMap = new Map<string, number>();
+    for (const g of unreadGroups as any[]) {
+      unreadMap.set(g.conversationId, g._count?._all || 0);
+    }
+
+    const lastMessageMap = new Map<string, any>();
+    for (const msg of recentMessages) {
+      if (!lastMessageMap.has(msg.conversationId)) {
+        lastMessageMap.set(msg.conversationId, msg);
+      }
+    }
+
+    return conversations.map((conv) => ({
+      ...conv,
+      lastMessage: lastMessageMap.get(conv.id) || null,
+      unreadCount: unreadMap.get(conv.id) || 0,
+    }));
   }
 
   async getMessages(conversationId: string, userId: string, role: string, take = 50, skip = 0) {
