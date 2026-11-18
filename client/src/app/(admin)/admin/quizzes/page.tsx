@@ -190,45 +190,7 @@ export default function AdminQuizzesPage() {
           setQuestions(extractedQuestions);
         }
       } else {
-        // Fallback default seeds if API returns empty
-        const fallbackSeed: MockTestItem[] = [
-          {
-            id: 'mock-reading-cambridge-academic',
-            title: 'IELTS Academic Reading Mock Test: The Architecture of Sustainable Smart Cities',
-            description: 'Đề thi thử Academic Reading Full Mock Test gồm 3 Passage học thuật chuẩn Cambridge.',
-            skill: 'READING',
-            testType: 'FULL_MOCK_TEST',
-            timeLimitMinutes: 60,
-            passScore: 80,
-            questionsCount: 40,
-            submissionsCount: 15,
-            passage: 'READING PASSAGE 1: The Architecture of Sustainable Smart Cities...',
-          },
-          {
-            id: 'mock-listening-cambridge-section-1',
-            title: 'IELTS Listening Mock Test: University Campus Accommodation & Facilities Registration',
-            description: 'Đề thi thử IELTS Listening Section 1-4 với audio bài nghe trực quan.',
-            skill: 'LISTENING',
-            testType: 'FULL_MOCK_TEST',
-            timeLimitMinutes: 30,
-            passScore: 80,
-            questionsCount: 40,
-            submissionsCount: 22,
-            audioUrl: 'https://res.cloudinary.com/demo/video/upload/sample_audio.mp3',
-          },
-          {
-            id: 'mock-checkpoint-grammar-academic',
-            title: 'Module 03 Diagnostic Checkpoint: Formal Academic Register & Collocations',
-            description: 'Bài kiểm tra tiến độ ngữ pháp và vốn từ vựng học thuật theo Module.',
-            skill: 'GRAMMAR',
-            testType: 'LESSON_QUIZ',
-            timeLimitMinutes: 20,
-            passScore: 80,
-            questionsCount: 15,
-            submissionsCount: 48,
-          },
-        ];
-        setMockTests(fallbackSeed);
+        setMockTests([]);
       }
     } catch (err) {
       console.warn('Could not load quizzes from backend:', err);

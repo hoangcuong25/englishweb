@@ -66,46 +66,15 @@ export default function StudentLibraryPage() {
     }
   };
 
-  const [materials, setMaterials] = useState<LibraryMaterial[]>([
-    {
-      id: 'mat-1',
-      title: 'IELTS Writing Task 2 Master Vocabulary Band 8.0+ (Full Guide)',
-      fileType: 'PDF',
-      category: 'IELTS Writing',
-      size: '8.4 MB',
-      updatedAt: '08/11/2026',
-    },
-    {
-      id: 'mat-2',
-      title: 'Academic Collocations & Linking Words for Band 7.5+',
-      fileType: 'PDF',
-      category: 'Vocabulary',
-      size: '4.2 MB',
-      updatedAt: '05/11/2026',
-    },
-    {
-      id: 'mat-3',
-      title: 'IELTS Speaking Part 2 Native Speaker Audio Model Answers (Set 01)',
-      fileType: 'AUDIO_MP3',
-      category: 'IELTS Speaking',
-      size: '24.5 MB',
-      updatedAt: '02/11/2026',
-    },
-    {
-      id: 'mat-4',
-      title: 'Business Communication English — Negotiation Phrases Handbook',
-      fileType: 'PDF',
-      category: 'Business English',
-      size: '6.1 MB',
-      updatedAt: '28/10/2026',
-    },
-  ]);
+  const [materials, setMaterials] = useState<LibraryMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMaterials = async () => {
+      setLoading(true);
       try {
         const res = await materialsService.getAll();
-        if (res && Array.isArray(res.items) && res.items.length > 0) {
+        if (res && Array.isArray(res.items)) {
           const mapped: LibraryMaterial[] = (res.items as unknown as RawMaterial[]).map((m: RawMaterial) => ({
             id: m.id,
             title: m.title,
@@ -117,7 +86,9 @@ export default function StudentLibraryPage() {
           setMaterials(mapped);
         }
       } catch {
-        // Keep initial mock list
+        // Keep initial list
+      } finally {
+        setLoading(false);
       }
     };
     fetchMaterials();
@@ -231,52 +202,62 @@ export default function StudentLibraryPage() {
       </div>
 
       {/* Materials List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filtered.map((mat) => (
-          <div
-            key={mat.id}
-            className="p-5 rounded-2xl bg-white border border-line hover:border-primary/50 shadow-sm transition flex flex-col justify-between"
-          >
-            <div className="flex items-start space-x-3.5">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  mat.fileType === 'PDF'
-                    ? 'bg-red-50 text-red-600'
-                    : 'bg-amber-50 text-amber-600'
-                }`}
-              >
-                {mat.fileType === 'PDF' ? (
-                  <FileText className="w-5 h-5" />
-                ) : (
-                  <Headphones className="w-5 h-5" />
-                )}
+      {loading ? (
+        <div className="p-8 text-center text-slate-500 font-medium bg-white rounded-2xl border border-line">
+          Đang tải kho học liệu số...
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="p-8 text-center text-slate-500 font-medium bg-white rounded-2xl border border-line">
+          Không tìm thấy tài liệu phù hợp.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filtered.map((mat) => (
+            <div
+              key={mat.id}
+              className="p-5 rounded-2xl bg-white border border-line hover:border-primary/50 shadow-sm transition flex flex-col justify-between"
+            >
+              <div className="flex items-start space-x-3.5">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    mat.fileType === 'PDF'
+                      ? 'bg-red-50 text-red-600'
+                      : 'bg-amber-50 text-amber-600'
+                  }`}
+                >
+                  {mat.fileType === 'PDF' ? (
+                    <FileText className="w-5 h-5" />
+                  ) : (
+                    <Headphones className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-sky-50 px-2 py-0.5 rounded">
+                    {mat.category}
+                  </span>
+                  <h3 className="text-sm font-bold text-slate-900 mt-1 line-clamp-2">
+                    {mat.title}
+                  </h3>
+                  <p className="text-[11px] text-muted mt-1">
+                    Dung lượng: {mat.size} • Cập nhật: {mat.updatedAt}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-sky-50 px-2 py-0.5 rounded">
-                  {mat.category}
-                </span>
-                <h3 className="text-sm font-bold text-slate-900 mt-1 line-clamp-2">
-                  {mat.title}
-                </h3>
-                <p className="text-[11px] text-muted mt-1">
-                  Dung lượng: {mat.size} • Cập nhật: {mat.updatedAt}
-                </p>
-              </div>
-            </div>
 
-            <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
-              <span className="text-[11px] text-slate-400">Chỉ xem trực tuyến</span>
-              <button
-                onClick={() => handleOpenSecureMaterial(mat)}
-                className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm flex items-center space-x-1.5"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Mở Xem Bảo Mật</span>
-              </button>
+              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
+                <span className="text-[11px] text-slate-400">Chỉ xem trực tuyến</span>
+                <button
+                  onClick={() => handleOpenSecureMaterial(mat)}
+                  className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm flex items-center space-x-1.5"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Mở Xem Bảo Mật</span>
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Secured Material Viewer Modal (with Watermark & 15:00 Signed URL Countdown & Focus Reader Mode) */}
       {selectedMaterial && (

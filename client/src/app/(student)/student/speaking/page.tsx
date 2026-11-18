@@ -23,14 +23,26 @@ export default function StudentSpeakingPage() {
   const [speakTime, setSpeakTime] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentPromptId, setCurrentPromptId] = useState('prompt-speaking-part2-forecast');
+  const [currentPromptId, setCurrentPromptId] = useState('');
+  const [currentPrompt, setCurrentPrompt] = useState<{
+    id: string;
+    title: string;
+    description: string;
+    cueCard?: string;
+    part: number;
+    prepTimeSeconds?: number;
+    recordTimeSeconds?: number;
+  } | null>(null);
 
   useEffect(() => {
     const fetchPrompts = async () => {
       try {
         const list = await speakingService.getPrompts();
-        if (list && list.length > 0) {
-          setCurrentPromptId(list[0].id);
+        if (Array.isArray(list) && list.length > 0) {
+          const partNum = part === 'PART_1' ? 1 : part === 'PART_2' ? 2 : 3;
+          const matched = list.find((p) => p.part === partNum) || list[0];
+          setCurrentPrompt(matched);
+          setCurrentPromptId(matched.id);
         }
       } catch {
         // Fallback default
@@ -226,23 +238,25 @@ export default function StudentSpeakingPage() {
       <div className="bg-white rounded-3xl border border-line p-6 sm:p-8 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-line pb-3">
           <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-amber-50 text-amber-800 uppercase tracking-wider">
-            Đề bài IELTS Speaking Part 2
+            Đề bài IELTS Speaking {part.replace('_', ' ')}
           </span>
           <span className="text-xs text-muted">Thời gian nói khuyến nghị: 1:45 - 2:00</span>
         </div>
 
         <div className="space-y-3">
           <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
-            Describe a momentous life decision that substantially changed your career path or life perspective.
+            {currentPrompt?.title || 'Describe an interesting person you met recently'}
           </h2>
           <div className="p-4 rounded-2xl bg-slate-50 border border-line space-y-2 text-xs text-slate-700">
-            <p className="font-bold text-slate-900">You should say:</p>
-            <ul className="list-disc list-inside space-y-1 text-slate-600">
-              <li>What the decision was and when you made it</li>
-              <li>What options or alternatives you contemplated</li>
-              <li>Why you arrived at that particular conclusion</li>
-              <li>And explain how this decision has impacted your subsequent life trajectory</li>
-            </ul>
+            {currentPrompt?.cueCard ? (
+              <div className="whitespace-pre-line text-slate-600 font-medium leading-relaxed">
+                {currentPrompt.cueCard}
+              </div>
+            ) : (
+              <p className="text-slate-600 font-medium leading-relaxed">
+                {currentPrompt?.description || 'You should say who this person is, where you met, and explain why you found them interesting.'}
+              </p>
+            )}
           </div>
         </div>
 

@@ -83,57 +83,6 @@ const DEFAULT_MY_COURSES: Course[] = [
   },
 ];
 
-// Fallback initial recommended courses
-const DEFAULT_RECOMMENDED_COURSES: Course[] = [
-  {
-    id: 'rec-1',
-    title: 'IELTS Speaking Studio: Phản Xạ 1-1 & Chuẩn Hóa Phát Âm IPA',
-    slug: 'ielts-speaking-studio',
-    description: 'Khóa học phản xạ nói trên WebRTC LiveKit, ghi âm hiển thị sóng âm và AI phân tích 4 tiêu chí IELTS Speaking thời gian thực.',
-    category: 'IELTS',
-    level: 'Band 6.0 - 7.5+',
-    thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
-    studentCount: 342,
-    moduleCount: 4,
-    price: 2800000,
-  },
-  {
-    id: 'rec-2',
-    title: 'Cambridge Primary English: Starters & Movers Toàn Diện',
-    slug: 'cambridge-primary-english',
-    description: 'Chương trình phát triển ngôn ngữ tự nhiên dành cho học sinh tiểu học với phương pháp học tương tác trực quan.',
-    category: 'KIDS',
-    level: 'Starters / Movers',
-    thumbnail: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80',
-    studentCount: 215,
-    moduleCount: 6,
-    price: 1950000,
-  },
-  {
-    id: 'rec-3',
-    title: 'Phương Pháp Sư Phạm Giảng Dạy Tiếng Anh Hiện Đại (TESOL Foundation)',
-    slug: 'tesol-foundation',
-    description: 'Phát triển năng lực sư phạm, thiết kế giáo án tương tác EdTech và kỹ năng quản lý lớp học trực tuyến WebRTC.',
-    category: 'PEDAGOGY',
-    level: 'Giảng viên & Trợ giảng',
-    thumbnail: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80',
-    studentCount: 180,
-    moduleCount: 5,
-    price: 3600000,
-  },
-  {
-    id: 'rec-4',
-    title: 'Global Mindset & Life Skills in English',
-    slug: 'global-mindset-life-skills',
-    description: 'Tư duy phản biện toàn cầu, kỹ năng lãnh đạo bản thân và khả năng tranh luận học thuật bằng tiếng Anh.',
-    category: 'LIFE_SKILLS',
-    level: 'Mọi trình độ',
-    thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80',
-    studentCount: 190,
-    moduleCount: 3,
-  },
-];
-
 const DEFAULT_CURRICULUM: MockModule[] = [
   {
     id: 'm1',
@@ -190,13 +139,13 @@ export default function StudentCoursesPage() {
   const [activeTab, setActiveTab] = useState<'my-courses' | 'recommended' | 'curriculum'>('my-courses');
 
   // Enrolled courses
-  const [myCourses, setMyCourses] = useState<Course[]>(DEFAULT_MY_COURSES);
+  const [myCourses, setMyCourses] = useState<Course[]>([]);
   // Recommended courses
-  const [recommendedCourses, setRecommendedCourses] = useState<Course[]>(DEFAULT_RECOMMENDED_COURSES);
+  const [recommendedCourses, setRecommendedCourses] = useState<Course[]>([]);
 
   // Selected course for curriculum view
   const [selectedCourse, setSelectedCourse] = useState<Course>(DEFAULT_MY_COURSES[0]);
-  const [modules, setModules] = useState<MockModule[]>(DEFAULT_CURRICULUM);
+  const [modules, setModules] = useState<MockModule[]>([]);
   const [expandedModule, setExpandedModule] = useState<string>('m1');
 
   // Filters & Loading
@@ -238,7 +187,8 @@ export default function StudentCoursesPage() {
 
         // 1. Fetch My Enrolled Courses
         const myLearningRes = await coursesService.getMyLearning();
-        if (Array.isArray(myLearningRes) && myLearningRes.length > 0) {
+        let enrolledIds = new Set<string>();
+        if (Array.isArray(myLearningRes)) {
           const mappedEnrolled: Course[] = myLearningRes.map((c: Record<string, unknown>) => ({
             id: (c.courseId as string) || (c.id as string),
             title: c.title as string,
@@ -255,17 +205,20 @@ export default function StudentCoursesPage() {
             price: Number(c.price || (c.paymentAmount as number) || 2490000),
           }));
           setMyCourses(mappedEnrolled);
-          setSelectedCourse(mappedEnrolled[0]);
+          if (mappedEnrolled.length > 0) {
+            setSelectedCourse(mappedEnrolled[0]);
+          }
+          enrolledIds = new Set(mappedEnrolled.map((mc) => mc.id));
         }
 
         // 2. Fetch Catalog for Recommended Courses
         const catalogRes = await coursesService.getCourses();
-        if (Array.isArray(catalogRes) && catalogRes.length > 0) {
+        if (Array.isArray(catalogRes)) {
           // Filter out courses student already has
-          const enrolledIds = new Set(myCourses.map((mc) => mc.id));
           const notEnrolled = catalogRes.filter((c: Course) => !enrolledIds.has(c.id));
-          if (notEnrolled.length > 0) {
-            setRecommendedCourses(notEnrolled);
+          setRecommendedCourses(notEnrolled);
+          if (myCourses.length === 0 && notEnrolled.length > 0) {
+            setSelectedCourse(notEnrolled[0]);
           }
         }
       } catch (err) {

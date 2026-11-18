@@ -121,86 +121,11 @@ export default function AdminCoursesPage() {
     setLoadingEnrollments(true);
     try {
       const res = await coursesService.getAdminEnrollments();
-      if (Array.isArray(res) && res.length > 0) {
+      if (Array.isArray(res)) {
         setEnrollments(res);
-      } else {
-        setEnrollments([
-          {
-            id: 'enr-mock-1',
-            userId: 'u-student-1',
-            courseId: 'c-1',
-            status: 'PENDING',
-            progressPercent: 0,
-            paymentAmount: 4500000,
-            paymentNote: 'TD 0988776655 IELTS75 - CK từ MBBank Nguyễn Văn Nam',
-            enrolledAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-            user: {
-              id: 'u-student-1',
-              fullName: 'Nguyễn Văn Nam',
-              email: 'nam.nguyen@example.com',
-              phone: '0988776655',
-            },
-            course: {
-              id: 'c-1',
-              title: 'IELTS Masterclass 7.5+ Intensive (Writing & Speaking Focus)',
-              slug: 'ielts-masterclass-75-intensive',
-              category: 'IELTS',
-              price: 4500000,
-            },
-          },
-          {
-            id: 'enr-mock-2',
-            userId: 'u-student-2',
-            courseId: 'c-2',
-            status: 'ACTIVE',
-            progressPercent: 35,
-            paymentAmount: 5200000,
-            paymentNote: 'TD 0912345678 BUSVIP - Đã chuyển qua Techcombank',
-            enrolledAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-            approvedAt: new Date(Date.now() - 3600000 * 46).toISOString(),
-            user: {
-              id: 'u-student-2',
-              fullName: 'Trần Thị Thu Thảo',
-              email: 'thao.tran@example.com',
-              phone: '0912345678',
-            },
-            course: {
-              id: 'c-2',
-              title: 'Business English VIP & Executive Communication',
-              slug: 'business-english-vip-executive',
-              category: 'BUSINESS',
-              price: 5200000,
-            },
-          },
-        ]);
       }
-    } catch {
-      // Fallback mock
-      setEnrollments([
-        {
-          id: 'enr-mock-1',
-          userId: 'u-student-1',
-          courseId: 'c-1',
-          status: 'PENDING',
-          progressPercent: 0,
-          paymentAmount: 4500000,
-          paymentNote: 'TD 0988776655 IELTS75 - CK từ MBBank Nguyễn Văn Nam',
-          enrolledAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-          user: {
-            id: 'u-student-1',
-            fullName: 'Nguyễn Văn Nam',
-            email: 'nam.nguyen@example.com',
-            phone: '0988776655',
-          },
-          course: {
-            id: 'c-1',
-            title: 'IELTS Masterclass 7.5+ Intensive (Writing & Speaking Focus)',
-            slug: 'ielts-masterclass-75-intensive',
-            category: 'IELTS',
-            price: 4500000,
-          },
-        },
-      ]);
+    } catch (err) {
+      console.error('Error fetching enrollments from API:', err);
     } finally {
       setLoadingEnrollments(false);
     }
@@ -214,15 +139,8 @@ export default function AdminCoursesPage() {
         setStudentsList(list);
         setManualEnrollForm((prev) => ({ ...prev, userId: prev.userId || list[0].id }));
       }
-    } catch {
-      // Default fallback student list
-      const fallbackList: UserProfile[] = [
-        { id: 'u-1', fullName: 'Nguyễn Văn Nam', email: 'nam.nguyen@example.com', phone: '0988776655', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'u-2', fullName: 'Trần Thị Thu Thảo', email: 'thao.tran@example.com', phone: '0912345678', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'u-3', fullName: 'Lê Hoàng Long', email: 'long.le@example.com', phone: '0977112233', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
-      ];
-      setStudentsList(fallbackList);
-      setManualEnrollForm((prev) => ({ ...prev, userId: prev.userId || fallbackList[0].id }));
+    } catch (err) {
+      console.error('Error fetching students from API:', err);
     }
   };
 

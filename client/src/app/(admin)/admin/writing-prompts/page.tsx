@@ -41,29 +41,8 @@ export default function AdminWritingPromptsPage() {
     setLoading(true);
     try {
       const data = await writingService.getPrompts();
-      if (data && data.length > 0) {
+      if (Array.isArray(data)) {
         setPrompts(data);
-      } else {
-        // Mock fallback if empty
-        setPrompts([
-          {
-            id: 'wp-sample-1',
-            title: 'University Education: Free vs Tuition Fees',
-            description: 'Some people believe that university education should be free for everyone, while others argue that students should pay tuition fees. Discuss both views and give your opinion.',
-            taskType: 'TASK_2',
-            minWords: 250,
-            timeLimitMinutes: 40,
-          },
-          {
-            id: 'wp-sample-2',
-            title: 'Renewable Electricity Generation Chart 2010-2024',
-            description: 'The chart shows the proportion of electricity generated from renewable sources in four countries between 2010 and 2024. Summarise the information by selecting and reporting the main features.',
-            taskType: 'TASK_1',
-            minWords: 150,
-            timeLimitMinutes: 20,
-            chartImageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71',
-          },
-        ]);
       }
     } catch {
       // Keep existing

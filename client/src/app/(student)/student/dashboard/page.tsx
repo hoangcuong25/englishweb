@@ -88,18 +88,18 @@ export default function StudentDashboard() {
 
   // Compute stats with fallback
   const overview = data?.overview || {
-    enrolledCoursesCount: 1,
-    averageProgress: 68,
-    completedLessonsCount: 8,
-    completedQuizzesCount: 4,
-    writingSubmissionsCount: 2,
-    speakingSubmissionsCount: 3,
+    enrolledCoursesCount: 0,
+    averageProgress: 0,
+    completedLessonsCount: 0,
+    completedQuizzesCount: 0,
+    writingSubmissionsCount: 0,
+    speakingSubmissionsCount: 0,
   };
 
   const attendance = data?.attendanceSummary || {
-    totalSessions: 12,
-    present: 11,
-    late: 1,
+    totalSessions: 0,
+    present: 0,
+    late: 0,
     absent: 0,
   };
 

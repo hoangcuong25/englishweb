@@ -19,10 +19,8 @@ export default function StudentWritingPage() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isAutoSaved, setIsAutoSaved] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentPromptTitle, setCurrentPromptTitle] = useState(
-    'Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?',
-  );
-  const [currentPromptId, setCurrentPromptId] = useState('prompt-task2-demo');
+  const [currentPromptTitle, setCurrentPromptTitle] = useState('Đang tải đề thi IELTS Writing...');
+  const [currentPromptId, setCurrentPromptId] = useState('');
 
   const [evaluationResult, setEvaluationResult] = useState<{
     overallBand: number;
@@ -116,15 +114,8 @@ export default function StudentWritingPage() {
     setTimeLeft(type === 'TASK_1' ? 20 * 60 : 40 * 60);
     setEssayContent('');
     setEvaluationResult(null);
-    if (type === 'TASK_1') {
-      setCurrentPromptTitle(
-        'The chart below shows the percentage of electricity generated from renewables across four countries between 2010 and 2024.',
-      );
-    } else {
-      setCurrentPromptTitle(
-        'Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?',
-      );
-    }
+    setCurrentPromptTitle('Đang tải đề thi IELTS Writing...');
+    setCurrentPromptId('');
   };
 
   const handleStartTimer = () => {

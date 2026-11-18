@@ -30,44 +30,8 @@ interface WritingReviewItem {
 }
 
 export default function AdminWritingReviewPage() {
-  const [submissions, setSubmissions] = useState<WritingReviewItem[]>([
-    {
-      id: 'w-101',
-      studentName: 'Trần Văn Nam',
-      studentEmail: 'nam.tran@gmail.com',
-      taskTitle: 'University Education: Free vs Tuition Fees (Task 2)',
-      taskType: 'TASK_2',
-      essayText:
-        'It is commonly believed by a substantial proportion of society that tertiary education ought to be made gratuitously available to all undergraduates irrespective of their socioeconomic provenance. However, an alternative school of thought posits that tuition charges should be levied. In this essay, I intend to scrutinise both perspectives prior to presenting my own conviction...',
-      wordCount: 286,
-      submittedAt: '09/11/2026 14:20',
-      aiTR: 6.5,
-      aiCC: 7.0,
-      aiLR: 7.5,
-      aiGRA: 6.5,
-      aiOverall: 7.0,
-      status: 'AI_EVALUATED',
-    },
-    {
-      id: 'w-102',
-      studentName: 'Lê Thị Mai',
-      studentEmail: 'mai.le@gmail.com',
-      taskTitle: 'Renewable Electricity Generation Chart 2010-2024 (Task 1)',
-      taskType: 'TASK_1',
-      essayText:
-        'The provided bar chart delineates the proportion of electric power generated from environmentally friendly sources across four nations between 2010 and 2024. Overall, what stands out from the graphical data is that Country A witnessed the most substantial ascendancy...',
-      wordCount: 178,
-      submittedAt: '09/11/2026 10:15',
-      aiTR: 7.0,
-      aiCC: 7.0,
-      aiLR: 7.0,
-      aiGRA: 7.0,
-      aiOverall: 7.0,
-      status: 'AI_EVALUATED',
-    },
-  ]);
-
-  const [loading, setLoading] = useState(false);
+  const [submissions, setSubmissions] = useState<WritingReviewItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeReview, setActiveReview] = useState<WritingReviewItem | null>(null);
   const [scoreTR, setScoreTR] = useState(7.0);
   const [scoreCC, setScoreCC] = useState(7.0);
@@ -82,7 +46,7 @@ export default function AdminWritingReviewPage() {
       setLoading(true);
       try {
         const data = await writingService.getAdminSubmissions();
-        if (data && data.length > 0) {
+        if (Array.isArray(data)) {
           const mapped: WritingReviewItem[] = data.map((item) => ({
             id: item.id,
             studentName: item.student?.fullName || 'Học viên',

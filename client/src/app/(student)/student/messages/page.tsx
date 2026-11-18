@@ -32,22 +32,7 @@ export default function StudentMessagesPage() {
   const [activeConversation, setActiveConversation] = useState<ConversationItem | null>(null);
   const [activeMobileView, setActiveMobileView] = useState<'list' | 'chat'>('list');
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'm1',
-      sender: 'TEACHER',
-      text: 'Chào em! Thầy đã xem qua bài Writing Task 2 hôm qua em nộp. Em nhớ chú ý thêm các liên từ nhượng bộ như "Albeit" và "Notwithstanding" để nâng band Coherence nhé.',
-      time: '14:25',
-      isRead: true,
-    },
-    {
-      id: 'm2',
-      sender: 'ME',
-      text: 'Dạ em cảm ơn Thầy Đông nhiều ạ! Tối nay lớp LiveKit Speaking 19:30 em sẽ vào sớm 10 phút để test micro ạ.',
-      time: '14:30',
-      isRead: true,
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -130,7 +115,7 @@ export default function StudentMessagesPage() {
   const loadMessages = async (convId: string) => {
     try {
       const items: ChatMessageItem[] = await chatService.getMessages(convId);
-      if (Array.isArray(items) && items.length > 0) {
+      if (Array.isArray(items)) {
         const formatted: ChatMessage[] = items.map((m) => {
           const isMe = m.senderId === user?.id || m.sender?.role === 'STUDENT';
           return {

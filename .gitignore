@@ -32,3 +32,4 @@ Thumbs.db
 # Public uploads & assets
 server/public/
 **/public/uploads/
+server/private_storage/

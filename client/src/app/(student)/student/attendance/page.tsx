@@ -23,67 +23,36 @@ interface AttendanceLogItem {
   note: string;
 }
 
-export default function StudentAttendancePage() {
-  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLogItem[]>([
-    {
-      id: 'att-1',
-      sessionName: 'IELTS Speaking Part 2 Forecast — Ca 1',
-      date: '08/11/2026',
-      scheduledTime: '19:30 - 21:00 (90 phút)',
-      joinedAt: '19:33',
-      leftAt: '21:02',
-      actualMinutes: 89,
-      percentage: '98.8%',
-      status: 'PRESENT',
-      note: 'Vào đúng giờ (trong 15p đầu), tham gia đầy đủ buổi học.',
-    },
-    {
-      id: 'att-2',
-      sessionName: 'Writing Task 2 Academic Collocations Workshop',
-      date: '05/11/2026',
-      scheduledTime: '19:30 - 21:00 (90 phút)',
-      joinedAt: '19:50',
-      leftAt: '21:00',
-      actualMinutes: 70,
-      percentage: '77.7%',
-      status: 'LATE',
-      note: 'Tham gia sau 15 phút đầu do kẹt xe. Webhook LiveKit tự động tính LATE.',
-    },
-    {
-      id: 'att-3',
-      sessionName: 'Grammar Mastery: Inversion & Cleft Sentences',
-      date: '02/11/2026',
-      scheduledTime: '19:30 - 21:00 (90 phút)',
-      joinedAt: '19:31',
-      leftAt: '20:58',
-      actualMinutes: 87,
-      percentage: '96.6%',
-      status: 'PRESENT',
-      note: 'Admin kiểm duyệt: Có mặt đầy đủ.',
-    },
-    {
-      id: 'att-4',
-      sessionName: 'Pronunciation & Intonation Clinic with Native Coach',
-      date: '29/10/2026',
-      scheduledTime: '19:30 - 21:00 (90 phút)',
-      joinedAt: '-',
-      leftAt: '-',
-      actualMinutes: 0,
-      percentage: '0%',
-      status: 'ABSENT',
-      note: 'Vắng không phép. Đã gửi video bản ghi Cloud Recording qua email.',
-    },
-  ]);
+interface RawAttendanceRecord {
+  id: string;
+  firstJoinedAt?: string;
+  joinedAt?: string;
+  lastLeftAt?: string;
+  leftAt?: string;
+  totalMinutes?: number;
+  durationMinutes?: number;
+  status: 'PRESENT' | 'LATE' | 'ABSENT';
+  note?: string;
+  notes?: string;
+  classroom?: {
+    id: string;
+    name: string;
+    scheduledStartTime?: string;
+    scheduledEndTime?: string;
+  };
+}
 
-  const [loading, setLoading] = useState(false);
+export default function StudentAttendancePage() {
+  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLogItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAttendance = async () => {
       setLoading(true);
       try {
         const records = await attendanceService.getMyAttendance();
-        if (records && records.length > 0) {
-          const mapped: AttendanceLogItem[] = records.map((r) => {
+        if (Array.isArray(records)) {
+          const mapped: AttendanceLogItem[] = (records as unknown as RawAttendanceRecord[]).map((r) => {
             const joinedTime = r.firstJoinedAt || r.joinedAt;
             const leftTime = r.lastLeftAt || r.leftAt;
             const mins = r.totalMinutes ?? r.durationMinutes ?? 0;
@@ -301,34 +270,42 @@ export default function StudentAttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {attendanceLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50/50 transition">
-                  <td className="py-3.5 px-4">
-                    <p className="font-bold text-slate-900">{log.sessionName}</p>
-                    <p className="text-[11px] text-muted">{log.date} • {log.scheduledTime}</p>
+              {attendanceLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-slate-500 font-medium">
+                    {loading ? 'Đang tải dữ liệu điểm danh...' : 'Chưa có nhật ký buổi học nào.'}
                   </td>
-                  <td className="py-3.5 px-4 font-mono font-semibold">{log.joinedAt}</td>
-                  <td className="py-3.5 px-4 font-mono font-semibold">{log.leftAt}</td>
-                  <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
-                    {log.actualMinutes} phút
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-primary">{log.percentage}</td>
-                  <td className="py-3.5 px-4">
-                    <span
-                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
-                        log.status === 'PRESENT'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : log.status === 'LATE'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {log.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-muted text-[11px] max-w-xs">{log.note}</td>
                 </tr>
-              ))}
+              ) : (
+                attendanceLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-50/50 transition">
+                    <td className="py-3.5 px-4">
+                      <p className="font-bold text-slate-900">{log.sessionName}</p>
+                      <p className="text-[11px] text-muted">{log.date} • {log.scheduledTime}</p>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono font-semibold">{log.joinedAt}</td>
+                    <td className="py-3.5 px-4 font-mono font-semibold">{log.leftAt}</td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
+                      {log.actualMinutes} phút
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-primary">{log.percentage}</td>
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
+                          log.status === 'PRESENT'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : log.status === 'LATE'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {log.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-muted text-[11px] max-w-xs">{log.note}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

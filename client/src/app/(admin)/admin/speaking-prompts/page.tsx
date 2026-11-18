@@ -41,37 +41,8 @@ export default function AdminSpeakingPromptsPage() {
     setLoading(true);
     try {
       const data = await speakingService.getPrompts();
-      if (data && data.length > 0) {
+      if (Array.isArray(data)) {
         setPrompts(data);
-      } else {
-        // Mock fallback
-        setPrompts([
-          {
-            id: 'sp-1',
-            title: 'Describe a memorable journey you have taken',
-            description: 'You should say: where you went, whom you went with, what you did, and explain why this journey was memorable to you.',
-            cueCard: 'You should say:\n- Where you went\n- Who you went with\n- What you did there\n- And explain why this journey was so memorable to you.',
-            part: 2,
-            prepTimeSeconds: 60,
-            recordTimeSeconds: 120,
-          },
-          {
-            id: 'sp-2',
-            title: 'Daily Routine & Work-Life Balance',
-            description: 'Tell me about your typical morning routine. Do you prefer working in the morning or evening?',
-            part: 1,
-            prepTimeSeconds: 15,
-            recordTimeSeconds: 60,
-          },
-          {
-            id: 'sp-3',
-            title: 'Impact of Tourism on Local Traditions',
-            description: 'In what ways does international tourism alter cultural preservation in developing nations?',
-            part: 3,
-            prepTimeSeconds: 15,
-            recordTimeSeconds: 90,
-          },
-        ]);
       }
     } catch {
       // Keep existing

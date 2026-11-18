@@ -38,28 +38,7 @@ interface RawMaterial {
 }
 
 export default function AdminLibraryPage() {
-  const [materials, setMaterials] = useState<MaterialItem[]>([
-    {
-      id: 'mat-1',
-      title: 'IELTS Writing Task 2 Master Vocabulary Band 8.0+ (Full Guide)',
-      fileType: 'PDF',
-      fileSize: '8.4 MB',
-      courseTitle: 'IELTS Masterclass 7.5+ Intensive',
-      isSignedUrl: true,
-      isWatermark: true,
-      uploadDate: '08/11/2026',
-    },
-    {
-      id: 'mat-2',
-      title: 'IELTS Speaking Part 2 Native Speaker Audio Model Answers (Set 01)',
-      fileType: 'AUDIO_MP3',
-      fileSize: '24.5 MB',
-      courseTitle: 'IELTS Masterclass 7.5+ Intensive',
-      isSignedUrl: true,
-      isWatermark: true,
-      uploadDate: '02/11/2026',
-    },
-  ]);
+  const [materials, setMaterials] = useState<MaterialItem[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notice, setNotice] = useState('');
@@ -67,7 +46,7 @@ export default function AdminLibraryPage() {
   const fetchMaterials = async () => {
     try {
       const res = await materialsService.getAll();
-      if (res && Array.isArray(res.items) && res.items.length > 0) {
+      if (res && Array.isArray(res.items)) {
         const mapped: MaterialItem[] = (res.items as unknown as RawMaterial[]).map((m: RawMaterial) => ({
           id: m.id,
           title: m.title,
@@ -80,8 +59,8 @@ export default function AdminLibraryPage() {
         }));
         setMaterials(mapped);
       }
-    } catch {
-      // Keep initial materials as fallback
+    } catch (err) {
+      console.error('Error fetching materials from API:', err);
     }
   };
 

@@ -36,27 +36,27 @@ export default function AdminDashboard() {
   }, []);
 
   const metrics = data?.metrics || {
-    totalStudents: 128,
-    totalCourses: 6,
-    totalLessons: 48,
-    totalClassrooms: 14,
-    totalWritingSubmissions: 35,
-    totalSpeakingSubmissions: 28,
+    totalStudents: 0,
+    totalCourses: 0,
+    totalLessons: 0,
+    totalClassrooms: 0,
+    totalWritingSubmissions: 0,
+    totalSpeakingSubmissions: 0,
   };
 
   const actionItems = data?.actionItems || {
-    pendingWritingApprovals: 5,
-    pendingSpeakingGradings: 8,
+    pendingWritingApprovals: 0,
+    pendingSpeakingGradings: 0,
   };
 
   const attendance = data?.attendanceOverview || {
-    totalRecords: 128,
-    presentCount: 112,
-    lateCount: 11,
-    absentCount: 5,
-    presentRate: 88,
-    lateRate: 8,
-    absentRate: 4,
+    totalRecords: 0,
+    presentCount: 0,
+    lateCount: 0,
+    absentCount: 0,
+    presentRate: 0,
+    lateRate: 0,
+    absentRate: 0,
   };
 
   const totalPending = actionItems.pendingWritingApprovals + actionItems.pendingSpeakingGradings;

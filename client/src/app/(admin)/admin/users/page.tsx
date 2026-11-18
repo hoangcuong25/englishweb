@@ -31,38 +31,7 @@ interface StudentUser {
 }
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<StudentUser[]>([
-    {
-      id: 'HV-0102',
-      fullName: 'Trần Văn Nam',
-      email: 'nam.tran@gmail.com',
-      phone: '0912345678',
-      enrolledCourse: 'IELTS Masterclass 7.5+ Intensive',
-      targetBand: '7.5',
-      status: 'ACTIVE',
-      joinedDate: '15/10/2026',
-    },
-    {
-      id: 'HV-0105',
-      fullName: 'Lê Thị Mai',
-      email: 'mai.le@gmail.com',
-      phone: '0987654321',
-      enrolledCourse: 'IELTS Masterclass 7.5+ Intensive',
-      targetBand: '7.0',
-      status: 'ACTIVE',
-      joinedDate: '18/10/2026',
-    },
-    {
-      id: 'HV-0110',
-      fullName: 'Nguyễn Tiến Dũng',
-      email: 'dung.nguyen@gmail.com',
-      phone: '0901234567',
-      enrolledCourse: 'Business English VIP',
-      targetBand: '6.5',
-      status: 'LOCKED',
-      joinedDate: '22/10/2026',
-    },
-  ]);
+  const [users, setUsers] = useState<StudentUser[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -81,7 +50,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const data = await usersService.getUsers({ role: 'STUDENT', search: searchTerm.trim() || undefined });
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         type RawStudent = UserProfile & { targetBand?: string; enrollments?: { course?: { title?: string } }[] };
         const mapped: StudentUser[] = (data as RawStudent[]).map((u, idx: number) => ({
           id: u.id,
@@ -96,8 +65,8 @@ export default function AdminUsersPage() {
         }));
         setUsers(mapped);
       }
-    } catch {
-      // Keep initial fallback users if network / DB is unavailable
+    } catch (err) {
+      console.error('Error fetching students from API:', err);
     } finally {
       setLoading(false);
     }

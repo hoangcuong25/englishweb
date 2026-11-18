@@ -32,22 +32,7 @@ export default function AdminMessagesPage() {
   const [activeMobileView, setActiveMobileView] = useState<'list' | 'chat'>('list');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'm1',
-      sender: 'STUDENT',
-      studentName: 'Trần Văn Nam',
-      text: 'Thầy ơi, bài Writing Task 2 em nộp đã được AI chấm 7.0, Thầy xem giúp em phần Lexical Resource nhé!',
-      time: '15:10',
-    },
-    {
-      id: 'm2',
-      sender: 'ADMIN',
-      studentName: 'Thầy Đông',
-      text: 'Thầy vừa xem rồi Nam nhé, bài viết rất tốt. Thầy đã điều chỉnh điểm LR lên 7.5 và duyệt kết quả rồi nhé.',
-      time: '15:14',
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -130,7 +115,7 @@ export default function AdminMessagesPage() {
   const loadMessages = async (convId: string, studentName: string) => {
     try {
       const items: ChatMessageItem[] = await chatService.getMessages(convId);
-      if (Array.isArray(items) && items.length > 0) {
+      if (Array.isArray(items)) {
         const formatted: ChatMessage[] = items.map((m) => {
           const isAdmin = m.senderId === user?.id || m.sender?.role === 'ADMIN';
           return {
