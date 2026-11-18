@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { coursesService, Course } from '@/services/courses.service';
 import { writingService } from '@/services/writing.service';
+import { quizzesService } from '@/services/quizzes.service';
 import { RadarChart, RadarChartItem } from '@/components/ui/radar-chart';
 import {
   Award,
@@ -333,13 +334,23 @@ export default function StudentIeltsHubPage() {
   const [isDiagnosticSectionOpen, setIsDiagnosticSectionOpen] = useState(true);
   const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
 
+  // IELTS Estimated Scores across 4 skills from real API
+  const [scores, setScores] = useState({
+    listening: 7.0,
+    reading: 7.0,
+    writing: 6.5,
+    speaking: 6.5,
+  });
+
+  const [diagnosticsList, setDiagnosticsList] = useState<DiagnosticItem[]>(DIAGNOSTIC_DATA);
+
   const filteredDiagnostics = useMemo(() => {
-    return DIAGNOSTIC_DATA.filter((item) => {
+    return diagnosticsList.filter((item) => {
       if (diagSkillFilter !== 'all' && item.skill !== diagSkillFilter) return false;
       if (diagStatusFilter !== 'all' && item.status !== diagStatusFilter) return false;
       return true;
     });
-  }, [diagSkillFilter, diagStatusFilter]);
+  }, [diagnosticsList, diagSkillFilter, diagStatusFilter]);
 
   const toggleExpandItem = (id: string) => {
     setExpandedItemIds((prev) =>
@@ -349,14 +360,6 @@ export default function StudentIeltsHubPage() {
 
   const expandAll = () => setExpandedItemIds(filteredDiagnostics.map((d) => d.id));
   const collapseAll = () => setExpandedItemIds([]);
-
-  // IELTS Estimated Scores across 4 skills
-  const [scores] = useState({
-    listening: 7.5,
-    reading: 7.5,
-    writing: 6.5,
-    speaking: 7.0,
-  });
 
   const overallBand = useMemo(() => {
     const raw = (scores.listening + scores.reading + scores.writing + scores.speaking) / 4;
@@ -457,7 +460,36 @@ export default function StudentIeltsHubPage() {
         }
       } catch {}
     };
+    const loadDiagnostic = async () => {
+      try {
+        const diag = await quizzesService.getMyDiagnostic();
+        type RawDiagItem = DiagnosticItem & { category?: string; errorRate?: number; correctRate?: number };
+        type RawDiagData = {
+          overallRadar?: { listening?: number; reading?: number; writing?: number; speaking?: number };
+          radarScores?: { listening?: number; reading?: number; writing?: number; speaking?: number };
+          items?: RawDiagItem[];
+        };
+        const typedDiag = diag as unknown as RawDiagData;
+        if (typedDiag) {
+          const radar = typedDiag.overallRadar || typedDiag.radarScores;
+          if (radar) {
+            setScores({
+              listening: Number(radar.listening || 7.0),
+              reading: Number(radar.reading || 7.0),
+              writing: Number(radar.writing || 6.5),
+              speaking: Number(radar.speaking || 6.5),
+            });
+          }
+          if (Array.isArray(typedDiag.items) && typedDiag.items.length > 0) {
+            setDiagnosticsList(typedDiag.items as DiagnosticItem[]);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load student diagnostic from API:', err);
+      }
+    };
     loadPrompt();
+    loadDiagnostic();
   }, []);
 
   // Timer simulation for Speaking recorder

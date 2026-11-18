@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { coursesService, CourseEnrollment } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
 import { usersService, UserProfile } from '@/services/users.service';
@@ -129,6 +129,9 @@ export default function AdminCoursesPage() {
           modulesCount: Array.isArray(c.modules) ? c.modules.length : 1,
         }));
         setCourses(mapped);
+        if (mapped.length > 0) {
+          setSelectedCourseId((prev) => prev || mapped[0].id);
+        }
       }
     } catch (err) {
       console.error('Error fetching courses:', err);
@@ -307,37 +310,47 @@ export default function AdminCoursesPage() {
   }, [enrollments]);
 
   // Curriculum Reorder State & Handlers
-  const [selectedCourseId, setSelectedCourseId] = useState<string>('c-1');
-  const [curriculumModules, setCurriculumModules] = useState<ModuleItem[]>([
-    {
-      id: 'm-1',
-      title: 'Module 01: IELTS Writing Task 2 Overview & Band Descriptors',
-      order: 1,
-      lessons: [
-        { id: 'l-1', title: 'Lesson 01: Academic Register & Formal Tone', order: 1, durationMinutes: 30, type: 'VIDEO' },
-        { id: 'l-2', title: 'Lesson 02: Introduction Writing Techniques', order: 2, durationMinutes: 45, type: 'DOCUMENT' },
-        { id: 'l-3', title: 'Lesson 03: Checkpoint Quiz Task 2 Formal Style', order: 3, durationMinutes: 15, type: 'QUIZ_CHECKPOINT' },
-      ],
-    },
-    {
-      id: 'm-2',
-      title: 'Module 02: Paragraph Coherence & Topic Sentences',
-      order: 2,
-      lessons: [
-        { id: 'l-4', title: 'Lesson 04: PEEL Method for Body Paragraphs', order: 1, durationMinutes: 40, type: 'VIDEO' },
-        { id: 'l-5', title: 'Lesson 05: Studio Writing Task 2 Practice #1', order: 2, durationMinutes: 50, type: 'WRITING' },
-      ],
-    },
-    {
-      id: 'm-3',
-      title: 'Module 03: Lexical Resource & Academic Collocations',
-      order: 3,
-      lessons: [
-        { id: 'l-6', title: 'Lesson 06: C1/C2 Collocations in Environment & Tech', order: 1, durationMinutes: 35, type: 'VIDEO' },
-        { id: 'l-7', title: 'Lesson 07: Speaking Part 3 Discussion Studio', order: 2, durationMinutes: 40, type: 'SPEAKING' },
-      ],
-    },
-  ]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [curriculumModules, setCurriculumModules] = useState<ModuleItem[]>([]);
+  const [loadingCurriculum, setLoadingCurriculum] = useState(false);
+
+  const fetchCurriculum = useCallback(async (courseId: string) => {
+    if (!courseId) return;
+    setLoadingCurriculum(true);
+    try {
+      const course = await coursesService.getCourseBySlug(courseId);
+      type RawCurriculumLesson = { id?: string; title?: string; orderIndex?: number; order?: number; durationMinutes?: number; type?: string };
+      type RawCurriculumModule = { id?: string; title?: string; orderIndex?: number; order?: number; lessons?: RawCurriculumLesson[] };
+      if (course && Array.isArray(course.modules)) {
+        const mapped: ModuleItem[] = (course.modules as RawCurriculumModule[]).map((m: RawCurriculumModule, mIdx: number) => ({
+          id: m.id || `mod-${mIdx + 1}`,
+          title: m.title || `Module 0${mIdx + 1}`,
+          order: m.orderIndex ?? m.order ?? mIdx + 1,
+          lessons: (m.lessons || []).map((l: RawCurriculumLesson, lIdx: number) => ({
+            id: l.id || `les-${mIdx + 1}-${lIdx + 1}`,
+            title: l.title || `Lesson ${lIdx + 1}`,
+            order: l.orderIndex ?? l.order ?? lIdx + 1,
+            durationMinutes: l.durationMinutes || 45,
+            type: l.type || 'VIDEO',
+          })),
+        }));
+        setCurriculumModules(mapped);
+      } else {
+        setCurriculumModules([]);
+      }
+    } catch (err) {
+      console.error('Error fetching course curriculum:', err);
+      setCurriculumModules([]);
+    } finally {
+      setLoadingCurriculum(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedCourseId) {
+      fetchCurriculum(selectedCourseId);
+    }
+  }, [selectedCourseId, fetchCurriculum]);
 
   const handleMoveModule = async (index: number, direction: -1 | 1) => {
     const targetIdx = index + direction;
@@ -570,7 +583,19 @@ export default function AdminCoursesPage() {
 
         {/* Modules & Lessons List with Up/Down Controls */}
         <div className="space-y-4 pt-1">
-          {curriculumModules.map((mod, modIdx) => (
+          {loadingCurriculum ? (
+            <div className="py-12 text-center text-muted">
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-primary" />
+              <span>Đang tải chương trình học...</span>
+            </div>
+          ) : curriculumModules.length === 0 ? (
+            <div className="py-12 text-center text-muted border border-dashed border-line rounded-2xl">
+              <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="font-bold text-slate-700">Khóa học này chưa có chương học nào</p>
+              <p className="text-xs text-muted mt-1">Bấm nút &ldquo;Thêm Bài Học Mới&rdquo; ở góc trên để tạo chương và bài học.</p>
+            </div>
+          ) : (
+            curriculumModules.map((mod, modIdx) => (
             <div
               key={mod.id}
               className="rounded-2xl border border-line bg-slate-50/60 p-4 space-y-3 hover:border-slate-300 transition"
@@ -652,7 +677,8 @@ export default function AdminCoursesPage() {
                 ))}
               </div>
             </div>
-          ))}
+          ))
+        )}
         </div>
       </div>
     </div>

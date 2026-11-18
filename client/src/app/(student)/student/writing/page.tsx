@@ -208,30 +208,13 @@ export default function StudentWritingPage() {
         writingService.deleteDraft(currentPromptId).catch(() => {});
         return;
       }
-    } catch {
-      // Local fallback evaluation
+    } catch (err: unknown) {
+      console.error('Lỗi gửi bài chấm AI:', err);
+      const msg = err instanceof Error ? err.message : 'Không thể gửi bài chấm AI lúc này. Vui lòng kiểm tra lại kết nối và thử lại.';
+      alert(msg);
     } finally {
       setIsSubmitting(false);
     }
-
-    setEvaluationResult({
-      overallBand: 7.0,
-      tr: 7.0,
-      cc: 7.0,
-      lr: 7.5,
-      gra: 6.5,
-      status: 'AI_EVALUATED',
-      feedback:
-        'Bài viết phát triển luận điểm rõ ràng, có cấu trúc 4 đoạn chuẩn mực. Từ vựng học thuật phong phú nhưng cần chú ý một số cấu trúc câu phức với mệnh đề quan hệ để đạt 7.5 GRA.',
-      vocabSuggestions: [
-        'Thay thế "good" bằng "advantageous" hoặc "conducive"',
-        'Thay thế "people think" bằng "it is widely asserted that"',
-        'Bổ sung cụm "on the grounds that" để liên kết nguyên nhân',
-      ],
-      sampleModel:
-        'In modern contemporary society, an increasing number of individuals assert that compulsory voluntary service enables juveniles to cultivate indispensable empathy and civic responsibility...',
-    });
-    setViewMode('HIGHLIGHT');
   };
 
   const minWords = taskType === 'TASK_1' ? 150 : 250;
