@@ -1,17 +1,18 @@
-import { Injectable, Logger, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccessToken, WebhookReceiver, RoomServiceClient } from 'livekit-server-sdk';
 import { Role, AttendanceStatus, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class LivekitService implements OnModuleInit {
+export class LivekitService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(LivekitService.name);
   private apiKey: string;
   private apiSecret: string;
   private livekitUrl: string;
   private webhookReceiver: WebhookReceiver;
   private roomService: RoomServiceClient;
+  private sweepIntervalRef: NodeJS.Timeout | null = null;
 
   constructor(
     private configService: ConfigService,
@@ -30,11 +31,18 @@ export class LivekitService implements OnModuleInit {
     });
 
     // Periodically sweep expired rooms every 60 seconds
-    setInterval(() => {
+    this.sweepIntervalRef = setInterval(() => {
       this.autoEndExpiredRooms().catch((err) => {
         this.logger.error('Scheduled auto-end expired rooms error:', err);
       });
     }, 60 * 1000);
+  }
+
+  onModuleDestroy() {
+    if (this.sweepIntervalRef) {
+      clearInterval(this.sweepIntervalRef);
+      this.sweepIntervalRef = null;
+    }
   }
 
   /**
