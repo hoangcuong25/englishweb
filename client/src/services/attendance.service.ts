@@ -5,15 +5,26 @@ export interface ClassroomAttendanceRecord {
   studentId: string;
   classroomId: string;
   status: 'PRESENT' | 'LATE' | 'ABSENT';
-  durationMinutes: number;
+  durationMinutes?: number;
+  totalMinutes?: number;
   joinedAt?: string;
+  firstJoinedAt?: string;
   leftAt?: string;
+  lastLeftAt?: string;
   notes?: string;
+  note?: string;
+  isManualOverride?: boolean;
   student?: {
     id: string;
     fullName: string;
     email: string;
     phone?: string;
+  };
+  classroom?: {
+    id: string;
+    name: string;
+    scheduledStartTime?: string;
+    scheduledEndTime?: string;
   };
 }
 
@@ -23,7 +34,10 @@ export interface ClassroomSession {
   scheduledStartTime: string;
   scheduledEndTime: string;
   actualDurationMinutes?: number;
-  status: 'SCHEDULED' | 'LIVE' | 'COMPLETED';
+  status: 'SCHEDULED' | 'LIVE' | 'COMPLETED' | 'ENDED' | 'ACTIVE';
+  _count?: {
+    attendanceRecords: number;
+  };
 }
 
 export const attendanceService = {
@@ -56,6 +70,17 @@ export const attendanceService = {
     return response.data?.data || response.data;
   },
 
+  async markAttendance(data: {
+    classroomId: string;
+    studentId: string;
+    status: 'PRESENT' | 'LATE' | 'ABSENT';
+    totalMinutes?: number;
+    note?: string;
+  }) {
+    const response = await api.post('/attendance/mark', data);
+    return response.data?.data || response.data;
+  },
+
   async exportExcel(classroomId: string) {
     const response = await api.get(`/attendance/classroom/${classroomId}/export`, {
       responseType: 'blob',
@@ -71,4 +96,3 @@ export const attendanceService = {
     return response.data;
   },
 };
-

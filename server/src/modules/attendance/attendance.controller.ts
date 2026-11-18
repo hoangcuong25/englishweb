@@ -22,6 +22,7 @@ import {
 import { AttendanceService } from './attendance.service';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
 import { OverrideAttendanceDto } from './dto/override-attendance.dto';
+import { MarkAttendanceDto } from './dto/mark-attendance.dto';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/common/guards/roles.guard';
 import { Roles } from '../../core/common/decorators/roles.decorator';
@@ -90,6 +91,18 @@ export class AttendanceController {
     @Body() dto: OverrideAttendanceDto,
   ) {
     return this.attendanceService.overrideAttendance(id, dto);
+  }
+
+  @Post('mark')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Admin điểm danh hoặc cập nhật điểm danh trực tiếp cho học viên theo phòng học',
+  })
+  markAttendance(@Body() dto: MarkAttendanceDto) {
+    return this.attendanceService.markAttendance(dto);
   }
 
   @Get('export')

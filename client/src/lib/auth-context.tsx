@@ -279,6 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 client_id: string;
                 scope: string;
                 callback: (tokenResponse: { access_token?: string; error?: string }) => void;
+                error_callback?: (err: unknown) => void;
               }) => { requestAccessToken: (options?: { prompt?: string }) => void };
             };
             id?: {
@@ -315,6 +316,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   console.error('Failed to fetch Google profile:', err);
                 }
               }
+            },
+            error_callback: (err: unknown) => {
+              console.warn('Google sign-in popup closed or error:', err);
             },
           });
 

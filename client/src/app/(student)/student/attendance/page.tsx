@@ -83,18 +83,29 @@ export default function StudentAttendancePage() {
       try {
         const records = await attendanceService.getMyAttendance();
         if (records && records.length > 0) {
-          const mapped: AttendanceLogItem[] = records.map((r) => ({
-            id: r.id,
-            sessionName: 'Lớp Học Trực Tuyến WebRTC',
-            date: r.joinedAt ? new Date(r.joinedAt).toLocaleDateString('vi-VN') : '08/11/2026',
-            scheduledTime: '19:30 - 21:00 (90 phút)',
-            joinedAt: r.joinedAt ? new Date(r.joinedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
-            leftAt: r.leftAt ? new Date(r.leftAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
-            actualMinutes: r.durationMinutes || 0,
-            percentage: `${Math.round(((r.durationMinutes || 0) / 90) * 100)}%`,
-            status: r.status,
-            note: r.notes || 'Hệ thống tự động ghi nhận qua LiveKit Webhook.',
-          }));
+          const mapped: AttendanceLogItem[] = records.map((r) => {
+            const joinedTime = r.firstJoinedAt || r.joinedAt;
+            const leftTime = r.lastLeftAt || r.leftAt;
+            const mins = r.totalMinutes ?? r.durationMinutes ?? 0;
+            return {
+              id: r.id,
+              sessionName: r.classroom?.name || 'Lớp Học Trực Tuyến WebRTC',
+              date: joinedTime
+                ? new Date(joinedTime).toLocaleDateString('vi-VN')
+                : r.classroom?.scheduledStartTime
+                  ? new Date(r.classroom.scheduledStartTime).toLocaleDateString('vi-VN')
+                  : 'Hôm nay',
+              scheduledTime: r.classroom?.scheduledStartTime
+                ? `${new Date(r.classroom.scheduledStartTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}${r.classroom.scheduledEndTime ? ' - ' + new Date(r.classroom.scheduledEndTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}`
+                : '19:30 - 21:00 (90 phút)',
+              joinedAt: joinedTime ? new Date(joinedTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
+              leftAt: leftTime ? new Date(leftTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
+              actualMinutes: mins,
+              percentage: `${Math.min(100, Math.round((mins / 90) * 100))}%`,
+              status: r.status,
+              note: r.note || r.notes || 'Hệ thống tự động ghi nhận qua LiveKit Webhook.',
+            };
+          });
           setAttendanceLogs(mapped);
         }
       } catch {

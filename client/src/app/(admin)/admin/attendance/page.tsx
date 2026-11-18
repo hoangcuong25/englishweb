@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { attendanceService } from '@/services/attendance.service';
+import { attendanceService, ClassroomSession, ClassroomAttendanceRecord } from '@/services/attendance.service';
 import CustomSelect from '@/components/ui/custom-select';
 import {
   Edit3,
@@ -13,10 +13,12 @@ import {
   UserCheck,
   Clock,
   UserX,
+  Video,
 } from 'lucide-react';
 
 interface AttendanceRecord {
   id: string;
+  studentDbId?: string;
   studentId: string;
   studentName: string;
   email: string;
@@ -31,47 +33,10 @@ interface AttendanceRecord {
 }
 
 export default function AdminAttendancePage() {
-  const [records, setRecords] = useState<AttendanceRecord[]>([
-    {
-      id: 'rec-1',
-      studentId: 'HV-0102',
-      studentName: 'Trần Văn Nam',
-      email: 'nam.tran@gmail.com',
-      sessionTitle: 'IELTS Speaking Part 2 Forecast (90m)',
-      joinedAt: '19:32',
-      leftAt: '21:01',
-      totalMinutes: 89,
-      percentage: 98.8,
-      status: 'PRESENT',
-      isManualOverride: false,
-    },
-    {
-      id: 'rec-2',
-      studentId: 'HV-0105',
-      studentName: 'Lê Thị Mai',
-      email: 'mai.le@gmail.com',
-      sessionTitle: 'IELTS Speaking Part 2 Forecast (90m)',
-      joinedAt: '19:48',
-      leftAt: '21:00',
-      totalMinutes: 72,
-      percentage: 80.0,
-      status: 'LATE',
-      isManualOverride: false,
-    },
-    {
-      id: 'rec-3',
-      studentId: 'HV-0110',
-      studentName: 'Nguyễn Tiến Dũng',
-      email: 'dung.nguyen@gmail.com',
-      sessionTitle: 'IELTS Speaking Part 2 Forecast (90m)',
-      joinedAt: '-',
-      leftAt: '-',
-      totalMinutes: 0,
-      percentage: 0,
-      status: 'ABSENT',
-      isManualOverride: false,
-    },
-  ]);
+  const [classrooms, setClassrooms] = useState<ClassroomSession[]>([]);
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [activeOverride, setActiveOverride] = useState<AttendanceRecord | null>(null);
   const [overrideStatus, setOverrideStatus] = useState<'PRESENT' | 'LATE' | 'ABSENT'>('PRESENT');
@@ -81,42 +46,98 @@ export default function AdminAttendancePage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const fetchAttendanceData = async () => {
+  // Load classrooms on mount
+  useEffect(() => {
+    const loadClassrooms = async () => {
+      setLoading(true);
+      try {
+        const rooms = await attendanceService.getClassrooms();
+        if (rooms && rooms.length > 0) {
+          setClassrooms(rooms);
+          setSelectedClassroomId(rooms[0].id);
+          await loadRecordsForClassroom(rooms[0].id, rooms[0].name);
+        }
+      } catch (err) {
+        console.error('Failed to load classrooms:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadClassrooms();
+  }, []);
+
+  const loadRecordsForClassroom = async (classroomId: string, classroomName?: string) => {
+    setLoading(true);
     try {
-      const classrooms = await attendanceService.getClassrooms();
-      if (classrooms && classrooms.length > 0) {
-        const recordsRes = await attendanceService.getAttendanceByClassroom(classrooms[0].id);
-        if (recordsRes && recordsRes.length > 0) {
-          const mapped: AttendanceRecord[] = recordsRes.map((r) => ({
+      const recordsRes = await attendanceService.getAttendanceByClassroom(classroomId);
+      const roomTitle = classroomName || classrooms.find((c) => c.id === classroomId)?.name || 'Buổi học LiveKit';
+      if (recordsRes && recordsRes.length > 0) {
+        const mapped: AttendanceRecord[] = recordsRes.map((r: ClassroomAttendanceRecord) => {
+          const joinedTime = r.firstJoinedAt || r.joinedAt;
+          const leftTime = r.lastLeftAt || r.leftAt;
+          const mins = r.totalMinutes ?? r.durationMinutes ?? 0;
+          return {
             id: r.id,
+            studentDbId: r.student?.id,
             studentId: r.student?.id ? `HV-${r.student.id.substring(0, 4).toUpperCase()}` : 'HV-0100',
             studentName: r.student?.fullName || 'Học viên',
             email: r.student?.email || 'student@dong.edu.vn',
-            sessionTitle: classrooms[0].name || 'Buổi học LiveKit',
-            joinedAt: r.joinedAt ? new Date(r.joinedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
-            leftAt: r.leftAt ? new Date(r.leftAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
-            totalMinutes: r.durationMinutes || 0,
-            percentage: Math.min(100, Math.round(((r.durationMinutes || 0) / 90) * 100)),
+            sessionTitle: roomTitle,
+            joinedAt: joinedTime ? new Date(joinedTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
+            leftAt: leftTime ? new Date(leftTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-',
+            totalMinutes: mins,
+            percentage: Math.min(100, Math.round((mins / 90) * 100)),
             status: r.status,
-            isManualOverride: false,
-            auditNote: r.notes,
-          }));
-          setRecords(mapped);
-        }
+            isManualOverride: !!r.isManualOverride,
+            auditNote: r.note || r.notes,
+          };
+        });
+        setRecords(mapped);
+      } else {
+        setRecords([]);
       }
-    } catch {
-      // Keep initial records as fallback
+    } catch (err) {
+      console.error('Error fetching attendance for classroom:', err);
+      setRecords([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAttendanceData();
-  }, []);
+  const handleClassroomChange = async (newClassroomId: string) => {
+    setSelectedClassroomId(newClassroomId);
+    await loadRecordsForClassroom(newClassroomId);
+  };
 
   const handleOpenOverride = (rec: AttendanceRecord) => {
     setActiveOverride(rec);
     setOverrideStatus(rec.status);
     setAuditNote(rec.auditNote || '');
+  };
+
+  const handleQuickStatusChange = async (rec: AttendanceRecord, newStatus: 'PRESENT' | 'LATE' | 'ABSENT') => {
+    try {
+      await attendanceService.overrideAttendance(rec.id, {
+        status: newStatus,
+        note: `Admin đổi trạng thái nhanh thành ${newStatus}`,
+      });
+      setRecords((prev) =>
+        prev.map((r) =>
+          r.id === rec.id
+            ? {
+                ...r,
+                status: newStatus,
+                isManualOverride: true,
+                auditNote: `Admin đổi trạng thái nhanh thành ${newStatus}`,
+              }
+            : r,
+        ),
+      );
+      setNotice(`Đã cập nhật trạng thái điểm danh học viên ${rec.studentName} thành ${newStatus}!`);
+      setTimeout(() => setNotice(''), 3500);
+    } catch (err) {
+      console.error('Failed to quick update attendance:', err);
+    }
   };
 
   const handleSaveOverride = async (e: React.FormEvent) => {
@@ -126,7 +147,7 @@ export default function AdminAttendancePage() {
     try {
       await attendanceService.overrideAttendance(activeOverride.id, {
         status: overrideStatus,
-        notes: auditNote,
+        note: auditNote,
       });
     } catch {
       // Local fallback
@@ -158,7 +179,7 @@ export default function AdminAttendancePage() {
       if (startDate || endDate) {
         blob = await attendanceService.exportDateRange(startDate || undefined, endDate || undefined);
       } else {
-        blob = await attendanceService.exportExcel('classroom-active-id');
+        blob = await attendanceService.exportExcel(selectedClassroomId || 'classroom-active-id');
       }
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
@@ -169,30 +190,35 @@ export default function AdminAttendancePage() {
       link.parentNode?.removeChild(link);
       setNotice('Đã xuất báo cáo điểm danh Excel (.xlsx) thành công!');
     } catch {
-      setNotice('Đã tải xuống báo cáo điểm danh Excel (.xlsx).');
+      setNotice('Lỗi khi xuất file Excel báo cáo.');
     } finally {
       setIsExporting(false);
       setTimeout(() => setNotice(''), 4000);
     }
   };
 
+  const currentRoomName = classrooms.find((c) => c.id === selectedClassroomId)?.name || 'Buổi học LiveKit';
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Banner & Title */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-100 text-primary text-xs font-bold mb-1">
-            <span>LiveKit SFU Automated Webhook Attendance</span>
+          <div className="flex items-center space-x-2">
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              Báo Cáo Điểm Danh & Chuyên Cần
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200/60">
+              LiveKit SFU Automated Webhook
+            </span>
           </div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-            Quản Trị Chuyên Cần & Báo Cáo Điểm Danh (ATT-SCR-001)
-          </h1>
-          <p className="text-xs text-muted mt-0.5">
-            Dữ liệu tính phút tham gia tự động qua LiveKit Webhook. Admin có quyền Override thủ công và xuất Excel.
+          <p className="text-xs text-muted mt-1">
+            Hệ thống tự động đồng bộ thời lượng học thực tế từ LiveKit Webhook và cho phép Quản trị viên điều chỉnh thủ công.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Date Filter & Export Excel */}
+        <div className="flex items-center space-x-2 flex-wrap gap-y-2">
           <div className="flex items-center space-x-1 bg-white border border-line rounded-xl px-2.5 py-1 text-xs">
             <span className="text-slate-400 font-medium text-[11px]">Từ:</span>
             <input
@@ -214,7 +240,7 @@ export default function AdminAttendancePage() {
           <button
             disabled={isExporting}
             onClick={handleExportExcel}
-            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5"
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5 cursor-pointer"
           >
             {isExporting ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -227,9 +253,30 @@ export default function AdminAttendancePage() {
       </div>
 
       {notice && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center space-x-2">
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center space-x-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <span>{notice}</span>
+        </div>
+      )}
+
+      {/* Classroom Selector */}
+      {classrooms.length > 0 && (
+        <div className="p-4 rounded-2xl bg-white border border-line shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Video className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-xs font-extrabold text-slate-800">Chọn Ca Học Cần Quản Lý Điểm Danh:</span>
+          </div>
+          <select
+            value={selectedClassroomId}
+            onChange={(e) => handleClassroomChange(e.target.value)}
+            className="px-3.5 py-2 rounded-xl border border-line text-xs font-bold text-slate-800 bg-slate-50 hover:bg-white focus:outline-none focus:border-primary transition min-w-[280px]"
+          >
+            {classrooms.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({new Date(c.scheduledStartTime).toLocaleDateString('vi-VN')}) - {c.status}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -261,9 +308,11 @@ export default function AdminAttendancePage() {
       <div className="bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
         <div className="p-5 border-b border-line flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-            Danh sách điểm danh buổi học: IELTS Speaking Part 2 Forecast (90 phút)
+            Danh sách điểm danh ca: {currentRoomName}
           </h3>
-          <span className="text-xs text-muted">Tổng cộng 3 học viên</span>
+          <span className="text-xs text-muted">
+            {records.length} học viên có dữ liệu
+          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -282,52 +331,105 @@ export default function AdminAttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {records.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50/50 transition">
-                  <td className="py-3.5 px-4 font-bold text-slate-900">
-                    <span className="font-mono text-muted text-[11px] block">{r.studentId}</span>
-                    <span>{r.studentName}</span>
-                  </td>
-                  <td className="py-3.5 px-4 text-muted">{r.email}</td>
-                  <td className="py-3.5 px-4 font-mono">{r.joinedAt}</td>
-                  <td className="py-3.5 px-4 font-mono">{r.leftAt}</td>
-                  <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
-                    {r.totalMinutes} phút
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-primary">{r.percentage}%</td>
-                  <td className="py-3.5 px-4">
-                    <span
-                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
-                        r.status === 'PRESENT'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : r.status === 'LATE'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    {r.isManualOverride ? (
-                      <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                        Admin Override
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-muted font-mono">LiveKit Webhook</span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => handleOpenOverride(r)}
-                      className="px-2.5 py-1.5 rounded-lg border border-line text-slate-700 hover:bg-slate-100 text-xs font-bold transition flex items-center space-x-1 ml-auto"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-primary" />
-                      <span>Sửa</span>
-                    </button>
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="py-8 text-center text-muted">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-primary" />
+                    <span>Đang tải dữ liệu điểm danh...</span>
                   </td>
                 </tr>
-              ))}
+              ) : records.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-8 text-center text-muted">
+                    Chưa có học viên nào tham gia hoặc có bản ghi điểm danh trong ca học này.
+                  </td>
+                </tr>
+              ) : (
+                records.map((r) => (
+                  <tr key={r.id} className="hover:bg-slate-50/50 transition">
+                    <td className="py-3.5 px-4 font-bold text-slate-900">
+                      <span className="font-mono text-muted text-[11px] block">{r.studentId}</span>
+                      <span>{r.studentName}</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-muted">{r.email}</td>
+                    <td className="py-3.5 px-4 font-mono">{r.joinedAt}</td>
+                    <td className="py-3.5 px-4 font-mono">{r.leftAt}</td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
+                      {r.totalMinutes} phút
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-primary">{r.percentage}%</td>
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
+                          r.status === 'PRESENT'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : r.status === 'LATE'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {r.isManualOverride ? (
+                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                          Admin Override
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted font-mono">LiveKit Webhook</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          title="Đổi nhanh thành Có Mặt"
+                          onClick={() => handleQuickStatusChange(r, 'PRESENT')}
+                          className={`p-1.5 rounded-lg border text-xs font-bold transition cursor-pointer ${
+                            r.status === 'PRESENT'
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                          }`}
+                        >
+                          <UserCheck className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Đổi nhanh thành Muộn"
+                          onClick={() => handleQuickStatusChange(r, 'LATE')}
+                          className={`p-1.5 rounded-lg border text-xs font-bold transition cursor-pointer ${
+                            r.status === 'LATE'
+                              ? 'bg-amber-500 text-white border-amber-500'
+                              : 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                          }`}
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Đổi nhanh thành Vắng"
+                          onClick={() => handleQuickStatusChange(r, 'ABSENT')}
+                          className={`p-1.5 rounded-lg border text-xs font-bold transition cursor-pointer ${
+                            r.status === 'ABSENT'
+                              ? 'bg-rose-600 text-white border-rose-600'
+                              : 'border-rose-200 text-rose-700 hover:bg-rose-50'
+                          }`}
+                        >
+                          <UserX className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenOverride(r)}
+                          className="px-2.5 py-1.5 rounded-lg border border-line text-slate-700 hover:bg-slate-100 text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-primary" />
+                          <span>Chi tiết</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -343,7 +445,7 @@ export default function AdminAttendancePage() {
               </h3>
               <button
                 onClick={() => setActiveOverride(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -418,13 +520,13 @@ export default function AdminAttendancePage() {
                 <button
                   type="button"
                   onClick={() => setActiveOverride(null)}
-                  className="px-4 py-2 rounded-xl border border-line text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 rounded-xl border border-line text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md transition"
+                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md transition cursor-pointer"
                 >
                   Lưu Thay Đổi
                 </button>

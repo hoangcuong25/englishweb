@@ -90,7 +90,9 @@ export class LivekitService implements OnModuleInit {
     }
 
     const classroom = await this.prisma.classroom.findFirst({
-      where: { name: roomName },
+      where: {
+        OR: [{ name: roomName }, { id: roomName }],
+      },
     });
 
     if (classroom) {

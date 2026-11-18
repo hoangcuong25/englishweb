@@ -5,6 +5,8 @@ import {
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
 import { OverrideAttendanceDto } from './dto/override-attendance.dto';
+import { MarkAttendanceDto } from './dto/mark-attendance.dto';
+import { AttendanceStatus } from '@prisma/client';
 import * as XLSX from 'xlsx';
 
 @Injectable()
@@ -88,6 +90,59 @@ export class AttendanceService {
       },
       include: {
         student: { select: { id: true, fullName: true, email: true } },
+      },
+    });
+  }
+
+  async markAttendance(dto: MarkAttendanceDto) {
+    const classroom = await this.prisma.classroom.findFirst({
+      where: {
+        OR: [{ id: dto.classroomId }, { name: dto.classroomId }],
+      },
+    });
+
+    if (!classroom) {
+      throw new NotFoundException(`Không tìm thấy phòng học: ${dto.classroomId}`);
+    }
+
+    const student = await this.prisma.user.findUnique({
+      where: { id: dto.studentId },
+    });
+
+    if (!student) {
+      throw new NotFoundException(`Không tìm thấy học viên ID: ${dto.studentId}`);
+    }
+
+    const now = new Date();
+    const defaultMins = dto.status === AttendanceStatus.ABSENT ? 0 : 85;
+    const totalMinutes = dto.totalMinutes !== undefined ? dto.totalMinutes : defaultMins;
+
+    return this.prisma.attendanceRecord.upsert({
+      where: {
+        classroomId_studentId: {
+          classroomId: classroom.id,
+          studentId: student.id,
+        },
+      },
+      create: {
+        classroomId: classroom.id,
+        studentId: student.id,
+        status: dto.status,
+        totalMinutes,
+        firstJoinedAt: dto.status === AttendanceStatus.ABSENT ? null : now,
+        isManualOverride: true,
+        note: dto.note || 'Admin điểm danh thủ công',
+      },
+      update: {
+        status: dto.status,
+        totalMinutes,
+        firstJoinedAt: dto.status === AttendanceStatus.ABSENT ? null : undefined,
+        isManualOverride: true,
+        note: dto.note || 'Admin cập nhật điểm danh',
+      },
+      include: {
+        student: { select: { id: true, fullName: true, email: true } },
+        classroom: { select: { id: true, name: true } },
       },
     });
   }
