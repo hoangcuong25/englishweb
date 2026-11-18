@@ -105,45 +105,19 @@ export default function AdminSpeakingPromptsPage() {
 
       if (editingPrompt) {
         await speakingService.updatePrompt(editingPrompt.id, payload);
-        setPrompts((prev) =>
-          prev.map((item) => (item.id === editingPrompt.id ? { ...item, ...payload } as SpeakingPrompt : item))
-        );
+        await fetchPrompts();
         setFeedbackNotice(`Đã cập nhật đề nói "${formTitle}" thành công!`);
       } else {
-        const res = await speakingService.createPrompt(payload);
-        const newId = res?.id || `sp-new-${Date.now()}`;
-        setPrompts((prev) => [{ id: newId, ...payload } as SpeakingPrompt, ...prev]);
+        await speakingService.createPrompt(payload);
+        await fetchPrompts();
         setFeedbackNotice(`Đã thêm mới đề nói "${formTitle}" vào ngân hàng!`);
       }
       setIsModalOpen(false);
       setTimeout(() => setFeedbackNotice(''), 4000);
-    } catch {
-      // Local fallback
-      if (editingPrompt) {
-        setPrompts((prev) =>
-          prev.map((item) =>
-            item.id === editingPrompt.id
-              ? ({ ...item, title: formTitle, description: formDesc, part: formPart, cueCard: formCueCard, prepTimeSeconds: formPrepTime, recordTimeSeconds: formRecordTime } as SpeakingPrompt)
-              : item
-          )
-        );
-      } else {
-        setPrompts((prev) => [
-          {
-            id: `sp-loc-${Date.now()}`,
-            title: formTitle,
-            description: formDesc,
-            part: formPart,
-            cueCard: formCueCard,
-            prepTimeSeconds: formPrepTime,
-            recordTimeSeconds: formRecordTime,
-          },
-          ...prev,
-        ]);
-      }
-      setIsModalOpen(false);
-      setFeedbackNotice('Lưu đề nói thành công (chế độ cục bộ)!');
-      setTimeout(() => setFeedbackNotice(''), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi lưu đề nói';
+      setFeedbackNotice(`Không thể lưu đề nói: ${msg}`);
+      setTimeout(() => setFeedbackNotice(''), 5000);
     } finally {
       setIsSubmitting(false);
     }

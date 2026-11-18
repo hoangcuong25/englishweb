@@ -61,6 +61,34 @@ export default function AdminDashboard() {
 
   const totalPending = actionItems.pendingWritingApprovals + actionItems.pendingSpeakingGradings;
 
+  const writingItems = (data?.recentSubmissions?.writing || []).map((w) => ({
+    id: w.id,
+    type: 'WRITING' as const,
+    studentName: w.user?.fullName || 'Học viên',
+    email: w.user?.email || '',
+    title: w.prompt?.title || 'IELTS Writing Essay',
+    submittedAt: w.submittedAt,
+    link: '/admin/writing-review',
+    badge: w.prompt?.taskType === 'TASK_1' ? 'Writing Task 1' : 'Writing AI Task 2',
+    actionText: 'Duyệt bài',
+  }));
+
+  const speakingItems = (data?.recentSubmissions?.speaking || []).map((s) => ({
+    id: s.id,
+    type: 'SPEAKING' as const,
+    studentName: s.user?.fullName || 'Học viên',
+    email: s.user?.email || '',
+    title: s.prompt?.title || 'IELTS Speaking Recording',
+    submittedAt: s.submittedAt,
+    link: '/admin/speaking-grading',
+    badge: 'Speaking Audio',
+    actionText: 'Chấm audio',
+  }));
+
+  const combinedSubmissions = [...writingItems, ...speakingItems]
+    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+    .slice(0, 5);
+
   return (
     <div className="space-y-6 select-none">
       {/* 1. Admin Hero Banner */}
@@ -104,7 +132,7 @@ export default function AdminDashboard() {
               {metrics.totalStudents} <span className="text-xs font-bold text-slate-400">học viên</span>
             </div>
             <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center">
-              <TrendingUp className="w-3.5 h-3.5 mr-1" /> +12 học viên mới tuần này
+              <TrendingUp className="w-3.5 h-3.5 mr-1" /> {metrics.totalStudents > 0 ? `${metrics.totalStudents} tài khoản học viên` : 'Chưa có học viên'}
             </p>
           </div>
         </div>
@@ -121,7 +149,7 @@ export default function AdminDashboard() {
             <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               {metrics.totalCourses} <span className="text-xs font-bold text-slate-400">khóa</span>
             </div>
-            <p className="text-[11px] text-muted mt-1">{metrics.totalLessons || 48} bài học đa phương tiện</p>
+            <p className="text-[11px] text-muted mt-1">{metrics.totalLessons} bài học đa phương tiện</p>
           </div>
         </div>
 
@@ -197,71 +225,50 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line text-xs font-semibold text-slate-700">
-                {/* Item 1 */}
-                <tr className="hover:bg-slate-50 transition">
-                  <td className="py-3">
-                    <span className="font-bold text-slate-900">Nguyễn Văn An</span>
-                    <span className="block text-[10.5px] text-muted font-normal">an.nguyen@dong.edu.vn</span>
-                  </td>
-                  <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10.5px]">
-                      Writing AI Task 2
-                    </span>
-                  </td>
-                  <td className="py-3 text-muted text-[11px]">10 phút trước</td>
-                  <td className="py-3 text-right">
-                    <Link
-                      href="/admin/writing-review"
-                      className="px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-[11px] transition shadow-xs"
-                    >
-                      Duyệt bài
-                    </Link>
-                  </td>
-                </tr>
-
-                {/* Item 2 */}
-                <tr className="hover:bg-slate-50 transition">
-                  <td className="py-3">
-                    <span className="font-bold text-slate-900">Trần Thị Mai</span>
-                    <span className="block text-[10.5px] text-muted font-normal">mai.tran@dong.edu.vn</span>
-                  </td>
-                  <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10.5px]">
-                      Speaking Part 2
-                    </span>
-                  </td>
-                  <td className="py-3 text-muted text-[11px]">25 phút trước</td>
-                  <td className="py-3 text-right">
-                    <Link
-                      href="/admin/speaking-grading"
-                      className="px-3 py-1.5 rounded-xl bg-[#FFB547] hover:bg-[#FFA726] text-[#14263D] font-bold text-[11px] transition shadow-xs"
-                    >
-                      Chấm audio
-                    </Link>
-                  </td>
-                </tr>
-
-                {/* Item 3 */}
-                <tr className="hover:bg-slate-50 transition">
-                  <td className="py-3">
-                    <span className="font-bold text-slate-900">Lê Quốc Hoàng</span>
-                    <span className="block text-[10.5px] text-muted font-normal">hoang.le@dong.edu.vn</span>
-                  </td>
-                  <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10.5px]">
-                      Writing Task 1
-                    </span>
-                  </td>
-                  <td className="py-3 text-muted text-[11px]">1 giờ trước</td>
-                  <td className="py-3 text-right">
-                    <Link
-                      href="/admin/writing-review"
-                      className="px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-[11px] transition shadow-xs"
-                    >
-                      Duyệt bài
-                    </Link>
-                  </td>
-                </tr>
+                {combinedSubmissions.length > 0 ? (
+                  combinedSubmissions.map((sub) => (
+                    <tr key={`${sub.type}-${sub.id}`} className="hover:bg-slate-50 transition">
+                      <td className="py-3">
+                        <span className="font-bold text-slate-900">{sub.studentName}</span>
+                        {sub.email && (
+                          <span className="block text-[10.5px] text-muted font-normal">{sub.email}</span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full font-bold text-[10.5px] ${
+                            sub.type === 'WRITING'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {sub.badge}
+                        </span>
+                      </td>
+                      <td className="py-3 text-muted text-[11px]">
+                        {new Date(sub.submittedAt).toLocaleDateString('vi-VN')}
+                      </td>
+                      <td className="py-3 text-right">
+                        <Link
+                          href={sub.link}
+                          className={`px-3 py-1.5 rounded-xl font-bold text-[11px] transition shadow-xs ${
+                            sub.type === 'WRITING'
+                              ? 'bg-primary hover:bg-primary-dark text-white'
+                              : 'bg-[#FFB547] hover:bg-[#FFA726] text-[#14263D]'
+                          }`}
+                        >
+                          {sub.actionText}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-xs text-slate-400">
+                      Hiện tại không có bài nộp nào đang chờ xử lý.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

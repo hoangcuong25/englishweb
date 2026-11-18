@@ -164,4 +164,39 @@ export class NotificationsService {
       message: `Đã gửi thông báo thành công tới ${users.length} người dùng`,
     };
   }
+
+  async handleConsultationRequest(data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    interestedProgram?: string;
+    message?: string;
+  }) {
+    const admins = await this.prisma.user.findMany({
+      where: { role: Role.ADMIN, isActive: true },
+      select: { id: true },
+    });
+
+    if (admins.length === 0) {
+      return { success: true, message: 'Yêu cầu tư vấn đã được ghi nhận.' };
+    }
+
+    const title = `Khách hàng đăng ký tư vấn: ${data.fullName}`;
+    const content = `Họ tên: ${data.fullName}\nSĐT: ${data.phone}\nEmail: ${data.email}\nKhóa học quan tâm: ${data.interestedProgram || 'Chưa chọn'}\nLời nhắn: ${data.message || 'Không có'}`;
+
+    for (const admin of admins) {
+      await this.createNotification({
+        userId: admin.id,
+        title,
+        content,
+        type: NotificationType.SYSTEM,
+        link: '/admin/users',
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Đăng ký tư vấn thành công! Thầy Đông sẽ liên hệ lại với bạn sớm nhất.',
+    };
+  }
 }

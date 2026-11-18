@@ -46,6 +46,17 @@ export const notificationsService = {
     return response.data?.data || response.data;
   },
 
+  async sendConsultationRequest(data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    interestedProgram?: string;
+    message?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/notifications/consultation', data);
+    return response.data?.data || response.data;
+  },
+
   async deleteNotification(id: string): Promise<NotificationItem> {
     const response = await api.delete(`/notifications/${id}`);
     return response.data?.data || response.data;

@@ -86,15 +86,15 @@ export default function StudentAttendancePage() {
     fetchAttendance();
   }, []);
 
-  const totalLogs = attendanceLogs.length || 1;
+  const totalLogs = attendanceLogs.length;
   const presentCount = attendanceLogs.filter((l) => l.status === 'PRESENT').length;
   const lateCount = attendanceLogs.filter((l) => l.status === 'LATE').length;
   const absentCount = attendanceLogs.filter((l) => l.status === 'ABSENT').length;
-  const presentPct = Math.round((presentCount / totalLogs) * 100);
-  const latePct = Math.round((lateCount / totalLogs) * 100);
-  const absentPct = Math.max(0, 100 - presentPct - latePct);
+  const presentPct = totalLogs > 0 ? Math.round((presentCount / totalLogs) * 100) : 0;
+  const latePct = totalLogs > 0 ? Math.round((lateCount / totalLogs) * 100) : 0;
+  const absentPct = totalLogs > 0 ? Math.max(0, 100 - presentPct - latePct) : 0;
   const totalMinutes = attendanceLogs.reduce((acc, curr) => acc + (curr.actualMinutes || 0), 0);
-  const studyStreakDays = 5;
+  const studyStreakDays = presentCount;
 
   return (
     <div className="space-y-6">

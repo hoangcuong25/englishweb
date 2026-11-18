@@ -134,26 +134,77 @@ export default function StudentWritingPage() {
         durationSeconds: (taskType === 'TASK_1' ? 20 * 60 : 40 * 60) - timeLeft,
       });
 
-      if (res && res.aiAnalysis) {
+      interface RawAiSuggestion {
+        original: string;
+        suggestion: string;
+        type?: string;
+      }
+      interface RawSubmissionResponse {
+        submission?: {
+          overallBand?: number;
+          taskAchievementScore?: number;
+          coherenceCohesionScore?: number;
+          lexicalResourceScore?: number;
+          grammarScore?: number;
+          status?: string;
+          aiFeedback?: string;
+          aiSuggestions?: RawAiSuggestion[];
+          sampleBand8Essay?: string;
+        };
+        aiScore?: number;
+        aiAnalysis?: {
+          bandScore?: number;
+          taskResponse?: { score?: number; feedback?: string };
+          coherenceCohesion?: { score?: number };
+          lexicalResource?: { score?: number };
+          grammaticalAccuracy?: { score?: number };
+          aiSuggestions?: RawAiSuggestion[];
+          suggestedSampleBand8?: string;
+          overallFeedback?: string;
+        };
+      }
+
+      const raw = res as RawSubmissionResponse;
+      const sub = raw?.submission;
+      const aiAnalysis = raw?.aiAnalysis;
+
+      if (sub || aiAnalysis) {
+        const overall = sub?.overallBand ?? raw?.aiScore ?? aiAnalysis?.bandScore ?? 7.0;
+        const tr = sub?.taskAchievementScore ?? aiAnalysis?.taskResponse?.score ?? 7.0;
+        const cc = sub?.coherenceCohesionScore ?? aiAnalysis?.coherenceCohesion?.score ?? 7.0;
+        const lr = sub?.lexicalResourceScore ?? aiAnalysis?.lexicalResource?.score ?? 7.0;
+        const gra = sub?.grammarScore ?? aiAnalysis?.grammaticalAccuracy?.score ?? 7.0;
+        const feedback =
+          sub?.aiFeedback ??
+          aiAnalysis?.taskResponse?.feedback ??
+          aiAnalysis?.overallFeedback ??
+          'Bài viết phát triển luận điểm rõ ràng, có cấu trúc 4 đoạn chuẩn mực Cambridge.';
+        const suggestionsList = sub?.aiSuggestions ?? aiAnalysis?.aiSuggestions;
+        const vocab =
+          Array.isArray(suggestionsList) && suggestionsList.length > 0
+            ? suggestionsList.map((s) => `${s.original} ➔ ${s.suggestion} (${s.type || 'Nâng cấp từ vựng'})`)
+            : [
+                'Thay thế "good" bằng "advantageous" hoặc "conducive"',
+                'Thay thế "people think" bằng "it is widely asserted that"',
+                'Bổ sung cụm "on the grounds that" để liên kết nguyên nhân',
+              ];
+        const sample =
+          sub?.sampleBand8Essay ??
+          aiAnalysis?.suggestedSampleBand8 ??
+          'In contemporary society, an increasing number of scholars assert that community engagement...';
+
         setEvaluationResult({
-          overallBand: res.aiScore || res.aiAnalysis.bandScore || 7.0,
-          tr: res.aiAnalysis.taskResponse?.score || 7.0,
-          cc: res.aiAnalysis.coherenceCohesion?.score || 7.0,
-          lr: res.aiAnalysis.lexicalResource?.score || 7.0,
-          gra: res.aiAnalysis.grammaticalAccuracy?.score || 6.5,
+          overallBand: overall,
+          tr,
+          cc,
+          lr,
+          gra,
           status: 'AI_EVALUATED',
-          feedback:
-            res.aiAnalysis.taskResponse?.feedback ||
-            'Bài viết phát triển luận điểm rõ ràng, có cấu trúc 4 đoạn chuẩn mực Cambridge.',
-          vocabSuggestions: [
-            'Thay thế "good" bằng "advantageous" hoặc "conducive"',
-            'Thay thế "people think" bằng "it is widely asserted that"',
-            'Bổ sung cụm "on the grounds that" để liên kết nguyên nhân',
-          ],
-          sampleModel:
-            res.aiAnalysis.suggestedSampleBand8 ||
-            'In contemporary society, an increasing number of scholars assert that community engagement...',
+          feedback,
+          vocabSuggestions: vocab,
+          sampleModel: sample,
         });
+        setViewMode('HIGHLIGHT');
         writingService.deleteDraft(currentPromptId).catch(() => {});
         return;
       }

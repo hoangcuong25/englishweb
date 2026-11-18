@@ -47,93 +47,6 @@ interface MockModule {
   lessons: MockLesson[];
 }
 
-// Fallback initial enrolled courses
-const DEFAULT_MY_COURSES: Course[] = [
-  {
-    id: 'course-ielts-masterclass',
-    title: 'IELTS Masterclass 7.5+ Intensive (Writing & Speaking Focus)',
-    slug: 'ielts-masterclass-band-7',
-    description: 'Lộ trình bứt phá Band 7.5+ IELTS toàn diện, chuyên sâu rèn luyện cấu trúc bài luận Academic và phản xạ Speaking 1-1.',
-    category: 'IELTS',
-    level: 'Band 7.0 - 8.0+',
-    thumbnail: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=800&q=80',
-    progress: 68,
-    progressPercent: 68,
-    totalModules: 4,
-    totalLessons: 15,
-    enrolledAt: '15/10/2026',
-    enrollmentStatus: 'ACTIVE',
-    price: 4500000,
-  },
-  {
-    id: 'course-business-english',
-    title: 'Business English VIP: Đàm Phán & Giao Tiếp Thương Mại Quốc Tế',
-    slug: 'business-english-vip',
-    description: 'Nâng cao năng lực thuyết trình tiếng Anh doanh nghiệp, viết email chuyên nghiệp và đàm phán hợp đồng kinh tế.',
-    category: 'BUSINESS',
-    level: 'B2 - C1 Advanced',
-    thumbnail: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=80',
-    progress: 35,
-    progressPercent: 35,
-    totalModules: 3,
-    totalLessons: 12,
-    enrolledAt: '01/11/2026',
-    enrollmentStatus: 'ACTIVE',
-    price: 3200000,
-  },
-];
-
-const DEFAULT_CURRICULUM: MockModule[] = [
-  {
-    id: 'm1',
-    title: 'Module 01: Foundations of Academic Writing & Lexis',
-    lessonsCount: 4,
-    isCompleted: true,
-    lessons: [
-      { id: 'l1', title: 'Lesson 01: IELTS Band Descriptors & Assessment Criteria', duration: '45 phút', isDone: true, isLocked: false, type: 'VIDEO' },
-      { id: 'l2', title: 'Lesson 02: Academic Word List (AWL) Sublist 1 & 2', duration: '50 phút', isDone: true, isLocked: false, type: 'VIDEO' },
-      { id: 'l3', title: 'Lesson 03: Paraphrasing Techniques & Nominalisation', duration: '60 phút', isDone: true, isLocked: false, type: 'WRITING' },
-      { id: 'l4', title: 'Checkpoint 01: Vocabulary & Collocation Quiz', duration: '20 phút', isDone: true, isLocked: false, type: 'QUIZ' },
-    ],
-  },
-  {
-    id: 'm2',
-    title: 'Module 02: Planning, Brainstorming & Essay Structure',
-    lessonsCount: 4,
-    isCompleted: true,
-    lessons: [
-      { id: 'l5', title: 'Lesson 04: Idea Generation & Mind Mapping for Abstract Topics', duration: '55 phút', isDone: true, isLocked: false, type: 'VIDEO' },
-      { id: 'l6', title: 'Lesson 05: 4-Paragraph Structure for Opinion & Discussion Essays', duration: '60 phút', isDone: true, isLocked: false, type: 'VIDEO' },
-      { id: 'l7', title: 'Lesson 06: Writing High-Impact Thesis Statements', duration: '45 phút', isDone: true, isLocked: false, type: 'WRITING' },
-      { id: 'l8', title: 'Checkpoint 02: Essay Architecture Review Quiz', duration: '20 phút', isDone: false, isLocked: false, type: 'QUIZ' },
-    ],
-  },
-  {
-    id: 'm3',
-    title: 'Module 03: Paragraph Development & Coherence (Current Focus)',
-    lessonsCount: 4,
-    isCompleted: false,
-    lessons: [
-      { id: 'l9', title: 'Lesson 07: Topic Sentences & Supporting Ideas Development', duration: '60 phút', isDone: true, isLocked: false, type: 'VIDEO' },
-      { id: 'l10', title: 'Lesson 08: Inversion & Cleft Sentences for Cohesion (GRA 7.5+)', duration: '50 phút', isDone: true, isLocked: false, type: 'VIDEO' },
-      { id: 'l11', title: 'Lesson 09: Writing Submissions with AI Instant Feedback', duration: '40 phút', isDone: false, isLocked: false, type: 'WRITING' },
-      { id: 'l12', title: 'Checkpoint 03: End-of-Module Mastery Quiz', duration: '20 phút', isDone: false, isLocked: false, type: 'QUIZ' },
-    ],
-  },
-  {
-    id: 'm4',
-    title: 'Module 04: Advanced Lexical Flexibility & Counter-arguments',
-    lessonsCount: 3,
-    isCompleted: false,
-    isLocked: true,
-    lessons: [
-      { id: 'l13', title: 'Lesson 10: Addressing Counter-arguments & Rebuttals', duration: '60 phút', isDone: false, isLocked: true, type: 'VIDEO' },
-      { id: 'l14', title: 'Lesson 11: C1/C2 Academic Precision in Writing', duration: '55 phút', isDone: false, isLocked: true, type: 'SPEAKING' },
-      { id: 'l15', title: 'Checkpoint 04: Comprehensive Mock Assessment', duration: '30 phút', isDone: false, isLocked: true, type: 'QUIZ' },
-    ],
-  },
-];
-
 export default function StudentCoursesPage() {
   // Tabs: 'my-courses' | 'recommended' | 'curriculum'
   const [activeTab, setActiveTab] = useState<'my-courses' | 'recommended' | 'curriculum'>('my-courses');
@@ -144,7 +57,7 @@ export default function StudentCoursesPage() {
   const [recommendedCourses, setRecommendedCourses] = useState<Course[]>([]);
 
   // Selected course for curriculum view
-  const [selectedCourse, setSelectedCourse] = useState<Course>(DEFAULT_MY_COURSES[0]);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<MockModule[]>([]);
   const [expandedModule, setExpandedModule] = useState<string>('m1');
 
@@ -274,13 +187,10 @@ export default function StudentCoursesPage() {
           setExpandedModule(dynamicModules[0].id);
         }
       } else {
-        // Fallback default curriculum
-        setModules(DEFAULT_CURRICULUM);
-        setExpandedModule('m1');
+        setModules([]);
       }
     } catch {
-      setModules(DEFAULT_CURRICULUM);
-      setExpandedModule('m1');
+      setModules([]);
     } finally {
       setLoading(false);
     }
@@ -447,7 +357,7 @@ export default function StudentCoursesPage() {
               className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold bg-sky-600 text-white shadow-md shadow-sky-600/20 whitespace-nowrap"
             >
               <Layers className="w-4 h-4" />
-              <span>Lộ trình chi tiết: {selectedCourse.title.split(':')[0]}</span>
+              <span>Lộ trình chi tiết: {selectedCourse ? selectedCourse.title.split(':')[0] : 'Đề Cương Bài Học'}</span>
             </button>
           )}
         </div>
@@ -781,41 +691,43 @@ export default function StudentCoursesPage() {
           </button>
 
           {/* Active Course Banner */}
-          <div className="bg-white rounded-3xl border border-line p-6 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                {renderCategoryBadge(selectedCourse.category)}
-                <span className="text-xs text-slate-500 font-medium">Giảng viên: Thầy Đông (IELTS 8.5)</span>
+          {selectedCourse && (
+            <div className="bg-white rounded-3xl border border-line p-6 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {renderCategoryBadge(selectedCourse.category)}
+                  <span className="text-xs text-slate-500 font-medium">Giảng viên: Thầy Đông (IELTS 8.5)</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-black text-slate-900 leading-snug">
+                  {selectedCourse.title}
+                </h2>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1 font-semibold">
+                  <span>{modules.length} Modules chuyên đề</span>
+                  <span>•</span>
+                  <span>
+                    {modules.reduce((acc, m) => acc + m.lessons.length, 0)} Bài học
+                  </span>
+                  <span>•</span>
+                  <span className="font-extrabold text-sky-600">
+                    Tiến độ: {selectedCourse.progressPercent ?? selectedCourse.progress ?? 0}%
+                  </span>
+                </div>
               </div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 leading-snug">
-                {selectedCourse.title}
-              </h2>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1 font-semibold">
-                <span>{modules.length} Modules chuyên đề</span>
-                <span>•</span>
-                <span>
-                  {modules.reduce((acc, m) => acc + m.lessons.length, 0)} Bài học
-                </span>
-                <span>•</span>
-                <span className="font-extrabold text-sky-600">
-                  Tiến độ: {selectedCourse.progressPercent || selectedCourse.progress || 68}%
-                </span>
-              </div>
-            </div>
 
-            <div className="w-full md:w-56 space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                <span>Tiến độ hoàn thành</span>
-                <span className="text-sky-600">{selectedCourse.progressPercent || selectedCourse.progress || 68}%</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div
-                  className="bg-sky-600 h-2.5 rounded-full transition-all duration-700"
-                  style={{ width: `${selectedCourse.progressPercent || selectedCourse.progress || 68}%` }}
-                />
+              <div className="w-full md:w-56 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                  <span>Tiến độ hoàn thành</span>
+                  <span className="text-sky-600">{selectedCourse.progressPercent ?? selectedCourse.progress ?? 0}%</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="bg-sky-600 h-2.5 rounded-full transition-all duration-700"
+                    style={{ width: `${selectedCourse.progressPercent ?? selectedCourse.progress ?? 0}%` }}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Curriculum Accordion (Modules & Lessons) */}
           <div className="space-y-4">

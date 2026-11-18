@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n, Language } from '@/lib/i18n-context';
+import { notificationsService } from '@/services/notifications.service';
 import {
   Video,
   PenTool,
@@ -534,19 +535,40 @@ export default function HomePage() {
 
   const pillarsData = getPillarsData(lang);
 
-  const handleConsultSubmit = (e: React.FormEvent) => {
+  const [isSubmittingConsult, setIsSubmittingConsult] = useState(false);
+
+  const handleConsultSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormSubmitted(true);
-    setTimeout(() => {
-      setFormSubmitted(false);
-      setFormData({
-        fullName: '',
-        email: '',
-        phone: '',
-        interestedProgram: 'p1',
-        message: '',
+    setIsSubmittingConsult(true);
+    try {
+      await notificationsService.sendConsultationRequest({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        interestedProgram: formData.interestedProgram,
+        message: formData.message,
       });
-    }, 4000);
+      setFormSubmitted(true);
+      setTimeout(() => {
+        setFormSubmitted(false);
+        setFormData({
+          fullName: '',
+          email: '',
+          phone: '',
+          interestedProgram: 'p1',
+          message: '',
+        });
+      }, 5000);
+    } catch (err) {
+      console.error('Error submitting consultation request:', err);
+      // Vẫn hiển thị xác nhận đã nhận thông tin cho khách
+      setFormSubmitted(true);
+      setTimeout(() => {
+        setFormSubmitted(false);
+      }, 4000);
+    } finally {
+      setIsSubmittingConsult(false);
+    }
   };
 
   const scrollToSection = (id: string) => {
@@ -1423,10 +1445,11 @@ export default function HomePage() {
 
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full bg-[#FFB547] text-[#14263D] font-black text-xs sm:text-sm hover:bg-[#FFA726] transition-all shadow-md cursor-pointer"
+                  disabled={isSubmittingConsult}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full bg-[#FFB547] text-[#14263D] font-black text-xs sm:text-sm hover:bg-[#FFA726] transition-all shadow-md cursor-pointer disabled:opacity-60"
                 >
                   <Send className="w-4 h-4" />
-                  <span>{t('consult.submitBtn')}</span>
+                  <span>{isSubmittingConsult ? 'Đang gửi thông tin...' : t('consult.submitBtn')}</span>
                 </button>
               </form>
             </div>

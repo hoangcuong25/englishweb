@@ -26,18 +26,26 @@ import { Roles } from '../../core/common/decorators/roles.decorator';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
 import { ResponseMessage } from '../../core/common/decorators/response-message.decorator';
 import { BroadcastNotificationDto } from './dto/broadcast-notification.dto';
+import { ConsultationRequestDto } from './dto/consultation-request.dto';
 import { Role } from '@prisma/client';
 
 @ApiTags('Realtime Notifications System')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  @Post('consultation')
+  @ApiOperation({ summary: 'Khách hàng đăng ký nhận tư vấn từ Landing Page' })
+  @ApiResponse({ status: 201, description: 'Đã tiếp nhận yêu cầu tư vấn' })
+  @ResponseMessage('Đã gửi yêu cầu tư vấn thành công')
+  requestConsultation(@Body() dto: ConsultationRequestDto) {
+    return this.notificationsService.handleConsultationRequest(dto);
+  }
+
   @Post('broadcast')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Admin phát thông báo hệ thống tới toàn bộ hoặc nhóm người dùng' })
   @ApiResponse({ status: 201, description: 'Phát thông báo thành công' })
   @ResponseMessage('Phát thông báo hệ thống thành công')
@@ -46,6 +54,8 @@ export class NotificationsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Lấy danh sách thông báo của người dùng hiện tại' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -66,6 +76,8 @@ export class NotificationsController {
   }
 
   @Get('unread-count')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Lấy nhanh số lượng thông báo chưa đọc' })
   @ApiResponse({ status: 200, description: 'Số lượng thông báo chưa đọc' })
   @ResponseMessage('Lấy số lượng thông báo chưa đọc thành công')
@@ -74,6 +86,8 @@ export class NotificationsController {
   }
 
   @Put('read-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Đánh dấu tất cả thông báo của người dùng là đã đọc' })
   @ApiResponse({ status: 200, description: 'Đã đánh dấu tất cả là đã đọc' })
@@ -83,6 +97,8 @@ export class NotificationsController {
   }
 
   @Put(':id/read')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Đánh dấu một thông báo cụ thể là đã đọc' })
   @ApiParam({ name: 'id', description: 'UUID của thông báo' })
@@ -96,6 +112,8 @@ export class NotificationsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Xóa một thông báo' })
   @ApiParam({ name: 'id', description: 'UUID của thông báo' })
   @ApiResponse({ status: 200, description: 'Xóa thông báo thành công' })

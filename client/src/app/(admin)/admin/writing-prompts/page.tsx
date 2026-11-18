@@ -105,40 +105,19 @@ export default function AdminWritingPromptsPage() {
 
       if (editingPrompt) {
         await writingService.updatePrompt(editingPrompt.id, payload);
-        setPrompts((prev) =>
-          prev.map((item) => (item.id === editingPrompt.id ? { ...item, ...payload } as WritingPrompt : item))
-        );
+        await fetchPrompts();
         setFeedbackNotice(`Đã cập nhật đề thi "${formTitle}" thành công!`);
       } else {
-        const res = await writingService.createPrompt(payload);
-        const newId = res?.id || `wp-new-${Date.now()}`;
-        setPrompts((prev) => [{ id: newId, ...payload } as WritingPrompt, ...prev]);
+        await writingService.createPrompt(payload);
+        await fetchPrompts();
         setFeedbackNotice(`Đã thêm mới đề thi "${formTitle}" vào ngân hàng!`);
       }
       setIsModalOpen(false);
       setTimeout(() => setFeedbackNotice(''), 4000);
-    } catch {
-      // Local fallback
-      if (editingPrompt) {
-        setPrompts((prev) =>
-          prev.map((item) => (item.id === editingPrompt.id ? { ...item, title: formTitle, description: formDesc, taskType: formTaskType, minWords: formMinWords, timeLimitMinutes: formTimeLimit } : item))
-        );
-      } else {
-        setPrompts((prev) => [
-          {
-            id: `wp-loc-${Date.now()}`,
-            title: formTitle,
-            description: formDesc,
-            taskType: formTaskType,
-            minWords: formMinWords,
-            timeLimitMinutes: formTimeLimit,
-          },
-          ...prev,
-        ]);
-      }
-      setIsModalOpen(false);
-      setFeedbackNotice('Lưu đề thi thành công (chế độ cục bộ)!');
-      setTimeout(() => setFeedbackNotice(''), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi lưu đề thi';
+      setFeedbackNotice(`Không thể lưu đề thi: ${msg}`);
+      setTimeout(() => setFeedbackNotice(''), 5000);
     } finally {
       setIsSubmitting(false);
     }

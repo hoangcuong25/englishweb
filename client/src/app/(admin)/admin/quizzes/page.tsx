@@ -269,34 +269,8 @@ export default function AdminQuizzesPage() {
       await fetchQuizzesAndTests();
     } catch (err: unknown) {
       console.error('Failed to save mock test:', err);
-      // Fallback update in state for offline/demo
-      if (editingTestId) {
-        setMockTests((prev) =>
-          prev.map((item) =>
-            item.id === editingTestId
-              ? {
-                  ...item,
-                  ...testFormData,
-                  timeLimitMinutes: Number(testFormData.timeLimitMinutes),
-                  passScore: Number(testFormData.passScore),
-                }
-              : item,
-          ),
-        );
-        setNotice('Đã cập nhật bài thi trong phiên làm việc hiện tại.');
-      } else {
-        const newLocalTest: MockTestItem = {
-          id: `mock-test-${Date.now()}`,
-          ...testFormData,
-          timeLimitMinutes: Number(testFormData.timeLimitMinutes),
-          passScore: Number(testFormData.passScore),
-          questionsCount: 0,
-          submissionsCount: 0,
-        };
-        setMockTests((prev) => [newLocalTest, ...prev]);
-        setNotice('Đã thêm bài thi mới vào danh sách.');
-      }
-      setIsTestModalOpen(false);
+      const anyErr = err as { response?: { data?: { message?: string } }; message?: string };
+      setNotice(`Lỗi khi lưu bài thi: ${anyErr.response?.data?.message || anyErr.message || 'Không thể kết nối máy chủ'}`);
     } finally {
       setSubmitting(false);
       setTimeout(() => setNotice(''), 4000);
@@ -313,10 +287,10 @@ export default function AdminQuizzesPage() {
       setNotice(`Đã xóa bài thi "${testTitle}" thành công.`);
       setMockTests((prev) => prev.filter((item) => item.id !== testId));
       setQuestions((prev) => prev.filter((q) => q.quizId !== testId));
-    } catch (err) {
-      console.warn('Backend delete failed, removing locally:', err);
-      setMockTests((prev) => prev.filter((item) => item.id !== testId));
-      setNotice(`Đã xóa bài thi "${testTitle}".`);
+    } catch (err: unknown) {
+      console.error('Failed to delete quiz:', err);
+      const anyErr = err as { response?: { data?: { message?: string } }; message?: string };
+      setNotice(`Không thể xóa bài thi: ${anyErr.response?.data?.message || anyErr.message || 'Lỗi kết nối máy chủ'}`);
     } finally {
       setTimeout(() => setNotice(''), 4000);
     }
@@ -378,19 +352,8 @@ export default function AdminQuizzesPage() {
       await fetchQuizzesAndTests();
     } catch (err: unknown) {
       console.error('Failed to create question on server:', err);
-      const newQ: QuizQuestion = {
-        id: `q-${Date.now()}`,
-        quizId: qFormData.targetQuizId,
-        quizTitle: mockTests.find((t) => t.id === qFormData.targetQuizId)?.title || 'Đề thi tổng hợp',
-        skill: qFormData.skill,
-        type: qFormData.type,
-        questionText: qFormData.questionText,
-        correctAnswer: qFormData.correctAnswer,
-        explanation: qFormData.explanation,
-      };
-      setQuestions((prev) => [newQ, ...prev]);
-      setIsQuestionModalOpen(false);
-      setNotice('Đã thêm câu hỏi vào danh sách.');
+      const anyErr = err as { response?: { data?: { message?: string } }; message?: string };
+      setNotice(`Không thể tạo câu hỏi: ${anyErr.response?.data?.message || anyErr.message || 'Lỗi kết nối máy chủ'}`);
     } finally {
       setSubmitting(false);
       setTimeout(() => setNotice(''), 4000);

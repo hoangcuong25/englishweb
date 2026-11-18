@@ -59,38 +59,7 @@ interface ModuleItem {
 }
 
 export default function AdminCoursesPage() {
-  const [courses, setCourses] = useState<Course[]>([
-    {
-      id: 'c-1',
-      title: 'IELTS Masterclass 7.5+ Intensive (Writing & Speaking Focus)',
-      slug: 'ielts-masterclass-75-intensive',
-      category: 'IELTS',
-      level: 'ADVANCED',
-      price: 4500000,
-      status: 'PUBLISHED',
-      modulesCount: 4,
-    },
-    {
-      id: 'c-2',
-      title: 'Business English VIP & Executive Communication',
-      slug: 'business-english-vip-executive',
-      category: 'BUSINESS',
-      level: 'INTERMEDIATE',
-      price: 5200000,
-      status: 'PUBLISHED',
-      modulesCount: 3,
-    },
-    {
-      id: 'c-3',
-      title: 'TESOL Teaching Methodology & Modern EdTech Tools',
-      slug: 'tesol-teaching-methodology',
-      category: 'TEACHER_TRAINING',
-      level: 'MASTER',
-      price: 6800000,
-      status: 'DRAFT',
-      modulesCount: 5,
-    },
-  ]);
+  const [courses, setCourses] = useState<Course[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
@@ -111,7 +80,7 @@ export default function AdminCoursesPage() {
   const [isManualEnrollOpen, setIsManualEnrollOpen] = useState(false);
   const [studentsList, setStudentsList] = useState<UserProfile[]>([]);
   const [manualEnrollForm, setManualEnrollForm] = useState({
-    courseId: 'c-1',
+    courseId: '',
     userId: '',
     note: '',
   });
@@ -144,35 +113,33 @@ export default function AdminCoursesPage() {
     }
   };
 
+  const fetchCourses = async () => {
+    setLoading(true);
+    try {
+      const data = await coursesService.getCourses();
+      if (Array.isArray(data)) {
+        const mapped = data.map((c: Record<string, unknown>) => ({
+          id: String(c.id || ''),
+          title: String(c.title || ''),
+          slug: String(c.slug || String(c.title || '').toLowerCase().replace(/\s+/g, '-')),
+          category: String(c.category || 'IELTS'),
+          level: String(c.level || 'INTERMEDIATE'),
+          price: Number(c.price || 4500000),
+          status: (c.published ? 'PUBLISHED' : 'DRAFT') as 'PUBLISHED' | 'DRAFT',
+          modulesCount: Array.isArray(c.modules) ? c.modules.length : 1,
+        }));
+        setCourses(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchEnrollments();
     fetchStudents();
-  }, []);
-
-  useEffect(() => {
-    const fetchCourses = async () => {
-      setLoading(true);
-      try {
-        const data = await coursesService.getCourses();
-        if (data && data.length > 0) {
-          const mapped = data.map((c: Record<string, unknown>) => ({
-            id: String(c.id || ''),
-            title: String(c.title || ''),
-            slug: String(c.slug || String(c.title || '').toLowerCase().replace(/\s+/g, '-')),
-            category: String(c.category || 'IELTS'),
-            level: String(c.level || 'INTERMEDIATE'),
-            price: Number(c.price || 4500000),
-            status: (c.published ? 'PUBLISHED' : 'DRAFT') as 'PUBLISHED' | 'DRAFT',
-            modulesCount: Array.isArray(c.modules) ? c.modules.length : 1,
-          }));
-          setCourses(mapped);
-        }
-      } catch {
-        // Fallback default
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchCourses();
   }, []);
 
@@ -187,7 +154,7 @@ export default function AdminCoursesPage() {
 
   // Lesson Form State (#lessonModal)
   const [lessonFormData, setLessonFormData] = useState({
-    courseId: 'c-1',
+    courseId: '',
     moduleTitle: '',
     lessonTitle: '',
     type: 'VIDEO',
@@ -196,16 +163,6 @@ export default function AdminCoursesPage() {
 
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newCourse: Course = {
-      id: `c-${Date.now()}`,
-      title: courseFormData.title,
-      slug: courseFormData.title.toLowerCase().replace(/\s+/g, '-'),
-      category: courseFormData.category,
-      level: courseFormData.level,
-      price: Number(courseFormData.price),
-      status: 'PUBLISHED',
-      modulesCount: 1,
-    };
     try {
       await coursesService.createCourse({
         title: courseFormData.title,
@@ -213,12 +170,13 @@ export default function AdminCoursesPage() {
         level: courseFormData.level,
         description: courseFormData.shortDesc,
       });
-    } catch {
-      // Local fallback
+      await fetchCourses();
+      setIsCourseModalOpen(false);
+      setNotice(`Đã tạo khóa học mới "${courseFormData.title}" thành công!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi tạo khóa học';
+      setNotice(`Không thể tạo khóa học: ${msg}`);
     }
-    setCourses([...courses, newCourse]);
-    setIsCourseModalOpen(false);
-    setNotice(`Đã tạo khóa học mới "${newCourse.title}" thành công!`);
     setTimeout(() => setNotice(''), 4000);
   };
 
@@ -230,22 +188,25 @@ export default function AdminCoursesPage() {
         durationMinutes: lessonFormData.durationMinutes,
         moduleId: lessonFormData.courseId,
       });
-    } catch {
-      // Local fallback
+      await fetchCourses();
+      setIsLessonModalOpen(false);
+      setNotice(`Đã thêm bài học "${lessonFormData.lessonTitle}" thành công!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi thêm bài học';
+      setNotice(`Không thể thêm bài học: ${msg}`);
     }
-    setIsLessonModalOpen(false);
-    setNotice(`Đã thêm bài học "${lessonFormData.lessonTitle}" thành công!`);
     setTimeout(() => setNotice(''), 4000);
   };
 
   const handleDeleteCourse = async (courseId: string) => {
     try {
       await coursesService.deleteCourse(courseId);
-    } catch {
-      // Local fallback
+      setCourses((prev) => prev.filter((c) => c.id !== courseId));
+      setNotice('Đã xóa khóa học thành công.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi xóa khóa học';
+      setNotice(`Không thể xóa khóa học: ${msg}`);
     }
-    setCourses(courses.filter((c) => c.id !== courseId));
-    setNotice('Đã xóa khóa học thành công.');
     setTimeout(() => setNotice(''), 3000);
   };
 
@@ -254,16 +215,20 @@ export default function AdminCoursesPage() {
     setProcessingEnrollmentId(enrollmentId);
     try {
       await coursesService.approveEnrollment(enrollmentId);
-    } catch {}
-    setEnrollments((prev) =>
-      prev.map((e) =>
-        e.id === enrollmentId
-          ? { ...e, status: 'ACTIVE', approvedAt: new Date().toISOString() }
-          : e,
-      ),
-    );
-    setProcessingEnrollmentId(null);
-    setNotice('✅ Đã xác nhận chuyển khoản thành công và kích hoạt khóa học cho học viên!');
+      setEnrollments((prev) =>
+        prev.map((e) =>
+          e.id === enrollmentId
+            ? { ...e, status: 'ACTIVE', approvedAt: new Date().toISOString() }
+            : e,
+        ),
+      );
+      setNotice('✅ Đã xác nhận chuyển khoản thành công và kích hoạt khóa học cho học viên!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi xác nhận';
+      setNotice(`Không thể xác nhận: ${msg}`);
+    } finally {
+      setProcessingEnrollmentId(null);
+    }
     setTimeout(() => setNotice(''), 4000);
   };
 
@@ -272,12 +237,16 @@ export default function AdminCoursesPage() {
     setProcessingEnrollmentId(enrollmentId);
     try {
       await coursesService.rejectEnrollment(enrollmentId);
-    } catch {}
-    setEnrollments((prev) =>
-      prev.map((e) => (e.id === enrollmentId ? { ...e, status: 'REJECTED' } : e)),
-    );
-    setProcessingEnrollmentId(null);
-    setNotice('Đã từ chối yêu cầu đăng ký khóa học.');
+      setEnrollments((prev) =>
+        prev.map((e) => (e.id === enrollmentId ? { ...e, status: 'REJECTED' } : e)),
+      );
+      setNotice('Đã từ chối yêu cầu đăng ký khóa học.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi từ chối';
+      setNotice(`Không thể từ chối: ${msg}`);
+    } finally {
+      setProcessingEnrollmentId(null);
+    }
     setTimeout(() => setNotice(''), 3000);
   };
 
@@ -295,40 +264,16 @@ export default function AdminCoursesPage() {
         userId: manualEnrollForm.userId,
         note: manualEnrollForm.note,
       });
-    } catch {}
-
-    const selectedStudent = studentsList.find((s) => s.id === manualEnrollForm.userId);
-    const selectedCourseObj = courses.find((c) => c.id === manualEnrollForm.courseId);
-
-    const newEnr: CourseEnrollment = {
-      id: `enr-${Date.now()}`,
-      userId: manualEnrollForm.userId,
-      courseId: manualEnrollForm.courseId,
-      status: 'ACTIVE',
-      progressPercent: 0,
-      paymentAmount: selectedCourseObj?.price || 4500000,
-      paymentNote: manualEnrollForm.note || 'Ghi danh thủ công bởi Admin',
-      enrolledAt: new Date().toISOString(),
-      approvedAt: new Date().toISOString(),
-      user: {
-        id: manualEnrollForm.userId,
-        fullName: selectedStudent?.fullName || 'Học viên',
-        email: selectedStudent?.email || '',
-        phone: selectedStudent?.phone || '',
-      },
-      course: {
-        id: manualEnrollForm.courseId,
-        title: selectedCourseObj?.title || 'Khóa học',
-        slug: selectedCourseObj?.slug || '',
-        category: selectedCourseObj?.category || 'IELTS',
-      },
-    };
-
-    setEnrollments((prev) => [newEnr, ...prev]);
-    setIsSubmittingManual(false);
-    setIsManualEnrollOpen(false);
-    setManualEnrollForm({ courseId: courses[0]?.id || 'c-1', userId: studentsList[0]?.id || '', note: '' });
-    setNotice(`🎉 Đã ghi danh thủ công học viên "${selectedStudent?.fullName || ''}" vào khóa học thành công!`);
+      await fetchEnrollments();
+      setNotice('✅ Đã ghi danh học viên vào khóa học thành công!');
+      setIsManualEnrollOpen(false);
+      setManualEnrollForm({ courseId: courses[0]?.id || '', userId: studentsList[0]?.id || '', note: '' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi ghi danh';
+      setNotice(`Không thể ghi danh: ${msg}`);
+    } finally {
+      setIsSubmittingManual(false);
+    }
     setTimeout(() => setNotice(''), 4000);
   };
 

@@ -163,11 +163,10 @@ export default function AdminLibraryPage() {
     try {
       await materialsService.delete(matId);
       await fetchMaterials();
-    } catch {
-      // Local fallback
-      setMaterials(materials.filter((m) => m.id !== matId));
+      setNotice('Đã xóa học liệu số thành công.');
+    } catch (err) {
+      handleApiError(err, 'Lỗi khi xóa học liệu số');
     }
-    setNotice('Đã xóa học liệu số thành công.');
     setTimeout(() => setNotice(''), 3000);
   };
 

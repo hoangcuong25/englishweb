@@ -29,6 +29,34 @@ interface WritingReviewItem {
   status: 'AI_EVALUATED' | 'APPROVED';
 }
 
+interface RawAdminWritingItem {
+  id: string;
+  user?: { id: string; fullName: string; email: string };
+  student?: { id: string; fullName: string; email: string };
+  prompt?: { id: string; title: string; taskType: 'TASK_1' | 'TASK_2' };
+  content: string;
+  wordCount: number;
+  submittedAt?: string;
+  createdAt?: string;
+  taskAchievementScore?: number;
+  coherenceCohesionScore?: number;
+  lexicalResourceScore?: number;
+  grammarScore?: number;
+  overallBand?: number;
+  aiScore?: number;
+  status: string;
+  aiFeedback?: string;
+  adminOverrideBand?: number;
+  adminFeedback?: string;
+  aiAnalysis?: {
+    bandScore?: number;
+    taskResponse?: { score: number };
+    coherenceCohesion?: { score: number };
+    lexicalResource?: { score: number };
+    grammaticalAccuracy?: { score: number };
+  };
+}
+
 export default function AdminWritingReviewPage() {
   const [submissions, setSubmissions] = useState<WritingReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,20 +75,24 @@ export default function AdminWritingReviewPage() {
       try {
         const data = await writingService.getAdminSubmissions();
         if (Array.isArray(data)) {
-          const mapped: WritingReviewItem[] = data.map((item) => ({
+          const mapped: WritingReviewItem[] = (data as unknown as RawAdminWritingItem[]).map((item) => ({
             id: item.id,
-            studentName: item.student?.fullName || 'Học viên',
-            studentEmail: item.student?.email || 'student@dong.edu.vn',
+            studentName: item.user?.fullName || item.student?.fullName || 'Học viên',
+            studentEmail: item.user?.email || item.student?.email || 'student@dong.edu.vn',
             taskTitle: item.prompt?.title || 'IELTS Writing Essay',
             taskType: item.prompt?.taskType || 'TASK_2',
             essayText: item.content,
             wordCount: item.wordCount,
-            submittedAt: new Date(item.createdAt).toLocaleString('vi-VN'),
-            aiTR: item.aiAnalysis?.taskResponse?.score || item.aiScore || 7.0,
-            aiCC: item.aiAnalysis?.coherenceCohesion?.score || item.aiScore || 7.0,
-            aiLR: item.aiAnalysis?.lexicalResource?.score || item.aiScore || 7.0,
-            aiGRA: item.aiAnalysis?.grammaticalAccuracy?.score || item.aiScore || 7.0,
-            aiOverall: item.aiScore || 7.0,
+            submittedAt: item.submittedAt
+              ? new Date(item.submittedAt).toLocaleString('vi-VN')
+              : item.createdAt
+              ? new Date(item.createdAt).toLocaleString('vi-VN')
+              : 'Hôm nay',
+            aiTR: item.taskAchievementScore ?? item.aiAnalysis?.taskResponse?.score ?? item.overallBand ?? item.aiScore ?? 7.0,
+            aiCC: item.coherenceCohesionScore ?? item.aiAnalysis?.coherenceCohesion?.score ?? item.overallBand ?? item.aiScore ?? 7.0,
+            aiLR: item.lexicalResourceScore ?? item.aiAnalysis?.lexicalResource?.score ?? item.overallBand ?? item.aiScore ?? 7.0,
+            aiGRA: item.grammarScore ?? item.aiAnalysis?.grammaticalAccuracy?.score ?? item.overallBand ?? item.aiScore ?? 7.0,
+            aiOverall: item.overallBand ?? item.aiScore ?? 7.0,
             status: item.status === 'APPROVED' ? 'APPROVED' : 'AI_EVALUATED',
           }));
           setSubmissions(mapped);
@@ -95,8 +127,8 @@ export default function AdminWritingReviewPage() {
   const handleQuickApprove = async (sub: WritingReviewItem) => {
     try {
       await writingService.approveSubmission(sub.id, {
-        teacherScore: sub.aiOverall,
-        teacherFeedback: 'Phê duyệt chuẩn xác theo phân tích 4 tiêu chí của AI.',
+        adminOverrideBand: sub.aiOverall,
+        adminFeedback: 'Phê duyệt chuẩn xác theo phân tích 4 tiêu chí của AI.',
         isApproved: true,
       });
     } catch {
@@ -118,8 +150,8 @@ export default function AdminWritingReviewPage() {
 
     try {
       await writingService.approveSubmission(activeReview.id, {
-        teacherScore: currentOverall,
-        teacherFeedback,
+        adminOverrideBand: currentOverall,
+        adminFeedback: teacherFeedback,
         isApproved: true,
       });
     } catch {

@@ -21,7 +21,7 @@ export interface IeltsWritingEvaluationResult {
 export class GeminiService {
   private readonly logger = new Logger(GeminiService.name);
   private ai: GoogleGenAI | null = null;
-  private readonly modelName = 'gemini-2.5-flash';
+  private readonly modelName = 'gemini-3.8-flash';
   private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {

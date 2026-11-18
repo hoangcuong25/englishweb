@@ -120,17 +120,6 @@ export default function AdminUsersPage() {
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newUser: StudentUser = {
-      id: `HV-${Math.floor(1000 + Math.random() * 9000)}`,
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      enrolledCourse: formData.enrolledCourse,
-      targetBand: formData.targetBand,
-      status: 'ACTIVE',
-      joinedDate: new Date().toLocaleDateString('vi-VN'),
-    };
-
     try {
       await usersService.createStudent({
         fullName: formData.fullName,
@@ -138,21 +127,20 @@ export default function AdminUsersPage() {
         phone: formData.phone,
         targetBand: formData.targetBand,
       });
-      setNotice(`Đã tạo học viên "${newUser.fullName}" thành công trên máy chủ!`);
+      setNotice(`Đã tạo học viên "${formData.fullName}" thành công trên máy chủ!`);
       await fetchStudents();
-    } catch {
-      setUsers([...users, newUser]);
-      setNotice(`Đã tạo học viên "${newUser.fullName}" (lưu cục bộ).`);
+      setIsAddModalOpen(false);
+      setFormData({
+        fullName: '',
+        email: '',
+        phone: '',
+        enrolledCourse: 'IELTS Masterclass 7.5+ Intensive',
+        targetBand: '7.5',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi khi tạo tài khoản học viên';
+      setNotice(`Không thể tạo học viên: ${msg}`);
     }
-
-    setIsAddModalOpen(false);
-    setFormData({
-      fullName: '',
-      email: '',
-      phone: '',
-      enrolledCourse: 'IELTS Masterclass 7.5+ Intensive',
-      targetBand: '7.5',
-    });
     setTimeout(() => setNotice(''), 4000);
   };
 

@@ -53,7 +53,7 @@ export const writingService = {
     return response.data?.data || response.data;
   },
 
-  async submitEssay(data: { promptId: string; content: string; wordCount: number; durationSeconds: number }) {
+  async submitEssay(data: { promptId: string; content: string; wordCount: number; durationSeconds?: number }) {
     const response = await api.post('/writing/submissions', data);
     return response.data?.data || response.data;
   },
@@ -75,8 +75,21 @@ export const writingService = {
     return response.data?.data || response.data || [];
   },
 
-  async approveSubmission(id: string, data: { teacherScore?: number; teacherFeedback?: string; isApproved: boolean }) {
-    const response = await api.post(`/writing/admin/submissions/${id}/approve`, data);
+  async approveSubmission(
+    id: string,
+    data: {
+      adminOverrideBand?: number;
+      adminFeedback?: string;
+      teacherScore?: number;
+      teacherFeedback?: string;
+      isApproved?: boolean;
+    },
+  ) {
+    const payload = {
+      adminOverrideBand: data.adminOverrideBand ?? data.teacherScore,
+      adminFeedback: data.adminFeedback ?? data.teacherFeedback,
+    };
+    const response = await api.post(`/writing/admin/submissions/${id}/approve`, payload);
     return response.data?.data || response.data;
   },
 

@@ -106,15 +106,9 @@ export default function StudentDashboard() {
   const attendanceRate =
     attendance.totalSessions > 0
       ? Math.round((attendance.present / attendance.totalSessions) * 100)
-      : 95;
+      : 100;
 
-  const activeCourse = data?.recentCourses?.[0] || {
-    id: 'course-1',
-    title: 'IELTS Intensive 6.5 -> 7.5+ Masterclass',
-    slug: 'ielts-masterclass-band-7',
-    category: 'IELTS INTENSIVE',
-    progressPercent: 68,
-  };
+  const activeCourse = data?.recentCourses?.[0] || null;
 
   const latestSpeaking = data?.recentSpeaking?.[0];
   const latestWriting = data?.recentWriting?.[0];
@@ -432,58 +426,82 @@ export default function StudentDashboard() {
         {/* Left Column: Active Course & Studios */}
         <div className="space-y-6">
           {/* Active Course Card (from Mockup) */}
-          <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
+          {activeCourse ? (
+            <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                  <BookOpen className="w-4 h-4" />
+                  <span>Khóa học đang tiếp tục</span>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-sky-100 text-[#1B64B0] text-[10.5px] font-black uppercase">
+                  {activeCourse.category || 'ACADEMIC'}
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900">
+                  {activeCourse.title}
+                </h3>
+                <p className="text-xs text-muted mt-1">
+                  Lộ trình học tập trực tuyến tích hợp bài giảng và studio luyện tập.
+                </p>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-slate-600">Tiến độ hoàn thành khóa học</span>
+                  <span className="text-primary font-black">{activeCourse.progressPercent ?? 0}%</span>
+                </div>
+                <div className="w-full bg-[#E1EBF5] h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-sky-400 to-[#1B64B0] h-full rounded-full transition-all duration-500"
+                    style={{ width: `${activeCourse.progressPercent ?? 0}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-wrap gap-2.5">
+                <Link
+                  href="/student/courses"
+                  className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Tiếp tục bài học</span>
+                </Link>
+                <Link
+                  href="/student/library"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
+                >
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Tài liệu bài học</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-3">
               <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
                 <BookOpen className="w-4 h-4" />
-                <span>Khóa học đang tiếp tục</span>
+                <span>Khóa học của bạn</span>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-sky-100 text-[#1B64B0] text-[10.5px] font-black uppercase">
-                {activeCourse.category || 'IELTS INTENSIVE'}
-              </span>
-            </div>
-
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900">
-                {activeCourse.title}
+              <h3 className="text-base font-black text-slate-900">
+                Bạn chưa kích hoạt khóa học nào
               </h3>
-              <p className="text-xs text-muted mt-1">
-                Bài học tiếp theo: <strong className="text-slate-700">Unit 4 — Advanced Cohesion & Lexical Upgrade</strong>
+              <p className="text-xs text-muted leading-relaxed">
+                Khám phá ngay danh mục các khóa học IELTS, Tiếng Anh Giao Tiếp và Kỹ Năng Sống tại Academy để bắt đầu lộ trình.
               </p>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-slate-600">Tiến độ hoàn thành khóa học</span>
-                <span className="text-primary font-black">{activeCourse.progressPercent || 68}%</span>
-              </div>
-              <div className="w-full bg-[#E1EBF5] h-2.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-sky-400 to-[#1B64B0] h-full rounded-full transition-all duration-500"
-                  style={{ width: `${activeCourse.progressPercent || 68}%` }}
-                ></div>
+              <div className="pt-2">
+                <Link
+                  href="/student/courses"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm transition"
+                >
+                  <span>Khám phá khóa học ngay</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="pt-2 flex flex-wrap gap-2.5">
-              <Link
-                href="/student/courses"
-                className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
-              >
-                <Play className="w-3.5 h-3.5 fill-white" />
-                <span>Tiếp tục bài học</span>
-              </Link>
-              <Link
-                href="/student/library"
-                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
-              >
-                <FileText className="w-3.5 h-3.5 text-slate-500" />
-                <span>Tài liệu bài học</span>
-              </Link>
-            </div>
-          </div>
+          )}
 
           {/* Quick Access to Learning Hubs & Studios */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
