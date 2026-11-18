@@ -355,6 +355,8 @@ model WritingSubmission {
   @@index([promptId])
   @@index([userId])
   @@index([approvedById])
+  @@index([status])
+  @@index([userId, submittedAt])
   @@map("writing_submissions")
 }
 
@@ -418,6 +420,8 @@ model SpeakingSubmission {
   @@index([promptId])
   @@index([userId])
   @@index([gradedById])
+  @@index([status])
+  @@index([userId, submittedAt])
   @@map("speaking_submissions")
 }
 
@@ -498,6 +502,7 @@ model QuizSubmission {
 
   @@index([quizId])
   @@index([userId])
+  @@index([userId, isPassed])
   @@map("quiz_submissions")
 }
 
@@ -539,6 +544,7 @@ model Classroom {
 
   @@index([courseId])
   @@index([hostId])
+  @@index([status, scheduledEndTime])
   @@map("classrooms")
 }
 
@@ -560,6 +566,8 @@ model AttendanceRecord {
   @@unique([classroomId, studentId])
   @@index([classroomId])
   @@index([studentId])
+  @@index([createdAt])
+  @@index([status])
   @@map("attendance_records")
 }
 
@@ -598,6 +606,8 @@ model Message {
 
   @@index([conversationId])
   @@index([senderId])
+  @@index([conversationId, isRead])
+  @@index([conversationId, createdAt])
   @@map("messages")
 }
 

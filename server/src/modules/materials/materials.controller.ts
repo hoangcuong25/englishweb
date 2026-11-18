@@ -153,7 +153,7 @@ export class MaterialsController {
     @Query('token') token: string,
     @Res() res: Response,
   ) {
-    const { contentType, buffer, material } =
+    const { contentType, stream, material, fileSize } =
       await this.materialsService.verifyTokenAndGetStream(id, token);
 
     res.set({
@@ -161,9 +161,9 @@ export class MaterialsController {
       'Content-Disposition': `inline; filename="${encodeURIComponent(material.title)}"`,
       'Cache-Control': 'private, no-cache, no-store, must-revalidate',
       'X-Content-Type-Options': 'nosniff',
-      'Content-Length': buffer.length,
+      'Content-Length': fileSize.toString(),
     });
 
-    res.end(buffer);
+    stream.pipe(res);
   }
 }

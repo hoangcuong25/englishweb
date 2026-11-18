@@ -1009,10 +1009,11 @@ export default function AdminCoursesPage() {
                             ) : (
                               <button
                                 type="button"
+                                disabled={processingEnrollmentId === e.id}
                                 onClick={() => handleApproveEnrollment(e.id)}
-                                className="text-xs text-sky-600 hover:text-sky-700 font-bold underline"
+                                className="text-xs text-sky-600 hover:text-sky-700 font-bold underline disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                Kích hoạt lại
+                                {processingEnrollmentId === e.id ? 'Đang xử lý...' : 'Kích hoạt lại'}
                               </button>
                             )}
                           </td>

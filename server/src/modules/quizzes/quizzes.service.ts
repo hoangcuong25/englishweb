@@ -348,27 +348,21 @@ export class QuizzesService {
 
       // Recalculate progress for the course
       const courseId = quiz.lesson.module.courseId;
-      const courseModules = await this.prisma.courseModule.findMany({
-        where: { courseId },
-        include: { lessons: { select: { id: true } } },
+      const totalLessons = await this.prisma.lesson.count({
+        where: { module: { courseId } },
       });
 
-      const allLessonIds: string[] = [];
-      courseModules.forEach((m) => {
-        m.lessons.forEach((l) => allLessonIds.push(l.id));
-      });
-
-      if (allLessonIds.length > 0) {
+      if (totalLessons > 0) {
         const completedLessons = await this.prisma.lessonProgress.count({
           where: {
             userId,
-            lessonId: { in: allLessonIds },
+            lesson: { module: { courseId } },
             isCompleted: true,
           },
         });
 
         const progressPercent = Math.round(
-          (completedLessons / allLessonIds.length) * 100,
+          (completedLessons / totalLessons) * 100,
         );
 
         await this.prisma.enrollment.upsert({
@@ -652,6 +646,8 @@ export class QuizzesService {
 
   async getAdminSkillsDiagnosticOverview(skillFilter?: SkillType) {
     const submissions = await this.prisma.quizSubmission.findMany({
+      orderBy: { submittedAt: 'desc' },
+      take: 500,
       include: {
         answers: {
           include: {

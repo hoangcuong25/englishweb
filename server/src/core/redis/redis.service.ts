@@ -12,6 +12,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   private client: Redis | null = null;
   private isRedisReady = false;
+  private static readonly MAX_MEMORY_CACHE_ITEMS = 500;
   private readonly memoryStore = new Map<string, CacheEntry>();
 
   constructor(private readonly configService: ConfigService) {}
@@ -150,10 +151,27 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    // Memory fallback
+    // Memory fallback with max capacity bounding (NEST-003)
+    const now = Date.now();
+    if (this.memoryStore.size >= RedisService.MAX_MEMORY_CACHE_ITEMS) {
+      for (const [k, entry] of this.memoryStore.entries()) {
+        if (entry.expireAt && entry.expireAt <= now) {
+          this.memoryStore.delete(k);
+        }
+      }
+      while (this.memoryStore.size >= RedisService.MAX_MEMORY_CACHE_ITEMS) {
+        const oldestKey = this.memoryStore.keys().next().value;
+        if (oldestKey) {
+          this.memoryStore.delete(oldestKey);
+        } else {
+          break;
+        }
+      }
+    }
+
     this.memoryStore.set(key, {
       value,
-      expireAt: ttlSeconds && ttlSeconds > 0 ? Date.now() + ttlSeconds * 1000 : null,
+      expireAt: ttlSeconds && ttlSeconds > 0 ? now + ttlSeconds * 1000 : null,
     });
   }
 
