@@ -311,3 +311,4 @@
 - **Đợt 4 (Next.js Bundle, Dynamic Import & Debounce)**: Xử lý `NEXT-001` (next.config), `NEXT-003` (Dynamic import WebRTC), `NEXT-004` (Debounce search), `NEXT-005` (Chống đúp).  
   *Commit*: `perf(client): tree-shake lucide, dynamic import webrtc and debounce search`  
   *Kiểm thử*: Chạy `npm --prefix client run test:e2e` đảm bảo 39/39 tests PASS.
+
