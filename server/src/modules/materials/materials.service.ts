@@ -14,6 +14,7 @@ import { AppException } from '../../core/common/errors/app.exception';
 import { AppErrorCode } from '../../core/common/errors/error-codes.enum';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Readable } from 'stream';
 
 @Injectable()
 export class MaterialsService {
@@ -413,7 +414,8 @@ export class MaterialsService {
       material.type === MaterialType.PDF ? 'application/pdf' : 'audio/mpeg';
 
     // BIZ-01: Check for physical file in private storage first
-    let buffer: Buffer;
+    let stream: Readable;
+    let fileSize: number;
     const privateStorageDir = path.join(process.cwd(), 'private_storage', 'materials');
     if (!fs.existsSync(privateStorageDir)) {
       fs.mkdirSync(privateStorageDir, { recursive: true });
@@ -424,21 +426,25 @@ export class MaterialsService {
       : path.join(privateStorageDir, `${material.id}.${material.type === MaterialType.PDF ? 'pdf' : 'mp3'}`);
 
     if (fs.existsSync(physicalPath)) {
-      buffer = fs.readFileSync(physicalPath);
+      const stat = fs.statSync(physicalPath);
+      fileSize = stat.size;
+      stream = fs.createReadStream(physicalPath);
     } else {
-      // Fallback document content buffer for test/verification
-      buffer = Buffer.from(
+      // Fallback document content stream for test/verification
+      const buffer = Buffer.from(
         material.type === MaterialType.PDF
           ? `%PDF-1.4 Mock Encrypted Secure Document for ${material.title}`
           : `MOCK_AUDIO_MP3_STREAM_FOR_${material.title}`,
       );
+      fileSize = buffer.length;
+      stream = Readable.from(buffer);
     }
 
     return {
       material,
       contentType,
-      buffer,
-      fileSize: buffer.length,
+      stream,
+      fileSize,
     };
   }
 }

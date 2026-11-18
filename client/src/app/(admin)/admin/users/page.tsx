@@ -104,7 +104,11 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
-    fetchStudents();
+    const timer = setTimeout(() => {
+      fetchStudents();
+    }, 350);
+
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 

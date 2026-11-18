@@ -401,20 +401,10 @@ export class LessonsService {
       },
     });
 
-    // 2. Count total lessons in this course
-    const courseModules = await this.prisma.courseModule.findMany({
-      where: { courseId },
-      include: {
-        lessons: { select: { id: true } },
-      },
+    // 2. Count total lessons in this course directly from DB
+    const totalLessons = await this.prisma.lesson.count({
+      where: { module: { courseId } },
     });
-
-    const allLessonIds: string[] = [];
-    courseModules.forEach((m) => {
-      m.lessons.forEach((l) => allLessonIds.push(l.id));
-    });
-
-    const totalLessons = allLessonIds.length;
 
     // 3. Count how many of these lessons are completed by the user
     let completedCount = 0;
@@ -422,7 +412,7 @@ export class LessonsService {
       completedCount = await this.prisma.lessonProgress.count({
         where: {
           userId,
-          lessonId: { in: allLessonIds },
+          lesson: { module: { courseId } },
           isCompleted: true,
         },
       });

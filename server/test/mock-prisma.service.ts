@@ -757,7 +757,15 @@ export class MockPrismaService {
       const [removed] = this.lessons.splice(idx, 1);
       return removed;
     },
-    count: async () => this.lessons.length,
+    count: async (args?: any) => {
+      let list = [...this.lessons];
+      if (args?.where?.module?.courseId) {
+        const cId = args.where.module.courseId;
+        const modIds = this.courseModules.filter((m) => m.courseId === cId).map((m) => m.id);
+        list = list.filter((l) => modIds.includes(l.moduleId));
+      }
+      return list.length;
+    },
   };
 
   // --- MATERIAL REPOSITORY ---
@@ -847,6 +855,7 @@ export class MockPrismaService {
             .map((m) => ({
               ...m,
               lessons: this.lessons.filter((l) => l.moduleId === m.id),
+              _count: { lessons: this.lessons.filter((l) => l.moduleId === m.id).length },
             }));
           return {
             ...e,
@@ -929,6 +938,12 @@ export class MockPrismaService {
       }
       if (args.where?.lessonId?.in) {
         list = list.filter((p) => args.where.lessonId.in.includes(p.lessonId));
+      }
+      if (args.where?.lesson?.module?.courseId) {
+        const cId = args.where.lesson.module.courseId;
+        const modIds = this.courseModules.filter((m) => m.courseId === cId).map((m) => m.id);
+        const lessonIds = this.lessons.filter((l) => modIds.includes(l.moduleId)).map((l) => l.id);
+        list = list.filter((p) => lessonIds.includes(p.lessonId));
       }
       if (args.where?.isCompleted !== undefined) {
         list = list.filter((p) => p.isCompleted === args.where.isCompleted);
@@ -1445,6 +1460,16 @@ export class MockPrismaService {
   // --- ATTENDANCE UPDATE REPOSITORY ---
   attendanceRecord = {
     count: async () => this.attendanceRecords.length,
+    groupBy: async (_args?: any) => {
+      const counts: Record<string, number> = {};
+      for (const a of this.attendanceRecords) {
+        counts[a.status] = (counts[a.status] || 0) + 1;
+      }
+      return Object.entries(counts).map(([status, count]) => ({
+        status,
+        _count: { _all: count, status: count },
+      }));
+    },
     findMany: async (args?: any) => {
       let result = [...this.attendanceRecords];
       if (args?.where?.classroomId) {
@@ -1606,13 +1631,41 @@ export class MockPrismaService {
       }
       return list[0] ? { ...list[0] } : null;
     },
+    groupBy: async (args: any) => {
+      let list = [...this.messages];
+      if (args?.where) {
+        if (args.where.conversationId?.in) {
+          list = list.filter((m) => args.where.conversationId.in.includes(m.conversationId));
+        }
+        if (args.where.senderId?.not) {
+          list = list.filter((m) => m.senderId !== args.where.senderId.not);
+        }
+        if (args.where.isRead !== undefined) {
+          list = list.filter((m) => m.isRead === args.where.isRead);
+        }
+      }
+      const counts: Record<string, number> = {};
+      for (const m of list) {
+        counts[m.conversationId] = (counts[m.conversationId] || 0) + 1;
+      }
+      return Object.entries(counts).map(([conversationId, count]) => ({
+        conversationId,
+        _count: { _all: count },
+      }));
+    },
     findMany: async (args: any) => {
       let list = [...this.messages];
       if (args?.where?.conversationId) {
         list = list.filter((m) => m.conversationId === args.where.conversationId);
       }
+      if (args?.where?.conversationId?.in) {
+        list = list.filter((m) => args.where.conversationId.in.includes(m.conversationId));
+      }
       if (args?.orderBy?.createdAt === 'asc') {
         list.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      }
+      if (args?.orderBy?.createdAt === 'desc') {
+        list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       }
       return list.map((m) => {
         const sender = this.users.find((u) => u.id === m.senderId);

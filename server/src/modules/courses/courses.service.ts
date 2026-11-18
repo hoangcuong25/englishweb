@@ -188,9 +188,9 @@ export class CoursesService {
         course: {
           include: {
             modules: {
-              include: {
-                lessons: {
-                  select: { id: true, title: true, orderIndex: true },
+              select: {
+                _count: {
+                  select: { lessons: true },
                 },
               },
             },
@@ -206,7 +206,7 @@ export class CoursesService {
     return enrollments.map((e) => {
       let totalLessons = 0;
       e.course.modules.forEach((m) => {
-        totalLessons += m.lessons.length;
+        totalLessons += (m as any)._count?.lessons ?? (m as any).lessons?.length ?? 0;
       });
 
       const isEnglish = (

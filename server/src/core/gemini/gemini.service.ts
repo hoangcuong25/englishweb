@@ -99,13 +99,21 @@ Vui lòng trả về DUY NHẤT một chuỗi JSON hợp lệ không bọc trong
 }
 `.trim();
 
-        const response = await this.ai.models.generateContent({
-          model: this.modelName,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-          },
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          const timer = setTimeout(() => reject(new Error('Gemini API request timed out after 25s')), 25000);
+          if (timer.unref) timer.unref();
         });
+
+        const response: any = await Promise.race([
+          this.ai.models.generateContent({
+            model: this.modelName,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+            },
+          }),
+          timeoutPromise,
+        ]);
 
         const text = response.text;
         if (text) {
