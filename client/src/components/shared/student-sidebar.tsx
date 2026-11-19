@@ -20,6 +20,7 @@ import {
   GraduationCap,
   Sparkles,
   PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 interface StudentGoalItem {
@@ -208,82 +209,99 @@ export default function StudentSidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex flex-col h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0 overflow-hidden bg-white text-slate-800 transition-[width,border-color] duration-500 ease-in-out ${
-        isOpen ? 'w-64 border-r border-line' : 'w-0 border-r-0 pointer-events-none'
+      className={`hidden lg:flex flex-col h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0 overflow-hidden bg-white text-slate-800 border-r border-line transition-[width] duration-300 ease-in-out ${
+        isOpen ? 'w-64' : 'w-20'
       }`}
-      aria-hidden={!isOpen}
+      aria-label="Thanh điều hướng Học viên"
     >
-      <div
-        className="w-64 shrink-0 flex flex-col h-full transition-[transform,opacity] duration-500 ease-in-out"
-        style={{
-          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
-          opacity: isOpen ? 1 : 0,
-        }}
-      >
-        <div className="p-4 border-b border-line/60 flex items-center justify-between">
-          <span className="text-[11px] font-extrabold text-muted uppercase tracking-wider">
-            {t('role_student', 'Học viên')} (STUDENT)
-          </span>
+      {/* Header with Title and Toggle Button on the Right */}
+      <div className={`p-4 border-b border-line/60 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
+        {isOpen ? (
+          <>
+            <span className="text-[11px] font-extrabold text-muted uppercase tracking-wider truncate">
+              {t('role_student', 'Học viên')} (STUDENT)
+            </span>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
+              title="Thu gọn sidebar (Chế độ Icon)"
+              aria-label="Thu gọn thanh bên"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
           <button
             type="button"
             onClick={toggleSidebar}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-            title="Thu gọn sidebar (Slide)"
-            aria-label="Thu gọn thanh bên"
+            className="p-2 rounded-xl text-primary hover:bg-sky-50 transition cursor-pointer"
+            title="Mở rộng sidebar (Chi tiết)"
+            aria-label="Mở rộng thanh bên"
           >
-            <PanelLeftClose className="w-4 h-4" />
+            <PanelLeftOpen className="w-5 h-5" />
           </button>
-        </div>
+        )}
+      </div>
 
-        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
-          {navSections.map((sec, sIdx) => (
-            <div key={sIdx} className="space-y-1">
+      {/* Nav List: Icon + Text when open, Centered Icons when collapsed */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-4 overflow-x-hidden">
+        {navSections.map((sec, sIdx) => (
+          <div key={sIdx} className="space-y-1">
+            {isOpen ? (
               <div className="flex items-center justify-between px-3 py-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 truncate">
                   {sec.title}
                 </span>
                 {sec.badge && (
-                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${sec.badgeColor}`}>
+                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${sec.badgeColor} shrink-0`}>
                     {sec.badge}
                   </span>
                 )}
               </div>
+            ) : sIdx > 0 ? (
+              <div className="my-2 border-t border-slate-100 mx-1" />
+            ) : null}
 
-              {sec.items.map((item) => {
-                const Icon = item.icon;
-                const isBaseActive = pathname.startsWith(item.href.split('?')[0]);
-                let isActive = false;
-                if (item.exactTrack) {
-                  isActive = pathname === '/student/courses' && currentTrack === item.exactTrack;
-                } else if (item.href === '/student/courses') {
-                  isActive = pathname === '/student/courses' && !currentTrack;
-                } else {
-                  isActive = isBaseActive;
-                }
+            {sec.items.map((item) => {
+              const Icon = item.icon;
+              const isBaseActive = pathname.startsWith(item.href.split('?')[0]);
+              let isActive = false;
+              if (item.exactTrack) {
+                isActive = pathname === '/student/courses' && currentTrack === item.exactTrack;
+              } else if (item.href === '/student/courses') {
+                isActive = pathname === '/student/courses' && !currentTrack;
+              } else {
+                isActive = isBaseActive;
+              }
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch={true}
-                    onMouseEnter={() => router.prefetch(item.href)}
-                    className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
-                      isActive
-                        ? 'bg-primary text-white shadow-md shadow-primary/20'
-                        : 'text-slate-700 hover:bg-slate-100 hover:text-primary'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  title={item.label}
+                  className={`flex items-center rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
+                    isOpen ? 'space-x-3 px-3.5 py-2.5' : 'justify-center p-2.5'
+                  } ${
+                    isActive
+                      ? 'bg-primary text-white shadow-md shadow-primary/20'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-primary'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  {isOpen && <span className="truncate">{item.label}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
 
-        {/* Target Personal Goal(s): Dynamically tailored to student's enrolled track(s) */}
-        {activeGoals.length === 1 ? (
+      {/* Target Personal Goal(s): Full card when open, Icon badge when collapsed */}
+      {isOpen ? (
+        activeGoals.length === 1 ? (
           <div className="p-3 m-3 rounded-2xl bg-sky-50/80 border border-sky-100 text-xs space-y-1.5">
             <div className="flex items-center justify-between">
               <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
@@ -322,8 +340,15 @@ export default function StudentSidebar() {
               ))}
             </div>
           </div>
-        )}
-      </div>
+        )
+      ) : (
+        <div
+          className="p-2.5 my-3 mx-auto rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center cursor-pointer text-primary"
+          title={`Mục tiêu cá nhân: ${activeGoals[0]?.value || 'IELTS 7.5+'}`}
+        >
+          <Target className="w-5 h-5 text-primary" />
+        </div>
+      )}
     </aside>
   );
 }

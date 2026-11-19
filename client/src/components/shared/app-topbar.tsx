@@ -258,18 +258,8 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
       <header className="bg-white border-b border-line sticky top-0 z-30 h-16 px-4 sm:px-6 flex items-center justify-between shadow-sm">
         {/* Left: Brand or Page Title */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Mobile Navigation Drawer Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowMobileDrawer(true)}
-            className="lg:hidden p-2 -ml-1 text-slate-600 hover:text-primary hover:bg-slate-100 rounded-xl transition"
-            aria-label="Mở menu điều hướng"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
           <Link href="/" className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-dark to-primary flex items-center justify-center text-white font-extrabold text-base shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-dark to-primary flex items-center justify-center text-white font-extrabold text-base shadow-sm shrink-0">
               TD
             </div>
             <div className="hidden sm:block">
@@ -286,6 +276,39 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
               </span>
             </div>
           </Link>
+
+          {/* Universal Sidebar Toggle Button: Placed on the RIGHT of Admin / User badge */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                setShowMobileDrawer((prev) => !prev);
+              } else {
+                toggleSidebar();
+              }
+            }}
+            className={`group p-2 rounded-xl transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 ${
+              !isOpen
+                ? 'bg-sky-50 text-primary border border-primary/20 shadow-2xs hover:bg-sky-100'
+                : 'text-slate-600 hover:text-primary hover:bg-slate-100 border border-transparent'
+            }`}
+            aria-label={isOpen ? 'Thu gọn thanh bên (Slide Sidebar)' : 'Mở rộng thanh bên (Slide Sidebar)'}
+            title={isOpen ? 'Thu gọn thanh bên (Slide Sidebar)' : 'Mở rộng thanh bên (Slide Sidebar)'}
+          >
+            {/* Desktop icon */}
+            <div className="hidden lg:flex items-center justify-center">
+              {isOpen ? (
+                <PanelLeftClose className="w-5 h-5 text-slate-600 group-hover:text-primary transition-colors" />
+              ) : (
+                <PanelLeftOpen className="w-5 h-5 text-primary transition-colors" />
+              )}
+            </div>
+
+            {/* Mobile icon */}
+            <div className="lg:hidden flex items-center justify-center">
+              <Menu className="w-5 h-5" />
+            </div>
+          </button>
 
           {pageTitle && (
             <div className="hidden md:flex items-center space-x-2 pl-4 border-l border-line text-xs font-semibold text-muted">
