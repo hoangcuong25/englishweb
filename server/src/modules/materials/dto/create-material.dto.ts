@@ -11,10 +11,15 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MaterialType } from '@prisma/client';
 
 export class CreateMaterialDto {
-  @ApiProperty({ example: 'lesson-uuid-here' })
-  @IsNotEmpty({ message: 'lessonId không được để trống' })
+  @ApiPropertyOptional({ example: 'course-uuid-here' })
+  @IsOptional()
   @IsString()
-  lessonId: string;
+  courseId?: string;
+
+  @ApiPropertyOptional({ example: 'lesson-uuid-here' })
+  @IsOptional()
+  @IsString()
+  lessonId?: string;
 
   @ApiProperty({ example: 'IELTS Writing Task 2 Masterclass Guide.pdf' })
   @IsNotEmpty({ message: 'Tiêu đề tài liệu không được để trống' })

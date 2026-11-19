@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { materialsService, SignedUrlResponse } from '@/services/materials.service';
+import { coursesService, CourseEnrollment } from '@/services/courses.service';
 import DynamicWatermarkCanvas from '@/components/shared/dynamic-watermark-canvas';
 import {
   FileText,
@@ -19,13 +21,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Bookmark,
+  GraduationCap,
+  BookOpen,
+  ArrowRight,
 } from 'lucide-react';
 
 interface LibraryMaterial {
   id: string;
   title: string;
   fileType: 'PDF' | 'AUDIO_MP3';
-  category: string;
+  courseId: string;
+  courseTitle: string;
   size: string;
   updatedAt: string;
 }
@@ -35,8 +41,16 @@ interface RawMaterial {
   title: string;
   type?: string;
   fileSize?: number;
+  courseId?: string;
+  course?: { id?: string; title?: string };
   createdAt?: string;
-  lesson?: { module?: { course?: { title?: string } } };
+  lesson?: { module?: { course?: { id?: string; title?: string } } };
+}
+
+interface EnrolledCourseItem {
+  id: string;
+  title: string;
+  category?: string;
 }
 
 export default function StudentLibraryPage() {
@@ -46,11 +60,17 @@ export default function StudentLibraryPage() {
   const [loadingSignedUrl, setLoadingSignedUrl] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'PDF' | 'AUDIO'>('ALL');
+  const [selectedCourseTab, setSelectedCourseTab] = useState<string>('ALL');
+
+  // Enrolled courses state
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourseItem[]>([]);
+  const [materials, setMaterials] = useState<LibraryMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // 15:00 Presigned URL countdown timer
   const [timeLeft, setTimeLeft] = useState(15 * 60);
 
-  // Focus Book Reader State (STT 8)
+  // Focus Book Reader State
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages] = useState(24);
@@ -66,32 +86,53 @@ export default function StudentLibraryPage() {
     }
   };
 
-  const [materials, setMaterials] = useState<LibraryMaterial[]>([]);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    const fetchMaterials = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
+        // 1. Fetch student active enrollments
+        let activeCourses: EnrolledCourseItem[] = [];
+        try {
+          const myLearning = await coursesService.getMyLearning();
+          if (Array.isArray(myLearning)) {
+            activeCourses = myLearning
+              .filter((item: CourseEnrollment) => (item.status || 'ACTIVE') === 'ACTIVE' && item.course)
+              .map((item: CourseEnrollment) => ({
+                id: item.course!.id,
+                title: item.course!.title,
+                category: item.course!.category,
+              }));
+            setEnrolledCourses(activeCourses);
+          }
+        } catch (err) {
+          console.error('Failed to fetch enrolled courses:', err);
+        }
+
+        // 2. Fetch materials (server strictly scopes to enrolled courses for students)
         const res = await materialsService.getAll();
         if (res && Array.isArray(res.items)) {
-          const mapped: LibraryMaterial[] = (res.items as unknown as RawMaterial[]).map((m: RawMaterial) => ({
-            id: m.id,
-            title: m.title,
-            fileType: m.type === 'AUDIO' ? 'AUDIO_MP3' : 'PDF',
-            category: m.lesson?.module?.course?.title || 'Kho Học Liệu',
-            size: m.fileSize ? `${(m.fileSize / (1024 * 1024)).toFixed(1)} MB` : '6.2 MB',
-            updatedAt: m.createdAt ? new Date(m.createdAt).toLocaleDateString('vi-VN') : '08/11/2026',
-          }));
+          const mapped: LibraryMaterial[] = (res.items as unknown as RawMaterial[]).map((m: RawMaterial) => {
+            const cId = m.courseId || m.course?.id || m.lesson?.module?.course?.id || '';
+            const cTitle = m.course?.title || m.lesson?.module?.course?.title || 'Kho Học Liệu Khóa Học';
+            return {
+              id: m.id,
+              title: m.title,
+              fileType: m.type === 'AUDIO' ? 'AUDIO_MP3' : 'PDF',
+              courseId: cId,
+              courseTitle: cTitle,
+              size: m.fileSize ? `${(m.fileSize / (1024 * 1024)).toFixed(1)} MB` : '6.2 MB',
+              updatedAt: m.createdAt ? new Date(m.createdAt).toLocaleDateString('vi-VN') : '08/11/2026',
+            };
+          });
           setMaterials(mapped);
         }
-      } catch {
-        // Keep initial list
+      } catch (err) {
+        console.error('Failed to load library materials:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchMaterials();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -148,7 +189,9 @@ export default function StudentLibraryPage() {
       filterType === 'ALL' ||
       (filterType === 'PDF' && m.fileType === 'PDF') ||
       (filterType === 'AUDIO' && m.fileType === 'AUDIO_MP3');
-    return matchSearch && matchType;
+    const matchCourse =
+      selectedCourseTab === 'ALL' || m.courseId === selectedCourseTab;
+    return matchSearch && matchType && matchCourse;
   });
 
   return (
@@ -157,10 +200,10 @@ export default function StudentLibraryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-            Kho Học Liệu Số Bảo Mật
+            Kho Học Liệu Số & Bảo Mật
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Giáo trình PDF và bài nghe Audio độc quyền của Teacher Dong Academy.
+            Mỗi khóa học có kho học liệu và giáo trình riêng biệt. Học viên chỉ được phép truy cập học liệu của khóa học mình đã đăng ký.
           </p>
         </div>
 
@@ -171,92 +214,176 @@ export default function StudentLibraryPage() {
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="bg-white rounded-2xl border border-line p-4 flex flex-col sm:flex-row gap-3 items-center justify-between shadow-sm">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm tài liệu, giáo trình..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-          />
+      {/* No Enrolled Courses Empty State */}
+      {!loading && enrolledCourses.length === 0 && (
+        <div className="p-8 sm:p-12 bg-white rounded-3xl border border-line shadow-sm text-center max-w-xl mx-auto space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+            <BookOpen className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              Bạn chưa có khóa học đang hoạt động
+            </h3>
+            <p className="text-xs text-muted mt-1.5 leading-relaxed">
+              Theo chính sách bảo mật nội dung của Teacher Dong Academy, tài liệu giáo trình PDF và bài nghe Audio được cấp quyền riêng theo từng khóa học. Vui lòng đăng ký khóa học để được mở khóa tài liệu học tập.
+            </p>
+          </div>
+          <Link
+            href="/student/courses"
+            className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm"
+          >
+            <span>Khám phá các khóa học</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
+      )}
 
-        <div className="flex items-center space-x-2 w-full sm:w-auto">
-          {(['ALL', 'PDF', 'AUDIO'] as const).map((type) => (
-            <button
-              key={type}
-              onClick={() => setFilterType(type)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filterType === type
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {type === 'ALL' ? 'Tất cả' : type}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Materials List */}
-      {loading ? (
-        <div className="p-8 text-center text-slate-500 font-medium bg-white rounded-2xl border border-line">
-          Đang tải kho học liệu số...
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="p-8 text-center text-slate-500 font-medium bg-white rounded-2xl border border-line">
-          Không tìm thấy tài liệu phù hợp.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((mat) => (
-            <div
-              key={mat.id}
-              className="p-5 rounded-2xl bg-white border border-line hover:border-primary/50 shadow-sm transition flex flex-col justify-between"
-            >
-              <div className="flex items-start space-x-3.5">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    mat.fileType === 'PDF'
-                      ? 'bg-red-50 text-red-600'
-                      : 'bg-amber-50 text-amber-600'
+      {/* Enrolled Courses Tabs & Filters */}
+      {enrolledCourses.length > 0 && (
+        <>
+          {/* Course Tabs */}
+          <div className="bg-white rounded-2xl border border-line p-2 shadow-sm">
+            <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <button
+                onClick={() => setSelectedCourseTab('ALL')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-2 ${
+                  selectedCourseTab === 'ALL'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>Tất cả khóa học của tôi</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    selectedCourseTab === 'ALL'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-200 text-slate-700'
                   }`}
                 >
-                  {mat.fileType === 'PDF' ? (
-                    <FileText className="w-5 h-5" />
-                  ) : (
-                    <Headphones className="w-5 h-5" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-sky-50 px-2 py-0.5 rounded">
-                    {mat.category}
-                  </span>
-                  <h3 className="text-sm font-bold text-slate-900 mt-1 line-clamp-2">
-                    {mat.title}
-                  </h3>
-                  <p className="text-[11px] text-muted mt-1">
-                    Dung lượng: {mat.size} • Cập nhật: {mat.updatedAt}
-                  </p>
-                </div>
-              </div>
+                  {materials.length}
+                </span>
+              </button>
 
-              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">Chỉ xem trực tuyến</span>
-                <button
-                  onClick={() => handleOpenSecureMaterial(mat)}
-                  className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm flex items-center space-x-1.5"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>Mở Xem Bảo Mật</span>
-                </button>
-              </div>
+              {enrolledCourses.map((c) => {
+                const count = materials.filter((m) => m.courseId === c.id).length;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCourseTab(c.id)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-2 ${
+                      selectedCourseTab === c.id
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{c.title}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        selectedCourseTab === c.id
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="bg-white rounded-2xl border border-line p-4 flex flex-col sm:flex-row gap-3 items-center justify-between shadow-sm">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm kiếm tài liệu, giáo trình..."
+                className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
+              {(['ALL', 'PDF', 'AUDIO'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    filterType === type
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {type === 'ALL' ? 'Tất cả' : type === 'PDF' ? 'Giáo trình PDF' : 'Bài nghe MP3'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Materials Grid */}
+          {loading ? (
+            <div className="p-8 text-center text-slate-500 font-medium bg-white rounded-2xl border border-line">
+              Đang tải kho học liệu số...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 font-medium bg-white rounded-2xl border border-line space-y-2">
+              <p className="font-bold text-slate-700">Khóa học này hiện chưa có tài liệu nào.</p>
+              <p className="text-xs text-muted">
+                Giáo viên sẽ sớm bổ sung tài liệu học tập và bài nghe vào khóa học.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filtered.map((mat) => (
+                <div
+                  key={mat.id}
+                  className="p-5 rounded-2xl bg-white border border-line hover:border-primary/50 shadow-sm transition flex flex-col justify-between"
+                >
+                  <div className="flex items-start space-x-3.5">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        mat.fileType === 'PDF'
+                          ? 'bg-red-50 text-red-600'
+                          : 'bg-amber-50 text-amber-600'
+                      }`}
+                    >
+                      {mat.fileType === 'PDF' ? (
+                        <FileText className="w-5 h-5" />
+                      ) : (
+                        <Headphones className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-sky-50 px-2 py-0.5 rounded">
+                        {mat.courseTitle}
+                      </span>
+                      <h3 className="text-sm font-bold text-slate-900 mt-1 line-clamp-2">
+                        {mat.title}
+                      </h3>
+                      <p className="text-[11px] text-muted mt-1">
+                        Dung lượng: {mat.size} • Cập nhật: {mat.updatedAt}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">Chỉ xem trực tuyến • Có Watermark</span>
+                    <button
+                      onClick={() => handleOpenSecureMaterial(mat)}
+                      className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm flex items-center space-x-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Mở Xem Bảo Mật</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Secured Material Viewer Modal (with Watermark & 15:00 Signed URL Countdown & Focus Reader Mode) */}

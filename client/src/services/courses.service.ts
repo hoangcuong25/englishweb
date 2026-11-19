@@ -1,5 +1,22 @@
 import { api } from '../lib/api';
 
+export const DEFAULT_COVERS: Record<string, string> = {
+  IELTS: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop',
+  ENGLISH: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=800&auto=format&fit=crop',
+  BUSINESS: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop',
+  KIDS: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&auto=format&fit=crop',
+  PEDAGOGY: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop',
+  LIFE_SKILLS: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&auto=format&fit=crop',
+  SOFT_SKILLS: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&auto=format&fit=crop',
+  PERSONAL_DEV: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop',
+};
+
+export function getCourseCoverUrl(thumbnail?: string | null, category?: string): string {
+  if (thumbnail && thumbnail.trim() !== '') return thumbnail.trim();
+  const cat = (category || 'IELTS').toUpperCase();
+  return DEFAULT_COVERS[cat] || DEFAULT_COVERS.IELTS;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -23,6 +40,8 @@ export interface Course {
   totalLessons?: number;
   price?: number;
   status?: string;
+  isEnglishCourse?: boolean;
+  modulesCount?: number;
   enrollmentStatus?: 'ACTIVE' | 'PENDING' | 'REJECTED';
 }
 
@@ -146,6 +165,24 @@ export const coursesService = {
   async deleteCourse(id: string) {
     const response = await api.delete(`/courses/${id}`);
     return response.data;
+  },
+
+  async uploadThumbnailFile(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/courses/upload-thumbnail', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data?.data || response.data;
+  },
+
+  async uploadThumbnail(courseId: string, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/courses/${courseId}/thumbnail`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data?.data || response.data;
   },
 };
 

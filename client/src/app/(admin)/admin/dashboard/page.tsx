@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
 import { dashboardService, AdminDashboardData } from '@/services/dashboard.service';
+import { coursesService, Course, CourseEnrollment } from '@/services/courses.service';
 import {
   Users,
   FileCheck,
-  Headphones,
   BookOpen,
   Calendar,
   ArrowRight,
@@ -16,20 +17,42 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Plus,
+  Video,
+  FileText,
+  Sparkles,
+  CreditCard,
+  Layers,
+  GraduationCap,
+  Briefcase,
+  Baby,
+  Compass,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const [data, setData] = useState<AdminDashboardData | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [pendingEnrollments, setPendingEnrollments] = useState<CourseEnrollment[]>([]);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await dashboardService.getAdminDashboard();
-        if (res) {
-          setData(res);
-        }
+        setLoading(true);
+        const [dashRes, coursesRes, enrollRes] = await Promise.all([
+          dashboardService.getAdminDashboard(),
+          coursesService.getCourses(),
+          coursesService.getAdminEnrollments('PENDING'),
+        ]);
+
+        if (dashRes) setData(dashRes);
+        if (Array.isArray(coursesRes)) setCourses(coursesRes);
+        if (Array.isArray(enrollRes)) setPendingEnrollments(enrollRes);
       } catch (err) {
         console.error('Error fetching admin dashboard:', err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchDashboard();
@@ -37,7 +60,7 @@ export default function AdminDashboard() {
 
   const metrics = data?.metrics || {
     totalStudents: 0,
-    totalCourses: 0,
+    totalCourses: courses.length || 0,
     totalLessons: 0,
     totalClassrooms: 0,
     totalWritingSubmissions: 0,
@@ -68,9 +91,9 @@ export default function AdminDashboard() {
     email: w.user?.email || '',
     title: w.prompt?.title || 'IELTS Writing Essay',
     submittedAt: w.submittedAt,
-    link: '/admin/writing-review',
+    link: '/admin/assessments?tab=writing',
     badge: w.prompt?.taskType === 'TASK_1' ? 'Writing Task 1' : 'Writing AI Task 2',
-    actionText: 'Duyệt bài',
+    actionText: 'Duyệt bài AI',
   }));
 
   const speakingItems = (data?.recentSubmissions?.speaking || []).map((s) => ({
@@ -80,9 +103,9 @@ export default function AdminDashboard() {
     email: s.user?.email || '',
     title: s.prompt?.title || 'IELTS Speaking Recording',
     submittedAt: s.submittedAt,
-    link: '/admin/speaking-grading',
+    link: '/admin/assessments?tab=speaking',
     badge: 'Speaking Audio',
-    actionText: 'Chấm audio',
+    actionText: 'Chấm Audio',
   }));
 
   const combinedSubmissions = [...writingItems, ...speakingItems]
@@ -91,38 +114,55 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6 select-none">
-      {/* 1. Admin Hero Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#11243B] via-[#1B64B0] to-[#257ad4] text-white p-6 sm:p-8 shadow-xl shadow-primary/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-white/10">
-        <div className="space-y-2.5 max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFB547] text-[#14263D] text-[10.5px] font-black uppercase tracking-wider shadow-sm">
-            <Crown className="w-3.5 h-3.5" />
-            <span>ADMINISTRATION • Quản trị & Giảng dạy trực tuyến</span>
+      {/* 1. Admin Hero Banner (Synchronized with Student Banner Styling) */}
+      <div className="rounded-3xl bg-gradient-to-r from-[#11243B] via-[#1B64B0] to-[#257ad4] text-white p-6 sm:p-7 shadow-xl shadow-primary/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border border-white/10">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFB547] text-[#14263D] text-[10.5px] font-black uppercase tracking-wider shadow-sm">
+              <Crown className="w-3.5 h-3.5" />
+              <span>LIVEKIT SFU ONLINE • WEBRTC CLASSROOM</span>
+            </span>
+            <span className="text-xs text-sky-100 font-medium">
+              Chào {user?.fullName || 'Thầy Đông (Admin Master)'} • Trung tâm điều phối học viện
+            </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug">
-            Chào mừng trở lại, Teacher Dong!
+          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+            Bảng Điều Khiển Quản Trị & Đào Tạo Trực Tuyến
           </h1>
 
           <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed">
-            Hệ thống đang phục vụ <strong className="text-white">{metrics.totalStudents} học viên</strong> đang hoạt động. Bạn có <strong className="text-[#FFB547]">{actionItems.pendingWritingApprovals} bài Writing</strong> chờ duyệt và <strong className="text-[#FFB547]">{actionItems.pendingSpeakingGradings} bài Speaking</strong> cần chấm điểm.
+            Học viện đang vận hành <strong className="text-white">{metrics.totalStudents} học viên Active</strong> và{' '}
+            <strong className="text-white">{metrics.totalCourses || courses.length} khóa học</strong>. Đang có{' '}
+            <strong className="text-[#FFB547]">{totalPending} bài nộp</strong> chờ xử lý và{' '}
+            <strong className="text-[#FFB547]">{pendingEnrollments.length} giao dịch VietQR</strong> chờ đối soát.
           </p>
         </div>
 
-        <Link
-          href="/admin/classroom"
-          className="shrink-0 px-6 py-3.5 rounded-2xl bg-[#FFB547] hover:bg-[#FFA726] active:scale-95 text-[#14263D] font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 flex items-center gap-2.5 transition-all cursor-pointer whitespace-nowrap"
-        >
-          <Crown className="w-4 h-4 text-[#14263D]" />
-          <span>Mở phòng học LiveKit với quyền Host</span>
-        </Link>
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <Link
+            href="/admin/classroom"
+            className="px-5 py-3 rounded-2xl bg-[#FFB547] hover:bg-[#FFA726] active:scale-95 text-[#14263D] font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <Video className="w-4 h-4 text-[#14263D]" />
+            <span>Vào lớp LiveKit (Host)</span>
+          </Link>
+          <Link
+            href="/admin/courses"
+            className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition-all flex items-center gap-1.5"
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Quản lý khóa học</span>
+          </Link>
+        </div>
       </div>
 
-      {/* 2. Four Operational Stat Cards */}
+      {/* 2. Four Operational Stat Cards (Matching Student Dashboard Tokens) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Stat 1: Total Students */}
+        {/* Stat 1: Total Active Students */}
         <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted">Tổng học viên Active</span>
+            <span className="text-xs font-bold text-muted">Học viên Active</span>
             <div className="w-8 h-8 rounded-xl bg-sky-50 text-primary flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
@@ -132,12 +172,13 @@ export default function AdminDashboard() {
               {metrics.totalStudents} <span className="text-xs font-bold text-slate-400">học viên</span>
             </div>
             <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center">
-              <TrendingUp className="w-3.5 h-3.5 mr-1" /> {metrics.totalStudents > 0 ? `${metrics.totalStudents} tài khoản học viên` : 'Chưa có học viên'}
+              <TrendingUp className="w-3.5 h-3.5 mr-1" />
+              <span>Phiên Single Session bảo mật</span>
             </p>
           </div>
         </div>
 
-        {/* Stat 2: Total Courses */}
+        {/* Stat 2: Total Courses & Modules */}
         <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted">Khóa học & Giáo trình</span>
@@ -147,66 +188,339 @@ export default function AdminDashboard() {
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              {metrics.totalCourses} <span className="text-xs font-bold text-slate-400">khóa</span>
+              {metrics.totalCourses || courses.length} <span className="text-xs font-bold text-slate-400">khóa</span>
             </div>
-            <p className="text-[11px] text-muted mt-1">{metrics.totalLessons} bài học đa phương tiện</p>
+            <p className="text-[11px] text-muted mt-1">
+              {metrics.totalLessons || 'Đa dạng'} bài học & học liệu số
+            </p>
           </div>
         </div>
 
-        {/* Stat 3: Writing Pending */}
+        {/* Stat 3: Pending Assessment Items (Writing + Speaking) */}
         <Link
-          href="/admin/writing-review"
+          href="/admin/assessments?tab=writing"
           className="p-5 rounded-3xl bg-white border border-line hover:border-purple-300 shadow-xs transition space-y-3 block group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted">Bài Writing chờ duyệt</span>
+            <span className="text-xs font-bold text-muted">Bài nộp chờ xử lý</span>
             <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <FileCheck className="w-4 h-4" />
             </div>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-black text-purple-600 tracking-tight">
-              {actionItems.pendingWritingApprovals} <span className="text-xs font-bold text-slate-400">bài</span>
+              {totalPending} <span className="text-xs font-bold text-slate-400">bài</span>
             </div>
-            <span className="text-[11px] text-primary font-bold hover:underline mt-1 inline-flex items-center gap-1">
-              <span>Xem & Duyệt bài ngay</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-            </span>
+            <p className="text-[11px] text-muted mt-1 flex items-center justify-between">
+              <span>{actionItems.pendingWritingApprovals} Writing • {actionItems.pendingSpeakingGradings} Speaking</span>
+              <ArrowRight className="w-3 h-3 text-purple-500 group-hover:translate-x-1 transition-transform" />
+            </p>
           </div>
         </Link>
 
-        {/* Stat 4: Speaking Pending */}
+        {/* Stat 4: LiveKit Attendance Rate */}
         <Link
-          href="/admin/speaking-grading"
-          className="p-5 rounded-3xl bg-white border border-line hover:border-amber-300 shadow-xs transition space-y-3 block group"
+          href="/admin/attendance"
+          className="p-5 rounded-3xl bg-white border border-line hover:border-emerald-300 shadow-xs transition space-y-3 block group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted">Bài Speaking chờ chấm</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Headphones className="w-4 h-4" />
+            <span className="text-xs font-bold text-muted">Chuyên cần WebRTC</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Calendar className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-500 tracking-tight">
-              {actionItems.pendingSpeakingGradings} <span className="text-xs font-bold text-slate-400">bài</span>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
+              {attendance.presentRate}%
             </div>
-            <span className="text-[11px] text-amber-600 font-bold hover:underline mt-1 inline-flex items-center gap-1">
-              <span>Vào phòng chấm audio</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-            </span>
+            <p className="text-[11px] text-muted mt-1 flex items-center justify-between">
+              <span>{attendance.presentCount}/{attendance.totalRecords} lượt PRESENT &ge;80%</span>
+              <Download className="w-3 h-3 text-emerald-600" />
+            </p>
           </div>
         </Link>
       </div>
 
-      {/* 3. Main Grid: Action Queue & LiveKit Attendance Overview */}
+      {/* 3. Phân Hệ Quản Lý Đào Tạo Nhanh - 2 PHÂN HỆ ĐỘC LẬP (Curriculum & Tracks Hub) */}
+      <div className="space-y-4">
+        {/* Hub Header with quick action buttons */}
+        <div className="bg-white rounded-3xl border border-line p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-sky-500/20">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight uppercase">
+                  Hệ Thống Đào Tạo 2 Phân Hệ Độc Lập
+                </h3>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase">
+                  {courses.length} Tổng Khóa Học
+                </span>
+              </div>
+              <p className="text-xs text-muted mt-0.5">
+                Vận hành song song 2 lộ trình chuyên biệt: Đào tạo Tiếng Anh & IELTS và Khóa học Phát triển cá nhân, Sư phạm.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/admin/courses?action=new"
+              className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tạo Khóa Học Mới</span>
+            </Link>
+            <Link
+              href="/admin/courses"
+              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center gap-1.5"
+            >
+              <Layers className="w-4 h-4 text-slate-600" />
+              <span>Cây Giáo Trình</span>
+            </Link>
+            <Link
+              href="/admin/library"
+              className="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs border border-sky-200 transition flex items-center gap-1.5"
+            >
+              <FileText className="w-4 h-4 text-sky-600" />
+              <span>Kho Học Liệu Watermark</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* 2 Track Desks Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* TRACK 1: ĐÀO TẠO TIẾNG ANH & IELTS */}
+          <div className="bg-white rounded-3xl border border-sky-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-sky-300 transition">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-sky-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-sm font-black shadow-xs">
+                    🇬🇧
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+                      Đào Tạo Tiếng Anh & IELTS
+                    </h4>
+                    <p className="text-[11px] text-muted">IELTS 4 Kỹ Năng, Giao Tiếp, Business & Kids</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200/80 text-[10px] font-black uppercase">
+                  {courses.filter((c) => ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(c.category)).length} Khóa Học
+                </span>
+              </div>
+
+              {/* English Subcategory Cards */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  {
+                    category: 'IELTS',
+                    label: 'IELTS 4 Kỹ Năng',
+                    sub: 'Academic & General',
+                    icon: BookOpen,
+                    color: 'text-amber-700 bg-amber-50/70 border-amber-200 hover:bg-amber-100/60',
+                  },
+                  {
+                    category: 'ENGLISH',
+                    label: 'General English',
+                    sub: 'Giao tiếp & Ngữ pháp',
+                    icon: GraduationCap,
+                    color: 'text-sky-700 bg-sky-50/70 border-sky-200 hover:bg-sky-100/60',
+                  },
+                  {
+                    category: 'BUSINESS',
+                    label: 'Business English',
+                    sub: 'Đàm phán thương mại',
+                    icon: Briefcase,
+                    color: 'text-emerald-700 bg-emerald-50/70 border-emerald-200 hover:bg-emerald-100/60',
+                  },
+                  {
+                    category: 'KIDS',
+                    label: 'Kids English',
+                    sub: 'Tiếng Anh thiếu nhi',
+                    icon: Baby,
+                    color: 'text-orange-700 bg-orange-50/70 border-orange-200 hover:bg-orange-100/60',
+                  },
+                ].map((pillar) => {
+                  const Icon = pillar.icon;
+                  const count = courses.filter((c) => c.category === pillar.category).length;
+                  return (
+                    <Link
+                      key={pillar.category}
+                      href={`/admin/courses?category=${pillar.category}`}
+                      className={`p-3 rounded-2xl border transition space-y-1.5 block ${pillar.color}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-white/80 shadow-xs">
+                          {count} khóa
+                        </span>
+                      </div>
+                      <div>
+                        <h5 className="text-[11.5px] font-black leading-tight truncate">{pillar.label}</h5>
+                        <p className="text-[10px] opacity-75 truncate">{pillar.sub}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Quick Assessment Strip */}
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  Khảo thí IELTS trực tuyến:
+                </span>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/admin/assessments?tab=writing"
+                    className="text-[10.5px] font-bold px-2 py-1 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition"
+                  >
+                    Writing AI ({data?.actionItems?.pendingWritingApprovals ?? 0})
+                  </Link>
+                  <Link
+                    href="/admin/assessments?tab=speaking"
+                    className="text-[10.5px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 transition"
+                  >
+                    Speaking ({data?.actionItems?.pendingSpeakingGradings ?? 0})
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between">
+              <Link
+                href="/admin/courses?track=english"
+                className="text-xs font-bold text-primary hover:text-primary-dark flex items-center gap-1 transition"
+              >
+                <span>Vào phân hệ Tiếng Anh & IELTS</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/admin/courses?action=new&track=english"
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 hover:bg-sky-100 transition"
+              >
+                + Thêm Khóa Tiếng Anh
+              </Link>
+            </div>
+          </div>
+
+          {/* TRACK 2: PHÁT TRIỂN CÁ NHÂN & SƯ PHẠM */}
+          <div className="bg-white rounded-3xl border border-purple-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-purple-300 transition">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-black shadow-xs">
+                    🌟
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+                      Phát Triển Cá Nhân & Sư Phạm
+                    </h4>
+                    <p className="text-[11px] text-muted">Năng Lực Sư Phạm EdTech, Kỹ Năng Sống & Kỹ Năng Mềm</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 text-[10px] font-black uppercase">
+                  {courses.filter((c) => ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(c.category)).length} Khóa Học
+                </span>
+              </div>
+
+              {/* Dev Subcategory Cards */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  {
+                    category: 'PEDAGOGY',
+                    label: 'Năng Lực Sư Phạm',
+                    sub: 'Soạn giảng & EdTech',
+                    icon: Sparkles,
+                    color: 'text-purple-700 bg-purple-50/70 border-purple-200 hover:bg-purple-100/60',
+                  },
+                  {
+                    category: 'LIFE_SKILLS',
+                    label: 'Kỹ Năng Sống',
+                    sub: 'Thuyết trình & Nói',
+                    icon: Compass,
+                    color: 'text-indigo-700 bg-indigo-50/70 border-indigo-200 hover:bg-indigo-100/60',
+                  },
+                  {
+                    category: 'SOFT_SKILLS',
+                    label: 'Kỹ Năng Mềm',
+                    sub: 'Teamwork & Đàm phán',
+                    icon: Users,
+                    color: 'text-teal-700 bg-teal-50/70 border-teal-200 hover:bg-teal-100/60',
+                  },
+                  {
+                    category: 'PERSONAL_DEV',
+                    label: 'Phát Triển Bản Thân',
+                    sub: 'Lãnh đạo & Tư duy',
+                    icon: TrendingUp,
+                    color: 'text-rose-700 bg-rose-50/70 border-rose-200 hover:bg-rose-100/60',
+                  },
+                ].map((pillar) => {
+                  const Icon = pillar.icon;
+                  const count = courses.filter((c) => c.category === pillar.category).length;
+                  return (
+                    <Link
+                      key={pillar.category}
+                      href={`/admin/courses?category=${pillar.category}`}
+                      className={`p-3 rounded-2xl border transition space-y-1.5 block ${pillar.color}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-white/80 shadow-xs">
+                          {count} khóa
+                        </span>
+                      </div>
+                      <div>
+                        <h5 className="text-[11.5px] font-black leading-tight truncate">{pillar.label}</h5>
+                        <p className="text-[10px] opacity-75 truncate">{pillar.sub}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Special Features Strip */}
+              <div className="p-3 rounded-2xl bg-purple-50/50 border border-purple-200/60 flex items-center justify-between text-xs">
+                <span className="text-[11px] font-bold text-purple-900 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  Định dạng bài học:
+                </span>
+                <span className="text-[10.5px] font-semibold text-purple-700">
+                  Video bài giảng HD + Quiz tình huống phản xạ
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between">
+              <Link
+                href="/admin/courses?track=personal_dev"
+                className="text-xs font-bold text-purple-700 hover:text-purple-800 flex items-center gap-1 transition"
+              >
+                <span>Vào phân hệ Kỹ Năng & Sư Phạm</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/admin/courses?action=new&track=personal_dev"
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 hover:bg-purple-100 transition"
+              >
+                + Thêm Khóa Kỹ Năng
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Two-Column Operational Hub */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Pending Submissions Queue */}
+        {/* Left: Combined Submissions Queue (Writing AI + Speaking Audio) */}
         <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-line pb-3">
             <div className="flex items-center gap-2">
               <FileCheck className="w-4 h-4 text-primary" />
               <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">
-                Hàng Đợi Bài Nộp Cần Xử Lý
+                Hàng Đợi Bài Nộp Chờ Duyệt & Chấm Điểm
               </h3>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10.5px] font-black uppercase">
@@ -274,13 +588,13 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Right: LiveKit Attendance Overview Widget (from Mockup) */}
+        {/* Right: LiveKit Attendance Overview Widget */}
         <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-line pb-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-emerald-600" />
               <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">
-                Chuyên Cần Phòng Học LiveKit Tuần Này
+                Chuyên Cần Phòng Học LiveKit
               </h3>
             </div>
             <Link
@@ -302,7 +616,8 @@ export default function AdminDashboard() {
                 Tỷ lệ học viên tham gia đúng giờ
               </h4>
               <p className="text-xs text-muted mt-1 leading-relaxed">
-                Dữ liệu đồng bộ tự động qua LiveKit Webhook. Học viên học &ge; 80% thời lượng tính trạng thái <strong className="text-slate-700">PRESENT</strong>.
+                Đồng bộ tự động từ LiveKit Webhook. Học viên tích lũy &ge; 80% thời lượng được ghi nhận trạng thái{' '}
+                <strong className="text-slate-700">PRESENT</strong>.
               </p>
             </div>
           </div>
@@ -342,53 +657,31 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 4. Quick Direct Management Shortcuts */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link
-          href="/admin/attendance"
-          className="p-5 rounded-3xl bg-white border border-line hover:border-emerald-300 shadow-xs transition space-y-2 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Calendar className="w-4 h-4" />
+      {/* 5. Pending VietQR Enrollments Desk */}
+      {pendingEnrollments.length > 0 && (
+        <div className="p-5 rounded-3xl bg-amber-50/70 border border-amber-200 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <CreditCard className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-black">
+                Có {pendingEnrollments.length} yêu cầu đăng ký khóa học đang chờ đối soát sao kê
+              </h4>
+              <p className="text-[11px] text-amber-800/90 mt-0.5">
+                Học viên đã quét mã VietQR và gửi nội dung chuyển khoản. Vui lòng kiểm tra và kích hoạt khóa học.
+              </p>
+            </div>
           </div>
-          <h4 className="text-xs font-bold text-slate-900 group-hover:text-primary transition">
-            Báo Cáo Điểm Danh
-          </h4>
-          <p className="text-[11px] text-muted">
-            Kiểm soát phút học và xuất file Excel (.xlsx) chuẩn kiểm toán.
-          </p>
-        </Link>
 
-        <Link
-          href="/admin/library"
-          className="p-5 rounded-3xl bg-white border border-line hover:border-sky-300 shadow-xs transition space-y-2 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-sky-50 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
-            <BookOpen className="w-4 h-4" />
-          </div>
-          <h4 className="text-xs font-bold text-slate-900 group-hover:text-primary transition">
-            Quản Lý Học Liệu Số
-          </h4>
-          <p className="text-[11px] text-muted">
-            Cấp URL ký số 15 phút & Watermark canvas bảo mật chống leak.
-          </p>
-        </Link>
-
-        <Link
-          href="/admin/users"
-          className="p-5 rounded-3xl bg-white border border-line hover:border-purple-300 shadow-xs transition space-y-2 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Users className="w-4 h-4" />
-          </div>
-          <h4 className="text-xs font-bold text-slate-900 group-hover:text-primary transition">
-            Quản Lý Học Viên
-          </h4>
-          <p className="text-[11px] text-muted">
-            Phân quyền RBAC nghiêm ngặt và kiểm soát cơ chế phiên đăng nhập đơn.
-          </p>
-        </Link>
-      </div>
+          <Link
+            href="/admin/courses?tab=enrollments"
+            className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-sm transition whitespace-nowrap self-start sm:self-auto"
+          >
+            Vào Bàn Duyệt Đăng Ký
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

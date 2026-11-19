@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { dashboardService, StudentDashboardData } from '@/services/dashboard.service';
+import { getCourseCoverUrl, DEFAULT_COVERS } from '@/services/courses.service';
 import {
   BookOpen,
   Video,
@@ -16,6 +17,9 @@ import {
   Sparkles,
   CalendarCheck,
   Target,
+  Compass,
+  Mic,
+  GraduationCap,
 } from 'lucide-react';
 
 const ENGLISH_CATEGORIES = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'];
@@ -427,56 +431,72 @@ export default function StudentDashboard() {
         <div className="space-y-6">
           {/* Active Course Card (from Mockup) */}
           {activeCourse ? (
-            <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-                  <BookOpen className="w-4 h-4" />
-                  <span>Khóa học đang tiếp tục</span>
+            <div className="bg-white rounded-3xl border border-line overflow-hidden shadow-xs space-y-0 group hover:shadow-md hover:border-sky-200 transition-all">
+              {/* Cover Image Banner */}
+              <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] overflow-hidden bg-slate-100">
+                <img
+                  src={getCourseCoverUrl(activeCourse.thumbnail, activeCourse.category)}
+                  alt={activeCourse.title}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = DEFAULT_COVERS.IELTS;
+                  }}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-black/25 to-black/20" />
+
+                <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-600/90 text-white font-extrabold text-[10.5px] uppercase tracking-wider backdrop-blur-sm shadow-xs">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Khóa học đang tiếp tục</span>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-black/60 text-white text-[10.5px] font-black uppercase backdrop-blur-md border border-white/10">
+                    {activeCourse.category || 'ACADEMIC'}
+                  </span>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-sky-100 text-[#1B64B0] text-[10.5px] font-black uppercase">
-                  {activeCourse.category || 'ACADEMIC'}
-                </span>
+
+                <div className="absolute bottom-2.5 left-3.5 right-3.5">
+                  <h3 className="text-sm sm:text-base font-black text-white line-clamp-1 drop-shadow-sm">
+                    {activeCourse.title}
+                  </h3>
+                </div>
               </div>
 
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-slate-900">
-                  {activeCourse.title}
-                </h3>
-                <p className="text-xs text-muted mt-1">
-                  Lộ trình học tập trực tuyến tích hợp bài giảng và studio luyện tập.
+              <div className="p-5 sm:p-6 space-y-4">
+                <p className="text-xs text-muted leading-relaxed line-clamp-2">
+                  Lộ trình học tập trực tuyến tích hợp bài giảng, studio luyện tập và học liệu số bảo mật.
                 </p>
-              </div>
 
-              {/* Progress Bar */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-slate-600">Tiến độ hoàn thành khóa học</span>
-                  <span className="text-primary font-black">{activeCourse.progressPercent ?? 0}%</span>
+                {/* Progress Bar */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-600">Tiến độ hoàn thành khóa học</span>
+                    <span className="text-primary font-black">{activeCourse.progressPercent ?? 0}%</span>
+                  </div>
+                  <div className="w-full bg-[#E1EBF5] h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-sky-400 to-[#1B64B0] h-full rounded-full transition-all duration-500"
+                      style={{ width: `${activeCourse.progressPercent ?? 0}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-[#E1EBF5] h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-sky-400 to-[#1B64B0] h-full rounded-full transition-all duration-500"
-                    style={{ width: `${activeCourse.progressPercent ?? 0}%` }}
-                  ></div>
-                </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-wrap gap-2.5">
-                <Link
-                  href="/student/courses"
-                  className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
-                >
-                  <Play className="w-3.5 h-3.5 fill-white" />
-                  <span>Tiếp tục bài học</span>
-                </Link>
-                <Link
-                  href="/student/library"
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
-                >
-                  <FileText className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Tài liệu bài học</span>
-                </Link>
+                {/* Action Buttons */}
+                <div className="pt-2 flex flex-wrap gap-2.5">
+                  <Link
+                    href="/student/courses"
+                    className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-white" />
+                    <span>Tiếp tục bài học</span>
+                  </Link>
+                  <Link
+                    href="/student/library"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Tài liệu bài học</span>
+                  </Link>
+                </div>
               </div>
             </div>
           ) : (
@@ -503,58 +523,107 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* Quick Access to Learning Hubs & Studios */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link
-              href="/student/ielts"
-              className="p-4 rounded-2xl bg-white border border-line hover:border-sky-300 shadow-xs transition space-y-2 group"
-            >
-              <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Award className="w-4 h-4" />
+          {/* Quick Access: Distinct Two-Pillar Hubs */}
+          <div className="space-y-4">
+            {/* Pillar A: Tiếng Anh & IELTS */}
+            <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-line pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🇬🇧</span>
+                  <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                    Phân Hệ Đào Tạo Tiếng Anh & IELTS
+                  </h4>
+                </div>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                  IELTS Mastery
+                </span>
               </div>
-              <div>
-                <h4 className="text-xs font-black text-slate-900 group-hover:text-sky-600 transition">
-                  IELTS 4 Kỹ Năng
-                </h4>
-                <p className="text-[11px] text-muted mt-0.5 line-clamp-2">
-                  Nghe • Đọc • Viết AI • Nói Studio kèm chẩn đoán dạng bài.
-                </p>
-              </div>
-            </Link>
 
-            <Link
-              href="/student/writing"
-              className="p-4 rounded-2xl bg-white border border-line hover:border-purple-300 shadow-xs transition space-y-2 group"
-            >
-              <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <PenTool className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-slate-900 group-hover:text-purple-600 transition">
-                  AI Writing Studio
-                </h4>
-                <p className="text-[11px] text-muted mt-0.5 line-clamp-2">
-                  Đếm từ thời gian thực, AI chấm 4 tiêu chí TR, CC, LR, GRA.
-                </p>
-              </div>
-            </Link>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <Link
+                  href="/student/ielts"
+                  className="p-3 rounded-2xl bg-sky-50/60 hover:bg-sky-100/70 border border-sky-100 transition space-y-1 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 group-hover:text-sky-700">IELTS 4 Kỹ Năng</span>
+                    <Award className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
+                  <p className="text-[10.5px] text-slate-500 line-clamp-1">Nghe • Đọc • Viết • Nói</p>
+                </Link>
 
-            <Link
-              href="/student/courses"
-              className="p-4 rounded-2xl bg-white border border-line hover:border-emerald-300 shadow-xs transition space-y-2 group"
-            >
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <BookOpen className="w-4 h-4" />
+                <Link
+                  href="/student/writing"
+                  className="p-3 rounded-2xl bg-purple-50/60 hover:bg-purple-100/70 border border-purple-100 transition space-y-1 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 group-hover:text-purple-700">Writing AI Studio</span>
+                    <PenTool className="w-3.5 h-3.5 text-purple-600" />
+                  </div>
+                  <p className="text-[10.5px] text-slate-500 line-clamp-1">Chấm 4 tiêu chí TR, CC, LR, GRA</p>
+                </Link>
+
+                <Link
+                  href="/student/speaking"
+                  className="p-3 rounded-2xl bg-amber-50/60 hover:bg-amber-100/70 border border-amber-100 transition space-y-1 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 group-hover:text-amber-700">Speaking Studio</span>
+                    <Mic className="w-3.5 h-3.5 text-amber-600" />
+                  </div>
+                  <p className="text-[10.5px] text-slate-500 line-clamp-1">Thu âm & Chẩn đoán phát âm</p>
+                </Link>
               </div>
-              <div>
-                <h4 className="text-xs font-black text-slate-900 group-hover:text-emerald-600 transition">
-                  Lộ Trình & Khóa Học
-                </h4>
-                <p className="text-[11px] text-muted mt-0.5 line-clamp-2">
-                  Tiếng Anh, Kỹ Năng Sống, Kỹ Năng Mềm & Sư Phạm.
-                </p>
+            </div>
+
+            {/* Pillar B: Phát Triển Cá Nhân & Sư Phạm */}
+            <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-line pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🌟</span>
+                  <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                    Phân Hệ Phát Triển Cá Nhân & Sư Phạm
+                  </h4>
+                </div>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  Kỹ Năng Sống
+                </span>
               </div>
-            </Link>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <Link
+                  href="/student/courses?track=personal_dev"
+                  className="p-3 rounded-2xl bg-emerald-50/60 hover:bg-emerald-100/70 border border-emerald-100 transition space-y-1 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 group-hover:text-emerald-700">Sư Phạm EdTech</span>
+                    <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
+                  <p className="text-[10.5px] text-slate-500 line-clamp-1">Năng lực giảng dạy hiện đại</p>
+                </Link>
+
+                <Link
+                  href="/student/courses?track=personal_dev"
+                  className="p-3 rounded-2xl bg-teal-50/60 hover:bg-teal-100/70 border border-teal-100 transition space-y-1 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 group-hover:text-teal-700">Kỹ Năng Sống</span>
+                    <Compass className="w-3.5 h-3.5 text-teal-600" />
+                  </div>
+                  <p className="text-[10.5px] text-slate-500 line-clamp-1">Thuyết trình & Lãnh đạo bản thân</p>
+                </Link>
+
+                <Link
+                  href="/student/quizzes"
+                  className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition space-y-1 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 group-hover:text-slate-800">Quiz Tình Huống</span>
+                    <Sparkles className="w-3.5 h-3.5 text-slate-600" />
+                  </div>
+                  <p className="text-[10.5px] text-slate-500 line-clamp-1">Đánh giá & Trắc nghiệm thực hành</p>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 

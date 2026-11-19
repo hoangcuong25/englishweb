@@ -40,16 +40,42 @@ export class MaterialsService {
   }
 
   async create(dto: CreateMaterialDto) {
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id: dto.lessonId },
-    });
-    if (!lesson) {
-      throw new NotFoundException(`Không tìm thấy bài học ID: ${dto.lessonId}`);
+    let resolvedCourseId = dto.courseId;
+    let resolvedLessonId = dto.lessonId;
+
+    if (dto.lessonId) {
+      const lesson = await this.prisma.lesson.findUnique({
+        where: { id: dto.lessonId },
+        include: { module: { select: { courseId: true } } },
+      });
+      if (!lesson) {
+        throw new NotFoundException(`Không tìm thấy bài học ID: ${dto.lessonId}`);
+      }
+      if (!resolvedCourseId && lesson.module) {
+        resolvedCourseId = lesson.module.courseId;
+      }
+    }
+
+    if (resolvedCourseId) {
+      const course = await this.prisma.course.findUnique({
+        where: { id: resolvedCourseId },
+      });
+      if (!course) {
+        throw new NotFoundException(`Không tìm thấy khóa học ID: ${resolvedCourseId}`);
+      }
+    }
+
+    if (!resolvedCourseId && !resolvedLessonId) {
+      throw AppException.badRequest(
+        AppErrorCode.LESSON_NOT_FOUND,
+        'Vui lòng chỉ định khóa học hoặc bài học để gán học liệu.',
+      );
     }
 
     return this.prisma.material.create({
       data: {
-        lessonId: dto.lessonId,
+        courseId: resolvedCourseId,
+        lessonId: resolvedLessonId,
         title: dto.title,
         type: dto.type,
         fileKey: dto.fileKey,
@@ -102,23 +128,44 @@ export class MaterialsService {
 
     const type = isPdf ? MaterialType.PDF : MaterialType.AUDIO;
 
-    // Resolve lesson
+    // Resolve course & lesson
+    let courseId = body.courseId;
     let lessonId = body.lessonId;
-    if (!lessonId) {
-      const defaultLesson = await this.prisma.lesson.findFirst();
-      if (!defaultLesson) {
-        throw AppException.badRequest(
-          AppErrorCode.LESSON_NOT_FOUND,
-          'Hệ thống chưa có bài học nào để gán học liệu. Vui lòng tạo bài học trước.',
+
+    if (courseId) {
+      const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+      if (!course) {
+        throw AppException.notFound(
+          AppErrorCode.COURSE_NOT_FOUND,
+          `Không tìm thấy khóa học ID: ${courseId} để gán học liệu.`,
         );
       }
-      lessonId = defaultLesson.id;
-    } else {
-      const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+    }
+
+    if (lessonId) {
+      const lesson = await this.prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: { module: { select: { courseId: true } } },
+      });
       if (!lesson) {
         throw AppException.notFound(
           AppErrorCode.LESSON_NOT_FOUND,
           `Không tìm thấy bài học ID: ${lessonId} để gán học liệu.`,
+        );
+      }
+      if (!courseId && lesson.module) {
+        courseId = lesson.module.courseId;
+      }
+    }
+
+    if (!courseId && !lessonId) {
+      const defaultCourse = await this.prisma.course.findFirst();
+      if (defaultCourse) {
+        courseId = defaultCourse.id;
+      } else {
+        throw AppException.badRequest(
+          AppErrorCode.COURSE_NOT_FOUND,
+          'Hệ thống chưa có khóa học nào để gán học liệu. Vui lòng tạo khóa học trước.',
         );
       }
     }
@@ -143,7 +190,8 @@ export class MaterialsService {
 
     return this.prisma.material.create({
       data: {
-        lessonId,
+        courseId: courseId || null,
+        lessonId: lessonId || null,
         title,
         type,
         fileKey: fileName,
@@ -199,33 +247,63 @@ export class MaterialsService {
       where.lessonId = query.lessonId;
     }
     if (query.courseId) {
-      where.lesson = {
-        module: {
-          courseId: query.courseId,
-        },
-      };
+      where.OR = [
+        { courseId: query.courseId },
+        { lesson: { module: { courseId: query.courseId } } },
+      ];
     }
     if (query.search) {
-      where.OR = [
+      const searchConditions = [
         { title: { contains: query.search } },
         { fileKey: { contains: query.search } },
       ];
+      if (where.OR) {
+        where.AND = [
+          ...(where.AND || []),
+          { OR: where.OR },
+          { OR: searchConditions },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
     }
 
-    // SEC-007: Students can only view materials of enrolled courses or free preview lessons
+    // SEC-007: Students can only view materials of courses in which they are actively enrolled (status = "ACTIVE")
     if (user?.role !== Role.ADMIN && user?.id) {
-      const enrollments = await this.prisma.enrollment.findMany({
-        where: { userId: user.id },
+      const activeEnrollments = await this.prisma.enrollment.findMany({
+        where: { userId: user.id, status: 'ACTIVE' },
         select: { courseId: true },
       });
-      const enrolledCourseIds = enrollments.map((e) => e.courseId);
+      const enrolledCourseIds = activeEnrollments.map((e) => e.courseId);
+
+      // If student is not enrolled in any course, return empty list
+      if (enrolledCourseIds.length === 0) {
+        return {
+          items: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        };
+      }
+
+      // If student requested a specific course they are not enrolled in, return empty list
+      if (query.courseId && !enrolledCourseIds.includes(query.courseId)) {
+        return {
+          items: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        };
+      }
 
       where.AND = [
         ...(where.AND || []),
         {
           OR: [
-            { lessonId: null },
-            { lesson: { isFreePreview: true } },
+            { courseId: { in: enrolledCourseIds } },
             {
               lesson: {
                 module: {
@@ -242,6 +320,14 @@ export class MaterialsService {
       this.prisma.material.findMany({
         where,
         include: {
+          course: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              category: true,
+            },
+          },
           lesson: {
             select: {
               id: true,
@@ -290,11 +376,28 @@ export class MaterialsService {
     const material = await this.prisma.material.findUnique({
       where: { id },
       include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            category: true,
+          },
+        },
         lesson: {
           select: {
             id: true,
             title: true,
             moduleId: true,
+            module: {
+              select: {
+                id: true,
+                title: true,
+                course: {
+                  select: { id: true, title: true, slug: true },
+                },
+              },
+            },
           },
         },
       },
@@ -311,6 +414,7 @@ export class MaterialsService {
     const material = await this.prisma.material.findUnique({
       where: { id: materialId },
       include: {
+        course: { select: { id: true, title: true } },
         lesson: {
           include: {
             module: {
@@ -327,24 +431,26 @@ export class MaterialsService {
 
     // Check access permission
     if (user.role !== Role.ADMIN) {
-      const courseId = material.lesson.module.courseId;
-      const isFreePreview = material.lesson.isFreePreview;
+      const courseId = material.courseId || material.lesson?.module?.courseId;
 
-      if (!isFreePreview) {
-        const enrollment = await this.prisma.enrollment.findUnique({
-          where: {
-            userId_courseId: {
-              userId: user.id,
-              courseId,
-            },
-          },
-        });
+      if (!courseId) {
+        throw new ForbiddenException(
+          'Tài liệu không hợp lệ hoặc chưa được gán vào khóa học nào',
+        );
+      }
 
-        if (!enrollment) {
-          throw new ForbiddenException(
-            'Học viên cần ghi danh khóa học để truy cập tài liệu bảo mật này',
-          );
-        }
+      const enrollment = await this.prisma.enrollment.findFirst({
+        where: {
+          userId: user.id,
+          courseId,
+          status: 'ACTIVE',
+        },
+      });
+
+      if (!enrollment) {
+        throw new ForbiddenException(
+          'Học viên cần ghi danh và được kích hoạt khóa học này để truy cập tài liệu bảo mật',
+        );
       }
     }
 

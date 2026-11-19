@@ -354,6 +354,7 @@ async function main() {
 
     await prisma.material.create({
       data: {
+        courseId: course1.id,
         lessonId: m.lessonId,
         title: m.title,
         type: m.type,

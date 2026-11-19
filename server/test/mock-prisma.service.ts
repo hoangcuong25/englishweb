@@ -119,6 +119,7 @@ export class MockPrismaService {
 
     const sampleMaterial = {
       id: 'material-uuid-1',
+      courseId: sampleCourse.id,
       lessonId: sampleLesson.id,
       title: 'IELTS_Writing_Task2_Masterclass_Band_8.pdf',
       type: 'PDF',
@@ -135,6 +136,7 @@ export class MockPrismaService {
       id: 'enrollment-uuid-1',
       userId: studentUser.id,
       courseId: sampleCourse.id,
+      status: 'ACTIVE',
       progressPercent: 25.0,
       enrolledAt: new Date(),
     });
@@ -775,6 +777,12 @@ export class MockPrismaService {
       if (args?.where?.lessonId) {
         result = result.filter((m) => m.lessonId === args.where.lessonId);
       }
+      if (args?.where?.courseId) {
+        result = result.filter((m) => m.courseId === args.where.courseId);
+      }
+      if (args?.where?.type) {
+        result = result.filter((m) => m.type === args.where.type);
+      }
       return result.length;
     },
     findMany: async (args?: any) => {
@@ -782,11 +790,17 @@ export class MockPrismaService {
       if (args?.where?.lessonId) {
         result = result.filter((m) => m.lessonId === args.where.lessonId);
       }
+      if (args?.where?.courseId) {
+        result = result.filter((m) => m.courseId === args.where.courseId);
+      }
       if (args?.where?.type) {
         result = result.filter((m) => m.type === args.where.type);
       }
       return result.map((m) => {
         const clone = { ...m };
+        if (args?.include?.course) {
+          clone.course = m.courseId ? this.courses.find((c) => c.id === m.courseId) || null : null;
+        }
         if (args?.include?.lesson) {
           const lesson = this.lessons.find((l) => l.id === m.lessonId);
           if (lesson) {
@@ -805,7 +819,10 @@ export class MockPrismaService {
       const found = this.materials.find((m) => m.id === args.where.id);
       if (!found) return null;
       const clone = { ...found };
-      if (args.include?.lesson) {
+      if (args?.include?.course) {
+        clone.course = found.courseId ? this.courses.find((c) => c.id === found.courseId) || null : null;
+      }
+      if (args?.include?.lesson) {
         const lesson = this.lessons.find((l) => l.id === found.lessonId);
         if (lesson) {
           const mod = this.courseModules.find((m) => m.id === lesson.moduleId);
@@ -818,9 +835,18 @@ export class MockPrismaService {
       return clone;
     },
     create: async (args: any) => {
+      let courseId = args.data.courseId;
+      if (!courseId && args.data.lessonId) {
+        const lesson = this.lessons.find((l) => l.id === args.data.lessonId);
+        if (lesson) {
+          const mod = this.courseModules.find((m) => m.id === lesson.moduleId);
+          if (mod) courseId = mod.courseId;
+        }
+      }
       const newMaterial = {
         id: randomUUID(),
         ...args.data,
+        courseId: courseId || 'course-uuid-1',
         createdAt: new Date(),
       };
       this.materials.push(newMaterial);
@@ -842,6 +868,19 @@ export class MockPrismaService {
 
   // --- ENROLLMENT REPOSITORY ---
   enrollment = {
+    findFirst: async (args: any) => {
+      let result = [...this.enrollments];
+      if (args?.where?.userId) {
+        result = result.filter((e) => e.userId === args.where.userId);
+      }
+      if (args?.where?.courseId) {
+        result = result.filter((e) => e.courseId === args.where.courseId);
+      }
+      if (args?.where?.status) {
+        result = result.filter((e) => (e.status || 'ACTIVE') === args.where.status);
+      }
+      return result.length > 0 ? { ...result[0] } : null;
+    },
     findMany: async (args: any) => {
       let result = [...this.enrollments];
       if (args.where?.userId) {

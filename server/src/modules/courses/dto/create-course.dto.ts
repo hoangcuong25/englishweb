@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsBoolean, IsUrl } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsEnum, IsBoolean, IsNumber } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CourseCategory } from '@prisma/client';
 
@@ -8,10 +8,10 @@ export class CreateCourseDto {
   @IsString()
   title: string;
 
-  @ApiProperty({ example: 'ielts-intensive-masterclass' })
-  @IsNotEmpty({ message: 'Đường dẫn định danh (slug) không được để trống' })
+  @ApiPropertyOptional({ example: 'ielts-intensive-masterclass' })
+  @IsOptional()
   @IsString()
-  slug: string;
+  slug?: string;
 
   @ApiPropertyOptional({ example: 'Khóa học IELTS chuyên sâu 4 kỹ năng bám sát đề thi thật...' })
   @IsOptional()
@@ -24,11 +24,21 @@ export class CreateCourseDto {
 
   @ApiPropertyOptional({ example: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173' })
   @IsOptional()
-  @IsUrl({}, { message: 'Ảnh thu nhỏ phải là một URL hợp lệ' })
+  @IsString()
   thumbnail?: string;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
+
+  @ApiPropertyOptional({ example: 4500000 })
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @ApiPropertyOptional({ example: 'INTERMEDIATE' })
+  @IsOptional()
+  @IsString()
+  level?: string;
 }

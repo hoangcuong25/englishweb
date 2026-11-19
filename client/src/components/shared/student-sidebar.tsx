@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n-context';
@@ -15,6 +15,9 @@ import {
   UserCheck,
   Award,
   Target,
+  Compass,
+  GraduationCap,
+  Sparkles,
 } from 'lucide-react';
 
 interface StudentGoalItem {
@@ -26,9 +29,32 @@ interface StudentGoalItem {
   textColor: string;
 }
 
+interface NavItem {
+  href: string;
+  label: string;
+  icon: any;
+  exactTrack?: string | boolean;
+}
+
+interface NavSection {
+  title: string;
+  badge?: string;
+  badgeColor?: string;
+  items: NavItem[];
+}
+
 export default function StudentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [currentTrack, setCurrentTrack] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setCurrentTrack(params.get('track'));
+    }
+  }, [pathname]);
+
   const { t } = useI18n();
 
   const [activeGoals, setActiveGoals] = useState<StudentGoalItem[]>([
@@ -42,20 +68,48 @@ export default function StudentSidebar() {
     },
   ]);
 
-  const navItems = [
-    { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
-    { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen },
-    { href: '/student/ielts', label: t('nav_ielts_hub', 'IELTS 4 Kỹ Năng (Nghe • Nói • Đọc • Viết)'), icon: Award },
-    { href: '/student/classroom', label: t('nav_classroom', 'Phòng học trực tuyến'), icon: Video },
-    { href: '/student/library', label: t('nav_library', 'Học liệu số & Bảo mật'), icon: FolderLock },
-    { href: '/student/attendance', label: t('nav_attendance', 'Điểm danh & Chuyên cần'), icon: CalendarCheck },
-    { href: '/student/messages', label: t('nav_messages', 'Tin nhắn & Thảo luận'), icon: MessageSquare },
-    { href: '/student/account', label: t('nav_account', 'Tài khoản cá nhân'), icon: UserCheck },
+  const navSections: NavSection[] = [
+    {
+      title: 'Học Tập & Chung',
+      items: [
+        { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
+        { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen, exactTrack: false },
+        { href: '/student/classroom', label: t('nav_classroom', 'Lớp trực tuyến WebRTC'), icon: Video },
+        { href: '/student/library', label: t('nav_library', 'Học liệu số & Bảo mật'), icon: FolderLock },
+      ],
+    },
+    {
+      title: 'Đào Tạo Tiếng Anh & IELTS',
+      badge: 'Chuyên Sâu',
+      badgeColor: 'bg-sky-100 text-sky-800',
+      items: [
+        { href: '/student/ielts', label: 'IELTS 4 Kỹ Năng Master', icon: Award },
+        { href: '/student/courses?track=english', label: 'Khóa Học Tiếng Anh', icon: Sparkles, exactTrack: 'english' },
+      ],
+    },
+    {
+      title: 'Phát Triển Cá Nhân & Sư Phạm',
+      badge: 'Kỹ Năng Sống',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      items: [
+        { href: '/student/courses?track=personal_dev', label: 'Khóa Kỹ Năng & Sư Phạm', icon: Compass, exactTrack: 'personal_dev' },
+      ],
+    },
+    {
+      title: 'Tài Khoản & Tương Tác',
+      items: [
+        { href: '/student/attendance', label: t('nav_attendance', 'Điểm danh & Chuyên cần'), icon: CalendarCheck },
+        { href: '/student/messages', label: t('nav_messages', 'Tin nhắn & Thảo luận'), icon: MessageSquare },
+        { href: '/student/account', label: t('nav_account', 'Tài khoản cá nhân'), icon: UserCheck },
+      ],
+    },
   ];
+
+  const allNavItems = useMemo(() => navSections.flatMap((s) => s.items), [navSections]);
 
   // Eagerly prefetch all routes on mount so transitions are instant
   useEffect(() => {
-    navItems.forEach((item) => {
+    allNavItems.forEach((item) => {
       router.prefetch(item.href);
     });
 
@@ -158,28 +212,51 @@ export default function StudentSidebar() {
         </span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname.startsWith(item.href);
+      <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+        {navSections.map((sec, sIdx) => (
+          <div key={sIdx} className="space-y-1">
+            <div className="flex items-center justify-between px-3 py-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                {sec.title}
+              </span>
+              {sec.badge && (
+                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${sec.badgeColor}`}>
+                  {sec.badge}
+                </span>
+              )}
+            </div>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={true}
-              onMouseEnter={() => router.prefetch(item.href)}
-              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
-                isActive
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-primary'
-              }`}
-            >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          );
-        })}
+            {sec.items.map((item) => {
+              const Icon = item.icon;
+              const isBaseActive = pathname.startsWith(item.href.split('?')[0]);
+              let isActive = false;
+              if (item.exactTrack) {
+                isActive = pathname === '/student/courses' && currentTrack === item.exactTrack;
+              } else if (item.href === '/student/courses') {
+                isActive = pathname === '/student/courses' && !currentTrack;
+              } else {
+                isActive = isBaseActive;
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
+                    isActive
+                      ? 'bg-primary text-white shadow-md shadow-primary/20'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-primary'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Target Personal Goal(s): Dynamically tailored to student's enrolled track(s) */}
