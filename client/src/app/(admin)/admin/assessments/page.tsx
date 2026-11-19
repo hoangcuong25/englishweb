@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import CustomSelect from '@/components/ui/custom-select';
 import { toast } from '@/components/ui/toast';
 import { quizzesService, QuizQuestion as RemoteQuizQuestion } from '@/services/quizzes.service';
+import { coursesService, Course } from '@/services/courses.service';
 import { writingService } from '@/services/writing.service';
 import { speakingService, SpeakingSubmission } from '@/services/speaking.service';
 import {
@@ -33,6 +34,12 @@ import {
   User,
   Eye,
   Sliders,
+  Compass,
+  GraduationCap,
+  Briefcase,
+  Baby,
+  Users,
+  TrendingUp,
 } from 'lucide-react';
 
 // ==========================================
@@ -56,7 +63,11 @@ interface MockTestItem {
   title: string;
   description?: string;
   skill?: string;
+  category?: string;
+  quizType?: string;
   testType?: string;
+  courseId?: string;
+  courseTitle?: string;
   timeLimitMinutes?: number;
   passScore?: number;
   passage?: string;
@@ -124,20 +135,89 @@ function AssessmentHubContent() {
   const [quizSubTab, setQuizSubTab] = useState<'tests' | 'questions'>('tests');
   const [mockTests, setMockTests] = useState<MockTestItem[]>([]);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [coursesList, setCoursesList] = useState<Course[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
   const [quizSearch, setQuizSearch] = useState('');
+  const [filterTrack, setFilterTrack] = useState<'ALL' | 'ENGLISH' | 'PERSONAL_DEV'>('ALL');
+  const [filterCategory, setFilterCategory] = useState<string>('ALL');
+  const [filterQuizType, setFilterQuizType] = useState<string>('ALL');
   const [filterSkill, setFilterSkill] = useState<string>('ALL');
-  const [filterType, setFilterType] = useState<string>('ALL');
 
-  // Modal Mock Test
+  // Helper Domain / Skill options per Category
+  const getDomainOptions = (cat: string) => {
+    switch (cat) {
+      case 'PEDAGOGY':
+        return [
+          { value: 'TEACHING_METHOD', label: 'Phương pháp Giảng dạy & Soạn giáo án' },
+          { value: 'CLASS_MANAGEMENT', label: 'Quản trị Lớp học & Tương tác EdTech' },
+          { value: 'SITUATION_HANDLING', label: 'Xử lý Tình huống Sư phạm Thực chiến' },
+          { value: 'ASSESSMENT_RUBRICS', label: 'Kiểm tra Đánh giá & Tiêu chuẩn Sư phạm' },
+        ];
+      case 'LIFE_SKILLS':
+        return [
+          { value: 'PUBLIC_SPEAKING', label: 'Thuyết trình & Nói trước đám đông' },
+          { value: 'CRITICAL_THINKING', label: 'Tư duy Phản biện & Giải quyết vấn đề' },
+          { value: 'EMOTIONAL_CONTROL', label: 'Quản lý Cảm xúc & Vượt qua Stress' },
+          { value: 'SELF_CONFIDENCE', label: 'Tự tin & Giao tiếp Đời sống' },
+        ];
+      case 'SOFT_SKILLS':
+        return [
+          { value: 'TEAMWORK', label: 'Làm việc Nhóm & Hợp tác Đa văn hóa' },
+          { value: 'NEGOTIATION', label: 'Kỹ năng Đàm phán & Thuyết phục' },
+          { value: 'CONFLICT_RESOLUTION', label: 'Giải quyết Xung đột & Thấu cảm' },
+          { value: 'ACTIVE_LISTENING', label: 'Lắng nghe Tích cực & Phản hồi' },
+        ];
+      case 'PERSONAL_DEV':
+        return [
+          { value: 'SELF_LEADERSHIP', label: 'Lãnh đạo Bản thân & Kỷ luật thép' },
+          { value: 'GOAL_SETTING', label: 'Thiết lập Mục tiêu & Thói quen nguyên tử' },
+          { value: 'TIME_MANAGEMENT', label: 'Quản lý Thời gian & Năng suất' },
+          { value: 'GROWTH_MINDSET', label: 'Tư duy Phát triển (Growth Mindset)' },
+        ];
+      case 'BUSINESS':
+        return [
+          { value: 'BUSINESS_EMAIL', label: 'Thư tín Thương mại & Email quốc tế' },
+          { value: 'BUSINESS_NEGOTIATION', label: 'Đàm phán & Thương thảo Hợp đồng' },
+          { value: 'BUSINESS_PRESENTATION', label: 'Thuyết trình Dự án & Báo cáo số liệu' },
+          { value: 'BUSINESS_MEETING', label: 'Điều hành Cuộc họp & Phản xạ công sở' },
+        ];
+      case 'KIDS':
+        return [
+          { value: 'PHONICS', label: 'Phonics & Nhận diện Âm vần vui nhộn' },
+          { value: 'VISUAL_VOCAB', label: 'Từ vựng Hình ảnh & Đồ vật' },
+          { value: 'STORY_LISTENING', label: 'Nghe kể chuyện & Phản xạ tự nhiên' },
+        ];
+      case 'ENGLISH':
+        return [
+          { value: 'DAILY_COMMUNICATION', label: 'Giao tiếp Đời sống & Phản xạ đàm thoại' },
+          { value: 'APPLIED_GRAMMAR', label: 'Ngữ pháp Ứng dụng & Cấu trúc câu' },
+          { value: 'PRACTICAL_READING', label: 'Đọc hiểu Tin tức & Đời sống quốc tế' },
+          { value: 'LISTENING_COMPREHENSION', label: 'Nghe hiểu Podcast & Hội thoại' },
+        ];
+      case 'IELTS':
+      default:
+        return [
+          { value: 'READING', label: 'IELTS Reading (Đọc hiểu)' },
+          { value: 'LISTENING', label: 'IELTS Listening (Nghe hiểu)' },
+          { value: 'WRITING', label: 'IELTS Writing (Viết luận)' },
+          { value: 'SPEAKING', label: 'IELTS Speaking (Nói & Phát âm)' },
+          { value: 'GRAMMAR_VOCAB', label: 'Ngữ pháp & Từ vựng Chuyên sâu' },
+        ];
+    }
+  };
+
+  // Modal Mock Test & Quiz State
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
   const [testFormData, setTestFormData] = useState({
     title: '',
     description: '',
+    track: 'ENGLISH' as 'ENGLISH' | 'PERSONAL_DEV',
+    category: 'IELTS',
+    quizType: 'FULL_MOCK_TEST',
+    courseId: '',
     skill: 'READING',
-    testType: 'FULL_MOCK_TEST',
-    timeLimitMinutes: 60,
+    timeLimitMinutes: 45,
     passScore: 80,
     passage: '',
     audioUrl: '',
@@ -179,8 +259,12 @@ function AssessmentHubContent() {
         title: String(item.title || ''),
         description: item.description,
         skill: item.skill || 'READING',
-        testType: item.testType || 'FULL_MOCK_TEST',
-        timeLimitMinutes: item.timeLimitMinutes ?? 60,
+        category: item.category || item.course?.category || 'IELTS',
+        quizType: item.quizType || item.testType || 'FULL_MOCK_TEST',
+        testType: item.testType || item.quizType || 'FULL_MOCK_TEST',
+        courseId: item.courseId || item.course?.id || '',
+        courseTitle: item.course?.title || '',
+        timeLimitMinutes: item.timeLimitMinutes ?? 45,
         passScore: item.passScore ?? 80,
         passage: item.passage,
         audioUrl: item.audioUrl,
@@ -231,14 +315,21 @@ function AssessmentHubContent() {
     }
   };
 
-  const handleOpenCreateTestModal = () => {
+  const handleOpenCreateTestModal = (targetCourseId?: string, targetCategory?: string) => {
     setEditingTestId(null);
+    const cat = targetCategory || (filterCategory !== 'ALL' ? filterCategory : 'IELTS');
+    const isDev = ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(cat);
+    const domainOpts = getDomainOptions(cat);
+
     setTestFormData({
       title: '',
       description: '',
-      skill: 'READING',
-      testType: 'FULL_MOCK_TEST',
-      timeLimitMinutes: 60,
+      track: isDev ? 'PERSONAL_DEV' : 'ENGLISH',
+      category: cat,
+      quizType: isDev ? 'SITUATION_QUIZ' : 'FULL_MOCK_TEST',
+      courseId: targetCourseId || '',
+      skill: domainOpts[0]?.value || 'READING',
+      timeLimitMinutes: isDev ? 30 : 60,
       passScore: 80,
       passage: '',
       audioUrl: '',
@@ -249,16 +340,30 @@ function AssessmentHubContent() {
   const handleSaveMockTest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!testFormData.title.trim()) {
-      showNotice('❌ Vui lòng nhập tiêu đề đề thi!');
+      showNotice('❌ Vui lòng nhập tiêu đề bài Quiz/Test!');
       return;
     }
     try {
+      const payload = {
+        title: testFormData.title.trim(),
+        description: testFormData.description?.trim() || undefined,
+        category: testFormData.category,
+        quizType: testFormData.quizType,
+        testType: testFormData.quizType,
+        courseId: testFormData.courseId || undefined,
+        skill: testFormData.skill,
+        timeLimitMinutes: Number(testFormData.timeLimitMinutes),
+        passScore: Number(testFormData.passScore),
+        passage: testFormData.passage?.trim() || undefined,
+        audioUrl: testFormData.audioUrl?.trim() || undefined,
+      };
+
       if (editingTestId) {
-        await quizzesService.updateQuiz(editingTestId, testFormData);
+        await quizzesService.updateQuiz(editingTestId, payload);
         showNotice(`✅ Đã cập nhật đề thi "${testFormData.title}"!`);
       } else {
-        await quizzesService.createQuiz(testFormData);
-        showNotice(`✅ Đã tạo đề thi mới "${testFormData.title}"!`);
+        await quizzesService.createQuiz(payload);
+        showNotice(`✅ Đã tạo bài Quiz mới "${testFormData.title}" (${testFormData.category})!`);
       }
       await fetchQuizzesAndTests();
       setIsTestModalOpen(false);
@@ -328,13 +433,24 @@ function AssessmentHubContent() {
 
   const filteredMockTests = useMemo(() => {
     return mockTests.filter((test) => {
+      const isEng = ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(test.category || 'IELTS');
+      const testTrack = isEng ? 'ENGLISH' : 'PERSONAL_DEV';
+
+      const matchTrack = filterTrack === 'ALL' || testTrack === filterTrack;
+      const matchCat = filterCategory === 'ALL' || (test.category || 'IELTS') === filterCategory;
+      const matchQuizType =
+        filterQuizType === 'ALL' ||
+        test.quizType === filterQuizType ||
+        test.testType === filterQuizType;
       const matchSkill = filterSkill === 'ALL' || test.skill === filterSkill;
-      const matchType = filterType === 'ALL' || test.testType === filterType;
       const matchSearch =
-        !quizSearch.trim() || test.title.toLowerCase().includes(quizSearch.toLowerCase());
-      return matchSkill && matchType && matchSearch;
+        !quizSearch.trim() ||
+        test.title.toLowerCase().includes(quizSearch.toLowerCase()) ||
+        (test.description && test.description.toLowerCase().includes(quizSearch.toLowerCase()));
+
+      return matchTrack && matchCat && matchQuizType && matchSkill && matchSearch;
     });
-  }, [mockTests, filterSkill, filterType, quizSearch]);
+  }, [mockTests, filterTrack, filterCategory, filterQuizType, filterSkill, quizSearch]);
 
   // =========================================================================
   // 2. IELTS WRITING AI REVIEW STATE
@@ -586,7 +702,32 @@ function AssessmentHubContent() {
     fetchQuizzesAndTests();
     fetchWritingSubmissions();
     fetchSpeakingSubmissions();
+    coursesService.getCourses().then((c) => {
+      if (Array.isArray(c)) setCoursesList(c);
+    }).catch(() => {});
   }, []);
+
+  // Listen to deep-link search parameters (e.g. ?courseId=...&category=...)
+  useEffect(() => {
+    const courseIdParam = searchParams.get('courseId');
+    const catParam = searchParams.get('category');
+    const actionParam = searchParams.get('action');
+
+    if (actionParam === 'new_quiz' || courseIdParam) {
+      const isDev = ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(catParam?.toUpperCase() || '');
+      const initialCat = catParam?.toUpperCase() || (isDev ? 'PEDAGOGY' : 'IELTS');
+      const domainOpts = getDomainOptions(initialCat);
+      setTestFormData((prev) => ({
+        ...prev,
+        courseId: courseIdParam || '',
+        track: isDev ? 'PERSONAL_DEV' : 'ENGLISH',
+        category: initialCat,
+        quizType: isDev ? 'SITUATION_QUIZ' : 'FULL_MOCK_TEST',
+        skill: domainOpts[0]?.value || 'READING',
+      }));
+      setIsTestModalOpen(true);
+    }
+  }, [searchParams]);
 
   const pendingWritingCount = useMemo(
     () => writingSubmissions.filter((s) => s.status !== 'APPROVED').length,
@@ -621,7 +762,7 @@ function AssessmentHubContent() {
         {/* Global Quick Action */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={handleOpenCreateTestModal}
+            onClick={() => handleOpenCreateTestModal()}
             className="px-4 py-2.5 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md shadow-primary/20 transition flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
@@ -731,49 +872,143 @@ function AssessmentHubContent() {
                 <span>+ Thêm Câu Hỏi Mới</span>
               </button>
               <button
-                onClick={handleOpenCreateTestModal}
+                onClick={() => handleOpenCreateTestModal()}
                 className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Tạo Đề Thi Mock Test</span>
+                <span>+ Tạo Bài Quiz / Đề Thi</span>
               </button>
             </div>
           </div>
 
-          {/* Filter Bar */}
-          <div className="bg-white p-4 rounded-3xl border border-line shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="relative w-full md:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Tìm tiêu đề đề thi..."
-                value={quizSearch}
-                onChange={(e) => setQuizSearch(e.target.value)}
-                className="w-full pl-8.5 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-primary"
-              />
+          {/* Filter Bar with Track Switcher & Category Pills */}
+          <div className="bg-white p-4 rounded-3xl border border-line shadow-xs space-y-3">
+            {/* Primary Track Filter & Quiz Type */}
+            <div className="flex items-center justify-between gap-3 flex-wrap border-b border-line pb-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">
+                  Lộ Trình:
+                </span>
+                {[
+                  { id: 'ALL', label: `Tất Cả (${mockTests.length})` },
+                  {
+                    id: 'ENGLISH',
+                    label: `🇬🇧 Tiếng Anh & IELTS (${
+                      mockTests.filter((t) =>
+                        ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(t.category || 'IELTS'),
+                      ).length
+                    })`,
+                  },
+                  {
+                    id: 'PERSONAL_DEV',
+                    label: `🌟 Kỹ Năng & Sư Phạm (${
+                      mockTests.filter((t) =>
+                        ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(
+                          t.category || '',
+                        ),
+                      ).length
+                    })`,
+                  },
+                ].map((track) => (
+                  <button
+                    key={track.id}
+                    onClick={() => {
+                      setFilterTrack(track.id as any);
+                      setFilterCategory('ALL');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                      filterTrack === track.id
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {track.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Quiz Type Quick Filter */}
+              <div className="flex items-center gap-1 text-xs overflow-x-auto pb-1 sm:pb-0">
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">
+                  Loại Bài:
+                </span>
+                {[
+                  { id: 'ALL', label: 'Tất Cả Loại' },
+                  { id: 'FULL_MOCK_TEST', label: '🏆 Thi Thử (Mock)' },
+                  { id: 'SITUATION_QUIZ', label: '🎯 Tình Huống (Case)' },
+                  { id: 'PRACTICE_TEST', label: '📝 Luyện Tập' },
+                  { id: 'LESSON_QUIZ', label: '📖 Bài Học' },
+                ].map((tp) => (
+                  <button
+                    key={tp.id}
+                    onClick={() => setFilterQuizType(tp.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap ${
+                      filterQuizType === tp.id
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {tp.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 text-xs">
-              {[
-                { id: 'ALL', label: 'Tất cả kỹ năng' },
-                { id: 'READING', label: 'Reading' },
-                { id: 'LISTENING', label: 'Listening' },
-                { id: 'WRITING', label: 'Writing' },
-                { id: 'SPEAKING', label: 'Speaking' },
-                { id: 'GRAMMAR_VOCAB', label: 'Ngữ pháp & Từ vựng' },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setFilterSkill(s.id)}
-                  className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition ${
-                    filterSkill === s.id
-                      ? 'bg-sky-100 text-primary border border-sky-200'
-                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
+            {/* Secondary Search & Category Strip */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="relative w-full md:w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Tìm tiêu đề hoặc nội dung bài Quiz..."
+                  value={quizSearch}
+                  onChange={(e) => setQuizSearch(e.target.value)}
+                  className="w-full pl-8.5 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Category Pills matching the active track */}
+              <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 text-xs">
+                {(filterTrack === 'PERSONAL_DEV'
+                  ? [
+                      { id: 'ALL', label: 'Tất cả Kỹ Năng' },
+                      { id: 'PEDAGOGY', label: '🌟 Sư Phạm EdTech' },
+                      { id: 'LIFE_SKILLS', label: '🌟 Kỹ Năng Sống' },
+                      { id: 'SOFT_SKILLS', label: '🌟 Kỹ Năng Mềm' },
+                      { id: 'PERSONAL_DEV', label: '🌟 Bản Thân' },
+                    ]
+                  : filterTrack === 'ENGLISH'
+                  ? [
+                      { id: 'ALL', label: 'Tất cả Tiếng Anh' },
+                      { id: 'IELTS', label: '🇬🇧 IELTS 4 Kỹ Năng' },
+                      { id: 'ENGLISH', label: '🇬🇧 General English' },
+                      { id: 'BUSINESS', label: '🇬🇧 Business English' },
+                      { id: 'KIDS', label: '🇬🇧 Kids English' },
+                    ]
+                  : [
+                      { id: 'ALL', label: 'Tất cả danh mục' },
+                      { id: 'IELTS', label: '🇬🇧 IELTS' },
+                      { id: 'ENGLISH', label: '🇬🇧 General' },
+                      { id: 'BUSINESS', label: '🇬🇧 Business' },
+                      { id: 'PEDAGOGY', label: '🌟 Sư Phạm' },
+                      { id: 'LIFE_SKILLS', label: '🌟 Kỹ Năng Sống' },
+                      { id: 'SOFT_SKILLS', label: '🌟 Kỹ Năng Mềm' },
+                      { id: 'PERSONAL_DEV', label: '🌟 Bản Thân' },
+                    ]
+                ).map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setFilterCategory(c.id)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                      filterCategory === c.id
+                        ? 'bg-sky-100 text-primary border border-sky-200 font-black'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -784,67 +1019,100 @@ function AssessmentHubContent() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 border-b border-line text-slate-400 font-black uppercase text-[10.5px]">
                     <tr>
-                      <th className="py-3 px-4">Tên Đề Thi Mock Test</th>
-                      <th className="py-3 px-4">Kỹ Năng</th>
-                      <th className="py-3 px-4">Hình Thức</th>
+                      <th className="py-3 px-4">Tên Bài Quiz / Đề Thi</th>
+                      <th className="py-3 px-4">Phân Hệ & Khóa Học</th>
+                      <th className="py-3 px-4">Loại Quiz</th>
+                      <th className="py-3 px-4">Lĩnh Vực / Kỹ Năng</th>
                       <th className="py-3 px-4">Thời Gian</th>
-                      <th className="py-3 px-4">Sàn Điểm Đạt</th>
-                      <th className="py-3 px-4">Số Câu Hỏi</th>
+                      <th className="py-3 px-4">Sàn Đạt</th>
+                      <th className="py-3 px-4">Số Câu</th>
                       <th className="py-3 px-4 text-right">Thao Tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
                     {filteredMockTests.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-xs text-slate-400">
-                          Chưa có đề thi nào trong danh mục này.
+                        <td colSpan={8} className="py-8 text-center text-xs text-slate-400">
+                          Chưa có đề thi hoặc bài quiz nào phù hợp với bộ lọc.
                         </td>
                       </tr>
                     ) : (
-                      filteredMockTests.map((t) => (
-                        <tr key={t.id} className="hover:bg-slate-50/60 transition">
-                          <td className="py-3.5 px-4 font-bold text-slate-900">
-                            <div>{t.title}</div>
-                            {t.description && (
-                              <div className="text-[11px] text-muted font-normal line-clamp-1">
-                                {t.description}
+                      filteredMockTests.map((t) => {
+                        const isPersonalDev = ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(t.category || '');
+                        return (
+                          <tr key={t.id} className="hover:bg-slate-50/60 transition">
+                            <td className="py-3.5 px-4 font-bold text-slate-900 max-w-xs">
+                              <div>{t.title}</div>
+                              {t.description && (
+                                <div className="text-[11px] text-muted font-normal line-clamp-1 mt-0.5">
+                                  {t.description}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <div className="space-y-1">
+                                <span className={`inline-block px-2 py-0.5 rounded-md text-[10.5px] font-black ${
+                                  isPersonalDev ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-sky-50 text-sky-700 border border-sky-200'
+                                }`}>
+                                  {isPersonalDev ? '🌟 ' : '🇬🇧 '}
+                                  {t.category || 'IELTS'}
+                                </span>
+                                {t.courseTitle && (
+                                  <div className="text-[10px] text-slate-500 font-semibold truncate max-w-[140px]">
+                                    📚 {t.courseTitle}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-primary border border-sky-100">
-                              {t.skill}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 font-semibold text-slate-700">
-                            {t.testType === 'FULL_MOCK_TEST' ? 'Mock Test 4 Kỹ Năng' : 'Quiz Luyện Tập'}
-                          </td>
-                          <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
-                            {t.timeLimitMinutes} phút
-                          </td>
-                          <td className="py-3.5 px-4 font-bold text-emerald-600">
-                            &ge; {t.passScore}%
-                          </td>
-                          <td className="py-3.5 px-4 font-bold text-slate-700">
-                            {t.questionsCount} câu hỏi
-                          </td>
-                          <td className="py-3.5 px-4 text-right space-x-1">
-                            <button
-                              onClick={() => handleOpenAddQuestion(t.id)}
-                              className="px-2 py-1 rounded-lg bg-sky-50 text-primary font-bold text-[11px] hover:bg-sky-100 transition"
-                            >
-                              + Thêm câu
-                            </button>
-                            <button
-                              onClick={() => handleDeleteMockTest(t.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 transition"
-                              title="Xóa đề thi"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded-md text-[10.5px] font-black ${
+                                t.quizType === 'SITUATION_QUIZ'
+                                  ? 'bg-purple-100 text-purple-800'
+                                  : t.quizType === 'FULL_MOCK_TEST'
+                                  ? 'bg-sky-100 text-sky-800'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}>
+                                {t.quizType === 'SITUATION_QUIZ'
+                                  ? '🎯 Tình Huống'
+                                  : t.quizType === 'FULL_MOCK_TEST'
+                                  ? '🏆 Thi Thử'
+                                  : t.quizType === 'LESSON_QUIZ'
+                                  ? '📖 Bài Học'
+                                  : '📝 Luyện Tập'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">
+                              <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">
+                                {t.skill || 'Tổng hợp'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
+                              {t.timeLimitMinutes} phút
+                            </td>
+                            <td className="py-3.5 px-4 font-bold text-emerald-600 whitespace-nowrap">
+                              &ge; {t.passScore}%
+                            </td>
+                            <td className="py-3.5 px-4 font-bold text-slate-700 whitespace-nowrap">
+                              {t.questionsCount} câu
+                            </td>
+                            <td className="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
+                              <button
+                                onClick={() => handleOpenAddQuestion(t.id)}
+                                className="px-2 py-1 rounded-lg bg-sky-50 text-primary font-bold text-[11px] hover:bg-sky-100 transition"
+                              >
+                                + Thêm câu
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMockTest(t.id)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 transition"
+                                title="Xóa đề thi"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -1370,11 +1638,16 @@ function AssessmentHubContent() {
       {/* ========================================================================= */}
       {isTestModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-line p-6 space-y-4 animate-in zoom-in-95">
+          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl border border-line p-6 space-y-4 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
-              <h3 className="text-base font-extrabold text-slate-900">
-                {editingTestId ? 'Sửa Đề Thi Mock Test' : 'Khởi Tạo Đề Thi Mock Test Mới'}
-              </h3>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  {editingTestId ? 'Sửa Đề Thi / Bài Quiz' : 'Tạo Bài Quiz / Đề Thi Mới'}
+                </h3>
+                <p className="text-xs text-muted">
+                  Thiết lập bài trắc nghiệm hoặc tình huống thực chiến cho mọi phân hệ đào tạo.
+                </p>
+              </div>
               <button
                 onClick={() => setIsTestModalOpen(false)}
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
@@ -1384,45 +1657,158 @@ function AssessmentHubContent() {
             </div>
 
             <form onSubmit={handleSaveMockTest} className="space-y-4">
+              {/* 1. Track Switcher */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  1. Chọn Lộ Trình Đào Tạo <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const domainOpts = getDomainOptions('IELTS');
+                      setTestFormData({
+                        ...testFormData,
+                        track: 'ENGLISH',
+                        category: 'IELTS',
+                        quizType: 'FULL_MOCK_TEST',
+                        skill: domainOpts[0]?.value || 'READING',
+                      });
+                    }}
+                    className={`py-2 px-3 rounded-xl border text-xs font-black transition flex items-center justify-center gap-1.5 ${
+                      testFormData.track === 'ENGLISH'
+                        ? 'bg-sky-50 border-primary text-primary shadow-xs'
+                        : 'border-line text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>🇬🇧 Tiếng Anh & IELTS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const domainOpts = getDomainOptions('PEDAGOGY');
+                      setTestFormData({
+                        ...testFormData,
+                        track: 'PERSONAL_DEV',
+                        category: 'PEDAGOGY',
+                        quizType: 'SITUATION_QUIZ',
+                        skill: domainOpts[0]?.value || 'TEACHING_METHOD',
+                      });
+                    }}
+                    className={`py-2 px-3 rounded-xl border text-xs font-black transition flex items-center justify-center gap-1.5 ${
+                      testFormData.track === 'PERSONAL_DEV'
+                        ? 'bg-purple-50 border-purple-500 text-purple-700 shadow-xs'
+                        : 'border-line text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>🌟 Phát Triển Cá Nhân & Sư Phạm</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Category & Course Selector */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <CustomSelect
+                  label="2. Phân hệ khóa học *"
+                  value={testFormData.category}
+                  onChange={(val) => {
+                    const domainOpts = getDomainOptions(val);
+                    setTestFormData({
+                      ...testFormData,
+                      category: val,
+                      skill: domainOpts[0]?.value || 'READING',
+                    });
+                  }}
+                  options={
+                    testFormData.track === 'PERSONAL_DEV'
+                      ? [
+                          { value: 'PEDAGOGY', label: '🌟 Năng Lực Sư Phạm EdTech' },
+                          { value: 'LIFE_SKILLS', label: '🌟 Kỹ Năng Sống & Thuyết Trình' },
+                          { value: 'SOFT_SKILLS', label: '🌟 Kỹ Năng Mềm Doanh Nghiệp' },
+                          { value: 'PERSONAL_DEV', label: '🌟 Phát Triển Bản Thân & Lãnh Đạo' },
+                        ]
+                      : [
+                          { value: 'IELTS', label: '🇬🇧 IELTS 4 Kỹ Năng Master' },
+                          { value: 'ENGLISH', label: '🇬🇧 General English' },
+                          { value: 'BUSINESS', label: '🇬🇧 Business English' },
+                          { value: 'KIDS', label: '🇬🇧 Kids English' },
+                        ]
+                  }
+                />
+
+                <CustomSelect
+                  label="3. Khóa học áp dụng (Tùy chọn)"
+                  value={testFormData.courseId}
+                  onChange={(val) => setTestFormData({ ...testFormData, courseId: val })}
+                  options={[
+                    { value: '', label: '-- Áp dụng chung cho phân hệ --' },
+                    ...coursesList
+                      .filter((c) => c.category === testFormData.category || (!c.category && testFormData.track === 'ENGLISH'))
+                      .map((c) => ({
+                        value: c.id,
+                        label: c.title,
+                      })),
+                  ]}
+                />
+              </div>
+
+              {/* 3. Quiz Type & Skill / Domain */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <CustomSelect
+                  label="4. Loại bài Quiz (Quiz Type) *"
+                  value={testFormData.quizType}
+                  onChange={(val) => setTestFormData({ ...testFormData, quizType: val })}
+                  options={[
+                    { value: 'SITUATION_QUIZ', label: '🎯 Trắc nghiệm Tình huống (Case Study)' },
+                    { value: 'FULL_MOCK_TEST', label: '🏆 Đề Thi Thử Hoàn Chỉnh (Full Mock Test)' },
+                    { value: 'PRACTICE_TEST', label: '📝 Mini-Test / Luyện tập chuyên đề' },
+                    { value: 'LESSON_QUIZ', label: '📖 Trắc nghiệm củng cố bài học' },
+                    { value: 'DIAGNOSTIC_TEST', label: '🔍 Bài đánh giá chẩn đoán năng lực' },
+                  ]}
+                />
+
+                <CustomSelect
+                  label="5. Kỹ năng / Lĩnh vực khảo thí *"
+                  value={testFormData.skill}
+                  onChange={(val) => setTestFormData({ ...testFormData, skill: val })}
+                  options={getDomainOptions(testFormData.category)}
+                />
+              </div>
+
+              {/* 4. Title */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Tiêu đề đề thi <span className="text-red-500">*</span>
+                  6. Tiêu đề bài Quiz / Đề thi <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={testFormData.title}
                   onChange={(e) => setTestFormData({ ...testFormData, title: e.target.value })}
-                  placeholder="Ví dụ: IELTS Academic Reading Mock Test 01"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold"
+                  placeholder={
+                    testFormData.track === 'PERSONAL_DEV'
+                      ? 'Ví dụ: Tình huống Sư phạm: Kích hoạt tương tác học sinh thụ động'
+                      : 'Ví dụ: IELTS Reading Mock Test 01: Smart Cities'
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <CustomSelect
-                  label="Kỹ năng khảo thí *"
-                  value={testFormData.skill}
-                  onChange={(val) => setTestFormData({ ...testFormData, skill: val })}
-                  options={[
-                    { value: 'READING', label: 'Reading' },
-                    { value: 'LISTENING', label: 'Listening' },
-                    { value: 'WRITING', label: 'Writing' },
-                    { value: 'SPEAKING', label: 'Speaking' },
-                    { value: 'GRAMMAR_VOCAB', label: 'Grammar & Vocab' },
-                  ]}
-                />
-
-                <CustomSelect
-                  label="Hình thức bài thi *"
-                  value={testFormData.testType}
-                  onChange={(val) => setTestFormData({ ...testFormData, testType: val })}
-                  options={[
-                    { value: 'FULL_MOCK_TEST', label: 'Full Mock Test' },
-                    { value: 'PRACTICE_QUIZ', label: 'Quiz Luyện Tập' },
-                  ]}
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Mô tả mục tiêu kiểm tra
+                </label>
+                <textarea
+                  rows={2}
+                  value={testFormData.description}
+                  onChange={(e) => setTestFormData({ ...testFormData, description: e.target.value })}
+                  placeholder="Mô tả bối cảnh, năng lực trọng tâm cần đánh giá..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs"
                 />
               </div>
 
+              {/* Time Limit & Pass Score */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -1459,17 +1845,38 @@ function AssessmentHubContent() {
                 </div>
               </div>
 
+              {/* Passage / Scenario Text */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Đoạn văn đọc hiểu (Passage - Tùy chọn)
+                  {testFormData.track === 'PERSONAL_DEV'
+                    ? 'Bối cảnh tình huống thực tế / Case Study (Scenario Text - Tùy chọn)'
+                    : 'Đoạn văn đọc hiểu (Passage - Tùy chọn)'}
                 </label>
                 <textarea
                   rows={3}
                   value={testFormData.passage}
                   onChange={(e) => setTestFormData({ ...testFormData, passage: e.target.value })}
-                  placeholder="Nhập đoạn văn cho bài đọc Reading..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs"
-                ></textarea>
+                  placeholder={
+                    testFormData.track === 'PERSONAL_DEV'
+                      ? 'Mô tả chi tiết tình huống thực tế (ví dụ: Trong một lớp học trực tuyến LiveKit, có 2 học viên liên tục mất tập trung...)'
+                      : 'Nhập đoạn văn cho bài đọc Reading...'
+                  }
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs"
+                />
+              </div>
+
+              {/* Audio URL (Optional) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  URL file Audio / File nghe (Tùy chọn)
+                </label>
+                <input
+                  type="text"
+                  value={testFormData.audioUrl}
+                  onChange={(e) => setTestFormData({ ...testFormData, audioUrl: e.target.value })}
+                  placeholder="https://.../audio.mp3 (Dành cho bài nghe Listening hoặc video phân tích)"
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs"
+                />
               </div>
 
               <div className="pt-2 flex items-center justify-end space-x-2">
@@ -1484,7 +1891,7 @@ function AssessmentHubContent() {
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm"
                 >
-                  Lưu Đề Thi
+                  {editingTestId ? 'Lưu Thay Đổi' : 'Tạo Bài Quiz'}
                 </button>
               </div>
             </form>
