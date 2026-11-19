@@ -185,7 +185,7 @@ export default function BlogListPage() {
           <div className="flex items-center gap-2 shrink-0">
             {user ? (
               <Link
-                href={user.role === 'ADMIN' ? '/admin' : '/student'}
+                href={user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'}
                 className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#DDF3FC] text-[#1B64B0] text-xs sm:text-sm font-bold hover:bg-[#1B64B0] hover:text-white transition-all shadow-xs shrink-0"
               >
                 <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
