@@ -38,6 +38,8 @@ import {
   FileQuestion,
   Users,
   Settings,
+  Award,
+  Newspaper,
 } from 'lucide-react';
 
 interface AppTopbarProps {
@@ -72,8 +74,9 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
   const studentNavItems = [
     { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
     { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen },
+    { href: '/student/ielts', label: 'IELTS 4 Kỹ Năng Master', icon: Award },
+    { href: '/student/classroom', label: t('nav_classroom', 'Lớp trực tuyến WebRTC'), icon: Video },
     { href: '/student/library', label: t('nav_library', 'Học liệu số & Bảo mật'), icon: FolderLock },
-    { href: '/student/classroom', label: t('nav_classroom', 'Phòng học trực tuyến'), icon: Video },
     { href: '/student/writing', label: t('nav_writing', 'Luyện viết IELTS AI'), icon: PenTool },
     { href: '/student/speaking', label: t('nav_speaking', 'Studio luyện nói IELTS'), icon: Mic },
     { href: '/student/quizzes', label: t('nav_quiz', 'Ngân hàng bài tập Quiz'), icon: HelpCircle },
@@ -84,15 +87,14 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
 
   const adminNavItems = [
     { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
-    { href: '/admin/courses', label: t('nav_admin_courses', 'Quản lý khóa học'), icon: GraduationCap },
+    { href: '/admin/courses', label: t('nav_admin_courses', 'Khóa học & Cây giáo trình'), icon: GraduationCap },
     { href: '/admin/library', label: t('nav_admin_library', 'Kho học liệu số'), icon: FolderLock },
-    { href: '/admin/classroom', label: t('nav_admin_classroom', 'Quản trị phòng học LiveKit'), icon: Video },
-    { href: '/admin/writing-review', label: t('nav_writing_review', 'Duyệt bài viết IELTS AI'), icon: FileCheck },
-    { href: '/admin/speaking-grading', label: t('nav_speaking_grading', 'Chấm bài nói Speaking'), icon: Headphones },
-    { href: '/admin/quizzes', label: t('nav_admin_quizzes', 'Ngân hàng câu hỏi Quiz'), icon: FileQuestion },
+    { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến LiveKit'), icon: Video },
+    { href: '/admin/assessments', label: t('nav_admin_assessments', 'Khảo thí & Chấm thi IELTS'), icon: Award },
     { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },
     { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
     { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },
+    { href: '/admin/blogs', label: t('nav_admin_blogs', 'Quản lý bài viết Blog'), icon: Newspaper },
     { href: '/admin/account', label: t('nav_system_settings', 'Cài đặt hệ thống'), icon: Settings },
   ];
 

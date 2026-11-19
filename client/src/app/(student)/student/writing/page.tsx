@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { writingService } from '@/services/writing.service';
+import { writingService, WritingSubmission } from '@/services/writing.service';
 import { extractErrorMessage } from '@/lib/api-error';
 import { toast } from '@/components/ui/toast';
 import {
@@ -11,6 +11,13 @@ import {
   RefreshCw,
   Eye,
   Edit3,
+  History,
+  FileText,
+  Award,
+  Calendar,
+  AlertCircle,
+  X,
+  BookOpen,
 } from 'lucide-react';
 
 export default function StudentWritingPage() {
@@ -43,6 +50,30 @@ export default function StudentWritingPage() {
     rule: string;
     type: 'grammar' | 'vocab';
   } | null>(null);
+
+  // Submissions History State
+  const [mainTab, setMainTab] = useState<'practice' | 'history'>('practice');
+  const [mySubmissions, setMySubmissions] = useState<WritingSubmission[]>([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<WritingSubmission | null>(null);
+
+  const fetchMySubmissions = async () => {
+    setLoadingSubmissions(true);
+    try {
+      const data = await writingService.getMySubmissions();
+      if (Array.isArray(data)) {
+        setMySubmissions(data);
+      }
+    } catch {
+      // Keep empty
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMySubmissions();
+  }, []);
 
   // Load prompts from backend & load existing draft
   useEffect(() => {
@@ -230,6 +261,8 @@ export default function StudentWritingPage() {
         });
         setViewMode('HIGHLIGHT');
         writingService.deleteDraft(currentPromptId).catch(() => {});
+        toast.success('Đã nộp bài và nhận đánh giá từ AI thành công!');
+        fetchMySubmissions();
         return;
       }
     } catch (err: unknown) {
@@ -264,31 +297,65 @@ export default function StudentWritingPage() {
           </p>
         </div>
 
-        {/* Task Type Tabs */}
-        <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
-          <button
-            onClick={() => handleTaskChange('TASK_1')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              taskType === 'TASK_1'
-                ? 'bg-white text-primary shadow-xs font-extrabold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            IELTS Task 1 (Min 150 từ • 20p)
-          </button>
-          <button
-            onClick={() => handleTaskChange('TASK_2')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              taskType === 'TASK_2'
-                ? 'bg-white text-primary shadow-xs font-extrabold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            IELTS Task 2 (Min 250 từ • 40p)
-          </button>
-        </div>
+        {/* Task Type Tabs (Only shown in practice mode) */}
+        {mainTab === 'practice' && (
+          <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+            <button
+              onClick={() => handleTaskChange('TASK_1')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                taskType === 'TASK_1'
+                  ? 'bg-white text-primary shadow-xs font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              IELTS Task 1 (Min 150 từ • 20p)
+            </button>
+            <button
+              onClick={() => handleTaskChange('TASK_2')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                taskType === 'TASK_2'
+                  ? 'bg-white text-primary shadow-xs font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              IELTS Task 2 (Min 250 từ • 40p)
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* Main Mode Tabs */}
+      <div className="flex items-center gap-2 border-b border-line pb-2">
+        <button
+          onClick={() => setMainTab('practice')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+            mainTab === 'practice'
+              ? 'bg-primary text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <Edit3 className="w-4 h-4" />
+          <span>Luyện Viết & Chấm Điểm AI</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setMainTab('history');
+            fetchMySubmissions();
+          }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+            mainTab === 'history'
+              ? 'bg-primary text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <History className="w-4 h-4" />
+          <span>Lịch Sử Bài Viết & Đánh Giá Của Thầy ({mySubmissions.length})</span>
+        </button>
+      </div>
+
+      {/* TAB 1: PRACTICE & AI EVALUATION */}
+      {mainTab === 'practice' && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Prompt & Editor (7 Cols) */}
         <div className="lg:col-span-7 space-y-4">
@@ -638,6 +705,278 @@ export default function StudentWritingPage() {
           )}
         </div>
       </div>
+      )}
+
+      {/* TAB 2: SUBMISSIONS HISTORY & TEACHER FEEDBACK */}
+      {mainTab === 'history' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
+                Lịch Sử Bài Viết Đã Nộp & Nhận Xét Của Giảng Viên
+              </h2>
+              <p className="text-xs text-muted">
+                Theo dõi tiến độ nâng band Writing qua các bài viết đã được AI chấm và Thầy Đông phê duyệt.
+              </p>
+            </div>
+            <button
+              onClick={fetchMySubmissions}
+              disabled={loadingSubmissions}
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center space-x-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingSubmissions ? 'animate-spin' : ''}`} />
+              <span>Làm mới</span>
+            </button>
+          </div>
+
+          {loadingSubmissions && mySubmissions.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-line">
+              <RefreshCw className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
+              <p className="text-xs font-bold text-slate-500">Đang tải lịch sử bài viết của bạn...</p>
+            </div>
+          ) : mySubmissions.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-line space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-sky-50 text-primary flex items-center justify-center mx-auto">
+                <FileText className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Chưa Có Bài Viết Nào Được Nộp</h3>
+              <p className="text-xs text-muted max-w-sm mx-auto">
+                Hãy chuyển sang tab &ldquo;Luyện Viết & Chấm Điểm AI&rdquo; để hoàn thành bài tập viết đầu tiên của bạn!
+              </p>
+              <button
+                onClick={() => setMainTab('practice')}
+                className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold shadow-xs transition hover:bg-primary-dark"
+              >
+                Bắt đầu viết bài ngay
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {mySubmissions.map((sub) => {
+                const isApproved = sub.status === 'APPROVED' || sub.status === 'OVERRIDDEN';
+                const finalBand = sub.teacherScore ?? sub.aiScore ?? sub.aiAnalysis?.bandScore ?? 0;
+
+                return (
+                  <div
+                    key={sub.id}
+                    className="bg-white rounded-3xl border border-line p-5 shadow-xs hover:border-slate-300 transition space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      {/* Top Header of Card */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <span
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full inline-block ${
+                              sub.prompt?.taskType === 'TASK_1'
+                                ? 'bg-sky-100 text-sky-800'
+                                : 'bg-purple-100 text-purple-800'
+                            }`}
+                          >
+                            {sub.prompt?.taskType || 'IELTS WRITING'}
+                          </span>
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2">
+                            {sub.prompt?.title || 'Bài tập IELTS Writing'}
+                          </h3>
+                        </div>
+
+                        {/* Status Badge */}
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full shrink-0 ${
+                            isApproved
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : sub.status === 'AI_SCORED'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {isApproved
+                            ? '✓ Thầy Đã Duyệt'
+                            : sub.status === 'AI_SCORED'
+                            ? 'AI Đã Chấm'
+                            : 'Chờ Chấm'}
+                        </span>
+                      </div>
+
+                      {/* Meta Info */}
+                      <div className="flex items-center gap-3 text-[11px] text-muted">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{new Date(sub.createdAt).toLocaleDateString('vi-VN')}</span>
+                        </span>
+                        <span>•</span>
+                        <span>{sub.wordCount} từ</span>
+                        {sub.durationSeconds ? (
+                          <>
+                            <span>•</span>
+                            <span>{Math.round(sub.durationSeconds / 60)} phút</span>
+                          </>
+                        ) : null}
+                      </div>
+
+                      {/* Score Highlight Box */}
+                      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-50 to-white border border-sky-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                            {isApproved ? 'Band Điểm Chính Thức' : 'Band Điểm Dự Kiến (AI)'}
+                          </span>
+                          <span className="text-xl font-black text-primary">
+                            {finalBand > 0 ? `Band ${finalBand.toFixed(1)}` : 'Đang chấm...'}
+                          </span>
+                        </div>
+
+                        {sub.aiAnalysis && (
+                          <div className="text-[10px] text-slate-600 flex gap-2 font-mono">
+                            <span>TR: {sub.aiAnalysis.taskResponse?.score ?? '-'}</span>
+                            <span>CC: {sub.aiAnalysis.coherenceCohesion?.score ?? '-'}</span>
+                            <span>LR: {sub.aiAnalysis.lexicalResource?.score ?? '-'}</span>
+                            <span>GRA: {sub.aiAnalysis.grammaticalAccuracy?.score ?? '-'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Teacher Feedback Preview if exists */}
+                      {sub.teacherFeedback && (
+                        <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-amber-900 space-y-1">
+                          <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                            <Award className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Lời phê của Thầy Đông:</span>
+                          </span>
+                          <p className="text-[11px] leading-relaxed line-clamp-3 italic">
+                            &ldquo;{sub.teacherFeedback}&rdquo;
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Action Button */}
+                    <button
+                      onClick={() => setSelectedSubmission(sub)}
+                      className="w-full mt-2 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center justify-center space-x-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Xem lại toàn bộ bài viết & nhận xét</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DETAIL MODAL: VIEW SINGLE SUBMISSION */}
+      {selectedSubmission && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-line animate-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-line flex items-center justify-between bg-slate-50/60">
+              <div>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-sky-100 text-primary">
+                  {selectedSubmission.prompt?.taskType || 'IELTS WRITING'}
+                </span>
+                <h3 className="text-sm font-extrabold text-slate-900 mt-1 line-clamp-1">
+                  {selectedSubmission.prompt?.title || 'Chi tiết bài viết IELTS'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedSubmission(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-700">
+              {/* Score and Status banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Điểm đánh giá</span>
+                  <p className="text-2xl font-black text-primary">
+                    Band {(selectedSubmission.teacherScore ?? selectedSubmission.aiScore ?? 0).toFixed(1)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Trạng thái</span>
+                  <p className="text-xs font-bold text-slate-800">
+                    {selectedSubmission.status === 'APPROVED' || selectedSubmission.status === 'OVERRIDDEN'
+                      ? '✓ Đã được Giảng viên phê duyệt'
+                      : 'Đang chờ Giảng viên duyệt'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Teacher Feedback if available */}
+              {selectedSubmission.teacherFeedback && (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-1">
+                  <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                    <Award className="w-4 h-4 text-amber-600" />
+                    <span>Lời phê của Giảng viên:</span>
+                  </span>
+                  <p className="text-xs leading-relaxed italic">{selectedSubmission.teacherFeedback}</p>
+                </div>
+              )}
+
+              {/* Student Essay Content */}
+              <div className="space-y-2">
+                <span className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-1">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span>Bài viết của bạn ({selectedSubmission.wordCount} từ):</span>
+                </span>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-line whitespace-pre-wrap leading-relaxed font-sans text-slate-800">
+                  {selectedSubmission.content}
+                </div>
+              </div>
+
+              {/* AI Analysis details if available */}
+              {selectedSubmission.aiAnalysis && (
+                <div className="space-y-3">
+                  <span className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <span>Phân tích chi tiết 4 tiêu chí IELTS:</span>
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-line">
+                      <span className="text-muted text-[10px] uppercase font-bold">Task Response (TR)</span>
+                      <p className="font-bold text-slate-900">
+                        Band {selectedSubmission.aiAnalysis.taskResponse?.score ?? '-'}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-line">
+                      <span className="text-muted text-[10px] uppercase font-bold">Coherence & Cohesion (CC)</span>
+                      <p className="font-bold text-slate-900">
+                        Band {selectedSubmission.aiAnalysis.coherenceCohesion?.score ?? '-'}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-line">
+                      <span className="text-muted text-[10px] uppercase font-bold">Lexical Resource (LR)</span>
+                      <p className="font-bold text-slate-900">
+                        Band {selectedSubmission.aiAnalysis.lexicalResource?.score ?? '-'}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-line">
+                      <span className="text-muted text-[10px] uppercase font-bold">Grammar Accuracy (GRA)</span>
+                      <p className="font-bold text-slate-900">
+                        Band {selectedSubmission.aiAnalysis.grammaticalAccuracy?.score ?? '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-line bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setSelectedSubmission(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-900 transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
