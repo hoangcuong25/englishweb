@@ -31,6 +31,7 @@ import {
   GraduationCap,
   CheckCheck,
 } from 'lucide-react';
+import HeroOpenBook from '@/components/shared/hero-open-book';
 
 interface ProgramDetail {
   category: string;
@@ -105,10 +106,10 @@ export default function HomePage() {
         title: isEn
           ? '1. English Proficiency Course'
           : isZh
-          ? '1. 英语综合能力提升课程'
-          : isJa
-          ? '1. 英語運用能力総合コース'
-          : '1. English Proficiency Course',
+            ? '1. 英语综合能力提升课程'
+            : isJa
+              ? '1. 英語運用能力総合コース'
+              : '1. English Proficiency Course',
         code: isEn ? 'PILLAR 01' : isZh ? '核心支柱 01' : isJa ? '教育の柱 01' : 'TRỤ CỘT 01',
         badge: isEn ? '4 COURSES' : isZh ? '4 门精选课' : isJa ? '4つの講座' : '4 KHÓA HỌC',
         borderColor: 'border-t-[#1B64B0]',
@@ -116,10 +117,10 @@ export default function HomePage() {
         desc: isEn
           ? 'Comprehensive English training covering business communication, Cambridge IELTS test preparation, and communicative English.'
           : isZh
-          ? '全方位英语能力提升体系，涵盖商务沟通、雅思考试冲分、日常流利口语及少儿英语启蒙。'
-          : isJa
-          ? 'ビジネス英語、IELTS試験対策、日常英会話からキッズ英語まで網羅した包括的な語学トレーニング。'
-          : 'Chương trình phát triển năng lực tiếng Anh toàn diện, từ tiếng Anh công sở, luyện thi chứng chỉ quốc tế IELTS đến tiếng Anh giao tiếp và thiếu nhi.',
+            ? '全方位英语能力提升体系，涵盖商务沟通、雅思考试冲分、日常流利口语及少儿英语启蒙。'
+            : isJa
+              ? 'ビジネス英語、IELTS試験対策、日常英会話からキッズ英語まで網羅した包括的な語学トレーニング。'
+              : 'Chương trình phát triển năng lực tiếng Anh toàn diện, từ tiếng Anh công sở, luyện thi chứng chỉ quốc tế IELTS đến tiếng Anh giao tiếp và thiếu nhi.',
         programs: [
           {
             category: '1. English Proficiency Course',
@@ -130,10 +131,10 @@ export default function HomePage() {
             description: isEn
               ? 'Professional business English: contract negotiations, cross-border emails, project presentations, and online meeting facilitation.'
               : isZh
-              ? '专业商务英语：商业合同谈判、跨国电子邮件书写、项目演示及线上国际会议主持。'
-              : isJa
-              ? '実践ビジネス英語：契約交渉、英文メール作成、プレゼンテーション、国際オンライン会議の進行。'
-              : 'Tiếng Anh thương mại chuyên nghiệp: kỹ năng đàm phán hợp đồng, soạn thảo email đối tác quốc tế, thuyết trình dự án và chủ trì cuộc họp trực tuyến.',
+                ? '专业商务英语：商业合同谈判、跨国电子邮件书写、项目演示及线上国际会议主持。'
+                : isJa
+                  ? '実践ビジネス英語：契約交渉、英文メール作成、プレゼンテーション、国際オンライン会議の進行。'
+                  : 'Tiếng Anh thương mại chuyên nghiệp: kỹ năng đàm phán hợp đồng, soạn thảo email đối tác quốc tế, thuyết trình dự án và chủ trì cuộc họp trực tuyến.',
             targetAudience: isEn ? 'Working Professionals, Managers' : isZh ? '职场人士、企业管理者' : isJa ? '社会人・マネージャー' : 'Người đi làm, Quản lý, Nhân viên văn phòng',
             format: 'LiveKit WebRTC 1:7 + LMS',
             icon: Briefcase,
@@ -147,10 +148,10 @@ export default function HomePage() {
             description: isEn
               ? 'Accelerated IELTS Academic Band 6.5 -> 7.5+: featuring instant 4-criteria AI writing evaluation and timestamped speaking feedback from Teacher Dong.'
               : isZh
-              ? '雅思学术类 6.5 -> 7.5+ 冲刺课程：内置 AI 4项评分标准写作批改系统与导师时间戳精确定位口语点评。'
-              : isJa
-              ? 'IELTSアカデミック Band 6.5→7.5+ 突破コース：AIによる4基準ライティング即時添削と講師によるタイムスタンプ付きスピーキング指導。'
-              : 'Lộ trình bứt phá IELTS Academic Band 6.5 -> 7.5+: tích hợp chấm Writing AI 4 tiêu chí chuẩn Cambridge và phòng Speaking Studio ghim nhận xét theo mốc thời gian từ Teacher Dong.',
+                ? '雅思学术类 6.5 -> 7.5+ 冲刺课程：内置 AI 4项评分标准写作批改系统与导师时间戳精确定位口语点评。'
+                : isJa
+                  ? 'IELTSアカデミック Band 6.5→7.5+ 突破コース：AIによる4基準ライティング即時添削と講師によるタイムスタンプ付きスピーキング指導。'
+                  : 'Lộ trình bứt phá IELTS Academic Band 6.5 -> 7.5+: tích hợp chấm Writing AI 4 tiêu chí chuẩn Cambridge và phòng Speaking Studio ghim nhận xét theo mốc thời gian từ Teacher Dong.',
             targetAudience: isEn ? 'High School & University Students' : isZh ? '高中生、大学生、留学生' : isJa ? '高校生・大学生・留学生' : 'Học sinh cấp 3, Sinh viên, Du học sinh',
             format: 'WebRTC LiveKit + AI Writing Engine',
             icon: Target,
@@ -164,10 +165,10 @@ export default function HomePage() {
             description: isEn
               ? 'Master natural listening and speaking reflexes, standard IPA pronunciation, intonation, and real-life conversational confidence.'
               : isZh
-              ? '培养纯正自然的听说反应，精细纠正国际音标 (IPA) 发音与语调，让实际交流从容自信。'
-              : isJa
-              ? '自然なリスニング＆スピーキングの反射神経を養成。IPA発音記号や抑揚を修正し、自信を持って話せる力を培います。'
-              : 'Rèn luyện phản xạ nghe nói tiếng Anh tự nhiên, chỉnh sửa phát âm chuẩn IPA, làm chủ ngữ điệu và giao tiếp tự tin trong đời sống thực tế.',
+                ? '培养纯正自然的听说反应，精细纠正国际音标 (IPA) 发音与语调，让实际交流从容自信。'
+                : isJa
+                  ? '自然なリスニング＆スピーキングの反射神経を養成。IPA発音記号や抑揚を修正し、自信を持って話せる力を培います。'
+                  : 'Rèn luyện phản xạ nghe nói tiếng Anh tự nhiên, chỉnh sửa phát âm chuẩn IPA, làm chủ ngữ điệu và giao tiếp tự tin trong đời sống thực tế.',
             targetAudience: isEn ? 'All Ages Seeking Speaking Confidence' : isZh ? '所有渴望流利表达的学习者' : isJa ? '英会話に自信を持ちたいすべての年代' : 'Mọi lứa tuổi muốn tự tin nói tiếng Anh',
             format: 'Live Interactive SFU Classroom',
             icon: Headphones,
@@ -181,10 +182,10 @@ export default function HomePage() {
             description: isEn
               ? 'Natural language immersion for preschool & primary kids (ages 4-10) through interactive games, storytelling, and colorful whiteboard visuals.'
               : isZh
-              ? '为 4-10 岁幼少儿设计的自然语言浸润法，融合趣味互动游戏、生动绘本故事与彩色白板。'
-              : isJa
-              ? '4〜10歳向けの自然な言語習得メソッド。インタラクティブなゲーム、絵本の読み聞かせ、カラフルなホワイトボードで楽しく学びます。'
-              : 'Phương pháp thẩm thấu ngôn ngữ tự nhiên dành cho trẻ mầm non & tiểu học (4-10 tuổi) qua trò chơi, câu chuyện kể và bảng trắng trực quan nhiều màu sắc.',
+                ? '为 4-10 岁幼少儿设计的自然语言浸润法，融合趣味互动游戏、生动绘本故事与彩色白板。'
+                : isJa
+                  ? '4〜10歳向けの自然な言語習得メソッド。インタラクティブなゲーム、絵本の読み聞かせ、カラフルなホワイトボードで楽しく学びます。'
+                  : 'Phương pháp thẩm thấu ngôn ngữ tự nhiên dành cho trẻ mầm non & tiểu học (4-10 tuổi) qua trò chơi, câu chuyện kể và bảng trắng trực quan nhiều màu sắc.',
             targetAudience: isEn ? 'Children aged 4 - 10' : isZh ? '4 - 10 岁学龄前及小学儿童' : isJa ? '4〜10歳の幼児・小学生' : 'Trẻ em từ 4 - 10 tuổi',
             format: 'Fun & Engaging LiveKit Classroom',
             icon: Sparkles,
@@ -201,10 +202,10 @@ export default function HomePage() {
         desc: isEn
           ? 'Pedagogical training, modern teaching methodologies, embracing AI in education, and international career pathway guidance.'
           : isZh
-          ? '现代教学法师资赋能，拥抱人工智能 (AI) 智慧教育浪潮，提供国际化职业生涯指引。'
-          : isJa
-          ? '現代的な教授法、教育現場におけるAI活用法、国際的なキャリア形成を支援する専門的トレーニング。'
-          : 'Đào tạo chuyên môn sư phạm, kỹ năng giảng dạy hiện đại, đón đầu làn sóng Trí tuệ nhân tạo (AI) trong giáo dục và định hướng nghề nghiệp quốc tế.',
+            ? '现代教学法师资赋能，拥抱人工智能 (AI) 智慧教育浪潮，提供国际化职业生涯指引。'
+            : isJa
+              ? '現代的な教授法、教育現場におけるAI活用法、国際的なキャリア形成を支援する専門的トレーニング。'
+              : 'Đào tạo chuyên môn sư phạm, kỹ năng giảng dạy hiện đại, đón đầu làn sóng Trí tuệ nhân tạo (AI) trong giáo dục và định hướng nghề nghiệp quốc tế.',
         programs: [
           {
             category: '2. Professional Development',
@@ -215,10 +216,10 @@ export default function HomePage() {
             description: isEn
               ? 'Leverage AI (ChatGPT, Claude, Prompt Engineering, Canva AI) to generate automated lesson plans, smart quizzes, and 5x pedagogical productivity.'
               : isZh
-              ? '深度应用生成式 AI 工具进行自动化备课、智能生成测验，助力教学效率提升 5 倍。'
-              : isJa
-              ? '生成AIを活用した授業設計の自動化、スマートテスト作成、指導効率の劇的な向上を図る実践講座。'
-              : 'Ứng dụng AI đột phá (ChatGPT, Claude, Prompt Engineering, Canva AI) để thiết kế bài giảng tự động, tạo đề kiểm tra thông minh và nâng cao hiệu suất sư phạm gấp 5 lần.',
+                ? '深度应用生成式 AI 工具进行自动化备课、智能生成测验，助力教学效率提升 5 倍。'
+                : isJa
+                  ? '生成AIを活用した授業設計の自動化、スマートテスト作成、指導効率の劇的な向上を図る実践講座。'
+                  : 'Ứng dụng AI đột phá (ChatGPT, Claude, Prompt Engineering, Canva AI) để thiết kế bài giảng tự động, tạo đề kiểm tra thông minh và nâng cao hiệu suất sư phạm gấp 5 lần.',
             targetAudience: isEn ? 'Teachers, Instructors, Content Creators' : isZh ? '大中小学教师、教育内容创作者' : isJa ? '教員・講師・教育コンテンツ制作者' : 'Giáo viên, Giảng viên, Nhà sáng tạo nội dung giáo dục',
             format: 'Hands-on AI Workshop',
             icon: Sparkles,
@@ -232,10 +233,10 @@ export default function HomePage() {
             description: isEn
               ? 'Roadmap planning for careers in education, international scholarship strategies, and interview coaching for global institutions.'
               : isZh
-              ? '国际教育行业求职规划、国际奖学金申请策略与国际学校应聘模拟面试。'
-              : isJa
-              ? '国際教育業界へのキャリア戦略、海外奨学金獲得ノウハウ、国際機関面接対策。'
-              : 'Định hướng lộ trình nghề nghiệp trong ngành giáo dục & ngôn ngữ, chiến lược săn học bổng quốc tế và kỹ năng phỏng vấn tuyển dụng trường quốc tế.',
+                ? '国际教育行业求职规划、国际奖学金申请策略与国际学校应聘模拟面试。'
+                : isJa
+                  ? '国際教育業界へのキャリア戦略、海外奨学金獲得ノウハウ、国際機関面接対策。'
+                  : 'Định hướng lộ trình nghề nghiệp trong ngành giáo dục & ngôn ngữ, chiến lược săn học bổng quốc tế và kỹ năng phỏng vấn tuyển dụng trường quốc tế.',
             targetAudience: isEn ? 'Education Students, Career Changers' : isZh ? '师范生、教育转型人才' : isJa ? '教育学部生・キャリアチェンジ希望者' : 'Sinh viên sư phạm, Người chuyển ngành giáo dục',
             format: '1-on-1 Mentoring',
             icon: Target,
@@ -249,10 +250,10 @@ export default function HomePage() {
             description: isEn
               ? 'Dynamic classroom facilitation, positive discipline, encouraging student engagement, and resolving classroom challenges smoothly.'
               : isZh
-              ? '线上线下智慧课堂管理艺术、积极管教法、激发学员主动互动与突发状况应对。'
-              : isJa
-              ? '対面およびオンラインでの授業マネジメント、ポジティブな規律指導、生徒の自発的参加を促す実践技術。'
-              : 'Nghệ thuật tổ chức, điều phối lớp học thông minh (trực tiếp & trực tuyến), kỷ luật tích cực, khích lệ học sinh chủ động tương tác và xử lý tình huống sư phạm khéo léo.',
+                ? '线上线下智慧课堂管理艺术、积极管教法、激发学员主动互动与突发状况应对。'
+                : isJa
+                  ? '対面およびオンラインでの授業マネジメント、ポジティブな規律指導、生徒の自発的参加を促す実践技術。'
+                  : 'Nghệ thuật tổ chức, điều phối lớp học thông minh (trực tiếp & trực tuyến), kỷ luật tích cực, khích lệ học sinh chủ động tương tác và xử lý tình huống sư phạm khéo léo.',
             targetAudience: isEn ? 'All Educators & Teaching Assistants' : isZh ? '一线教师、助教团队' : isJa ? 'すべての指導者・ティーチングアシスタント' : 'Giáo viên các cấp, Trợ giảng',
             format: 'Practical Field Methods',
             icon: Users,
@@ -266,10 +267,10 @@ export default function HomePage() {
             description: isEn
               ? 'Educational leadership, academic department coordination, professional workplace culture, and managing international standards.'
               : isZh
-              ? '学术教研团队管理、国际化教育项目协调与跨文化团队领导力塑造。'
-              : isJa
-              ? '教育機関におけるマネジメント、学科コーディネート、組織文化の構築と国際標準プロジェクト運営。'
-              : 'Năng lực lãnh đạo giáo dục, quản lý tổ bộ môn, xây dựng văn hóa làm việc chuyên nghiệp và điều phối dự án đào tạo chuẩn quốc tế.',
+                ? '学术教研团队管理、国际化教育项目协调与跨文化团队领导力塑造。'
+                : isJa
+                  ? '教育機関におけるマネジメント、学科コーディネート、組織文化の構築と国際標準プロジェクト運営。'
+                  : 'Năng lực lãnh đạo giáo dục, quản lý tổ bộ môn, xây dựng văn hóa làm việc chuyên nghiệp và điều phối dự án đào tạo chuẩn quốc tế.',
             targetAudience: isEn ? 'Department Heads & Academic Leaders' : isZh ? '学科带头人、教研主管' : isJa ? '主任教諭・教育機関管理者' : 'Tổ trưởng chuyên môn, Quản lý học thuật',
             format: 'Educational Leadership Lab',
             icon: Award,
@@ -283,10 +284,10 @@ export default function HomePage() {
             description: isEn
               ? 'Educational research methodology, qualitative/quantitative analysis, thesis mentoring, and international journal publishing.'
               : isZh
-              ? '教育科学研究方法、定性与定量分析指导、硕博学位论文修改及国际期刊发表。'
-              : isJa
-              ? '教育研究法、質的・量的データ分析指導、修士・博士論文メンタリングおよび国際学術誌への投稿支援。'
-              : 'Cố vấn phương pháp nghiên cứu khoa học giáo dục, kỹ năng phân tích định lượng/định tính, viết luận văn thạc sĩ/tiến sĩ và công bố bài báo quốc tế.',
+                ? '教育科学研究方法、定性与定量分析指导、硕博学位论文修改及国际期刊发表。'
+                : isJa
+                  ? '教育研究法、質的・量的データ分析指導、修士・博士論文メンタリングおよび国際学術誌への投稿支援。'
+                  : 'Cố vấn phương pháp nghiên cứu khoa học giáo dục, kỹ năng phân tích định lượng/định tính, viết luận văn thạc sĩ/tiến sĩ và công bố bài báo quốc tế.',
             targetAudience: isEn ? 'Graduate Students & Researchers' : isZh ? '硕博研究生、学术学者' : isJa ? '大学院生・教育研究者' : 'Học viên cao học, Nhà nghiên cứu',
             format: 'Advanced Academic Advisory',
             icon: BookOpen,
@@ -300,10 +301,10 @@ export default function HomePage() {
             description: isEn
               ? 'World-class pedagogical frameworks: Communicative Language Teaching (CLT), Task-Based Learning (TBL), and Flipped Classrooms.'
               : isZh
-              ? '国际领先语言教学法：交际教学法 (CLT)、任务型教学 (TBL) 与翻转课堂深度实践。'
-              : isJa
-              ? '世界水準の教授理論：コミュニカティブ・アプローチ（CLT）、タスク中心指導法（TBL）、反転授業の実践。'
-              : 'Phương pháp giảng dạy hiện đại chuẩn quốc tế: Communicative Language Teaching (CLT), Task-Based Learning (TBL), Flipped Classroom và dạy học tương tác.',
+                ? '国际领先语言教学法：交际教学法 (CLT)、任务型教学 (TBL) 与翻转课堂深度实践。'
+                : isJa
+                  ? '世界水準の教授理論：コミュニカティブ・アプローチ（CLT）、タスク中心指導法（TBL）、反転授業の実践。'
+                  : 'Phương pháp giảng dạy hiện đại chuẩn quốc tế: Communicative Language Teaching (CLT), Task-Based Learning (TBL), Flipped Classroom và dạy học tương tác.',
             targetAudience: isEn ? 'English Language Instructors' : isZh ? '英语专职教师' : isJa ? '英語指導者' : 'Giáo viên tiếng Anh',
             format: 'Interactive Pedagogy Suite',
             icon: PenTool,
@@ -320,10 +321,10 @@ export default function HomePage() {
         desc: isEn
           ? 'Integrating English with essential 21st-century capabilities: sharpening critical thinking, confident public speaking, and thriving under pressure.'
           : isZh
-          ? '将语言学习融入 21 世纪核心素养：锤炼批判性思考、攻克公众演讲恐惧并善于在高压下高效产出。'
-          : isJa
-          ? '21世紀型スキルと英語の融合：論理的思考力の深化、堂々たるパブリックスピーチ、プレッシャー下での成果創出。'
-          : 'Học tiếng Anh gắn liền với bộ kỹ năng thế kỷ 21: mài sắc tư duy phản biện, làm chủ nghệ thuật thuyết trình trước công chúng và làm việc hiệu quả dưới áp lực cao.',
+            ? '将语言学习融入 21 世纪核心素养：锤炼批判性思考、攻克公众演讲恐惧并善于在高压下高效产出。'
+            : isJa
+              ? '21世紀型スキルと英語の融合：論理的思考力の深化、堂々たるパブリックスピーチ、プレッシャー下での成果創出。'
+              : 'Học tiếng Anh gắn liền với bộ kỹ năng thế kỷ 21: mài sắc tư duy phản biện, làm chủ nghệ thuật thuyết trình trước công chúng và làm việc hiệu quả dưới áp lực cao.',
         programs: [
           {
             category: '3. Life Skills and Personal Growth',
@@ -334,10 +335,10 @@ export default function HomePage() {
             description: isEn
               ? 'Train habits of rigorous logical questioning, identifying cognitive fallacies, multidimensional data analysis, and innovative solutions.'
               : isZh
-              ? '训练严密逻辑思维习惯，识别常见认知谬误，掌握多维度数据剖析与创造性问题求解。'
-              : isJa
-              ? '論理的推論習慣を身につけ、認知の歪みを回避。多角的なデータ分析と創造的課題解決力を養成します。'
-              : 'Rèn luyện thói quen tư duy phản biện, nhận diện bẫy ngụy biện logic, phân tích dữ liệu đa chiều và đưa ra giải pháp sáng tạo cho các thách thức thực tế.',
+                ? '训练严密逻辑思维习惯，识别常见认知谬误，掌握多维度数据剖析与创造性问题求解。'
+                : isJa
+                  ? '論理的推論習慣を身につけ、認知の歪みを回避。多角的なデータ分析と創造的課題解決力を養成します。'
+                  : 'Rèn luyện thói quen tư duy phản biện, nhận diện bẫy ngụy biện logic, phân tích dữ liệu đa chiều và đưa ra giải pháp sáng tạo cho các thách thức thực tế.',
             targetAudience: isEn ? 'Students & Working Adults' : isZh ? '青年学生、职场人士' : isJa ? '学生・ビジネスパーソン' : 'Học sinh, Sinh viên, Người đi làm',
             format: 'Interactive Problem Labs',
             icon: Sparkles,
@@ -351,10 +352,10 @@ export default function HomePage() {
             description: isEn
               ? 'Conquer stage fright, master compelling storytelling, vocal modulation, body language dynamics, and audience engagement.'
               : isZh
-              ? '克服当众发言恐惧，精通引人入胜的故事讲述法 (Storytelling)，掌控声音抑扬顿挫与肢体语言。'
-              : isJa
-              ? '人前での緊張を克服し、聴衆を惹きつけるストーリーテリング、声のトーンコントロール、身体言語を習得。'
-              : 'Khắc phục nỗi sợ nói trước đám đông, nghệ thuật kể chuyện (Storytelling), kiểm soát cao độ giọng nói, ngôn ngữ hình thể và thiết kế bài thuyết trình cuốn hút.',
+                ? '克服当众发言恐惧，精通引人入胜的故事讲述法 (Storytelling)，掌控声音抑扬顿挫与肢体语言。'
+                : isJa
+                  ? '人前での緊張を克服し、聴衆を惹きつけるストーリーテリング、声のトーンコントロール、身体言語を習得。'
+                  : 'Khắc phục nỗi sợ nói trước đám đông, nghệ thuật kể chuyện (Storytelling), kiểm soát cao độ giọng nói, ngôn ngữ hình thể và thiết kế bài thuyết trình cuốn hút.',
             targetAudience: isEn ? 'Anyone Aspiring to Speak Powerfully' : isZh ? '全年龄段学习者' : isJa ? 'すべての希望者' : 'Mọi lứa tuổi',
             format: 'Live Stage Practice',
             icon: Mic,
@@ -368,10 +369,10 @@ export default function HomePage() {
             description: isEn
               ? 'Productivity frameworks (Eisenhower Matrix, Pomodoro), sustained focus training, stress mitigation, and performance endurance.'
               : isZh
-              ? '艾森豪威尔矩阵与番茄工作法实践，保持高度专注、有效管理压力并在紧迫期限下维持顶尖表现。'
-              : isJa
-              ? 'アイゼンハワー・マトリクスやポモドーロ法による生産性向上。集中力維持とストレス耐性の強化。'
-              : 'Phương pháp quản trị thời gian tối ưu (Eisenhower Matrix, Pomodoro), giữ vững sự tập trung cao độ, quản trị căng thẳng và duy trì phong độ dưới áp lực thời gian.',
+                ? '艾森豪威尔矩阵与番茄工作法实践，保持高度专注、有效管理压力并在紧迫期限下维持顶尖表现。'
+                : isJa
+                  ? 'アイゼンハワー・マトリクスやポモドーロ法による生産性向上。集中力維持とストレス耐性の強化。'
+                  : 'Phương pháp quản trị thời gian tối ưu (Eisenhower Matrix, Pomodoro), giữ vững sự tập trung cao độ, quản trị căng thẳng và duy trì phong độ dưới áp lực thời gian.',
             targetAudience: isEn ? 'Exam Takers & Busy Professionals' : isZh ? '备考生、高负荷工作者' : isJa ? '受験生・多忙なビジネスパーソン' : 'Học sinh ôn thi, Nhân sự bận rộn',
             format: 'Actionable Life Coaching',
             icon: Clock,
@@ -388,10 +389,10 @@ export default function HomePage() {
         desc: isEn
           ? 'Real-world stories, transformative insights, and international teaching journeys shared directly by Teacher Dong.'
           : isZh
-          ? '真切生动的跨国经历、海外从教感悟以及董老师数十年沉淀的育人哲学与人生体悟。'
-          : isJa
-          ? '専任講師ドンの長年の海外指導経験、異文化での生活、人生の転機となった実話を共有。'
-          : 'Những chia sẻ người thật việc thật, câu chuyện truyền cảm hứng và bài học xương máu đúc kết từ quá trình giảng dạy, sinh sống và lập nghiệp tại các quốc gia.',
+            ? '真切生动的跨国经历、海外从教感悟以及董老师数十年沉淀的育人哲学与人生体悟。'
+            : isJa
+              ? '専任講師ドンの長年の海外指導経験、異文化での生活、人生の転機となった実話を共有。'
+              : 'Những chia sẻ người thật việc thật, câu chuyện truyền cảm hứng và bài học xương máu đúc kết từ quá trình giảng dạy, sinh sống và lập nghiệp tại các quốc gia.',
         programs: [
           {
             category: '4. Life Experiences and Inspiration',
@@ -402,10 +403,10 @@ export default function HomePage() {
             description: isEn
               ? 'Monthly talk series igniting aspirations, overcoming language anxiety, shaping personal purpose, and cultivating positivity.'
               : isZh
-              ? '每月名师系列讲座，点亮学习信念，突破心理自卑，树立人生愿景并传递积极力量。'
-              : isJa
-              ? '毎月の特別対談。語学への苦手意識を克服し、志を高く持ち、前向きなエネルギーを育む場。'
-              : 'Chuỗi tọa đàm thắp sáng khát vọng học hỏi, vượt qua rào cản tự ti ngôn ngữ, định hình lý tưởng sống và tiếp thêm năng lượng tích cực.',
+                ? '每月名师系列讲座，点亮学习信念，突破心理自卑，树立人生愿景并传递积极力量。'
+                : isJa
+                  ? '毎月の特別対談。語学への苦手意識を克服し、志を高く持ち、前向きなエネルギーを育む場。'
+                  : 'Chuỗi tọa đàm thắp sáng khát vọng học hỏi, vượt qua rào cản tự ti ngôn ngữ, định hình lý tưởng sống và tiếp thêm năng lượng tích cực.',
             targetAudience: isEn ? 'Learners & Readers Community' : isZh ? '广大学员与读者群体' : isJa ? '受講生およびコミュニティ読者' : 'Cộng đồng học viên & Độc giả',
             format: 'Monthly Interactive Talkshow',
             icon: Star,
@@ -419,10 +420,10 @@ export default function HomePage() {
             description: isEn
               ? 'Authentic reflections on classroom cultural dynamics, pedagogy contrasts, and pedagogical growth across diverse foreign institutions.'
               : isZh
-              ? '多年海外执教的真实回忆、多元文化课堂的碰撞与教学智慧沉淀。'
-              : isJa
-              ? '海外教育現場での実体験、多文化クラスにおける指導の工夫、異文化理解の教訓録。'
-              : 'Những trải nghiệm chân thực, sự khác biệt văn hóa lớp học và bài học sư phạm đúc rút từ nhiều năm trực tiếp giảng dạy tại các môi trường quốc tế.',
+                ? '多年海外执教的真实回忆、多元文化课堂的碰撞与教学智慧沉淀。'
+                : isJa
+                  ? '海外教育現場での実体験、多文化クラスにおける指導の工夫、異文化理解の教訓録。'
+                  : 'Những trải nghiệm chân thực, sự khác biệt văn hóa lớp học và bài học sư phạm đúc rút từ nhiều năm trực tiếp giảng dạy tại các môi trường quốc tế.',
             targetAudience: isEn ? 'Educators & Global Dreamers' : isZh ? '青年教育工作者、留学者' : isJa ? '教育関係者・海外進出を目指す若者' : 'Giáo viên, Giới trẻ đam mê giáo dục',
             format: 'Memoir & Masterclasses',
             icon: Globe,
@@ -436,10 +437,10 @@ export default function HomePage() {
             description: isEn
               ? 'Survival guides, cross-border job searches, cultural adaptation, and thriving in multinational workspaces abroad.'
               : isZh
-              ? '海外求职实战指南、跨国公司职场生存法则与融入异国社区的核心策略。'
-              : isJa
-              ? '海外での就労・生活サバイバルガイド。異国でのコミュニティ適応と多国籍職場での活躍術。'
-              : 'Cẩm nang sinh tồn, kinh nghiệm tìm kiếm việc làm, hòa nhập cộng đồng và làm việc hiệu quả trong môi trường đa quốc gia ở nước ngoài.',
+                ? '海外求职实战指南、跨国公司职场生存法则与融入异国社区的核心策略。'
+                : isJa
+                  ? '海外での就労・生活サバイバルガイド。異国でのコミュニティ適応と多国籍職場での活躍術。'
+                  : 'Cẩm nang sinh tồn, kinh nghiệm tìm kiếm việc làm, hòa nhập cộng đồng và làm việc hiệu quả trong môi trường đa quốc gia ở nước ngoài.',
             targetAudience: isEn ? 'Overseas Students & Expats' : isZh ? '海外学子、新移民群体' : isJa ? '留学生・海外移住者' : 'Du học sinh, Người định cư',
             format: 'Field Guides & Workshops',
             icon: Briefcase,
@@ -453,10 +454,10 @@ export default function HomePage() {
             description: isEn
               ? 'Poignant essays and philosophical reflections on education, mentorship, and building Teacher Dong Academy.'
               : isZh
-              ? '董老师亲笔随笔，关于教育情怀、生活哲思以及创立学院背后的温暖初心。'
-              : isJa
-              ? '教育への想い、日々の思索、そしてアカデミー設立に込めた情熱を綴るエッセイ集。'
-              : 'Tản văn và những chiêm nghiệm sâu sắc của Teacher Dong về cuộc sống, triết lý giáo dục nhân văn và hành trình gầy dựng Teacher Dong Academy.',
+                ? '董老师亲笔随笔，关于教育情怀、生活哲思以及创立学院背后的温暖初心。'
+                : isJa
+                  ? '教育への想い、日々の思索、そしてアカデミー設立に込めた情熱を綴るエッセイ集。'
+                  : 'Tản văn và những chiêm nghiệm sâu sắc của Teacher Dong về cuộc sống, triết lý giáo dục nhân văn và hành trình gầy dựng Teacher Dong Academy.',
             targetAudience: isEn ? 'All Readers' : isZh ? '所有心系教育的读者' : isJa ? 'すべての読者' : 'Tất cả bạn đọc',
             format: 'Literary Essays & Reflections',
             icon: BookOpen,
@@ -473,10 +474,10 @@ export default function HomePage() {
         desc: isEn
           ? 'Cross-cultural exploration: discovering Asian heritage, culinary art, local dialects, and fostering a global citizen mindset.'
           : isZh
-          ? '多民族文化交流窗口：探索亚洲名胜精粹、民间语言掌故与全球公民视野的启迪。'
-          : isJa
-          ? '異文化理解の窓：アジア各地の歴史や食文化、現地言語の魅力、地球市民としての教養の育成。'
-          : 'Không gian văn hóa đa sắc tộc: khám phá vẻ đẹp danh lam thắng cảnh Châu Á, câu chuyện ngôn ngữ bản địa và nuôi dưỡng tư duy công dân toàn cầu.',
+            ? '多民族文化交流窗口：探索亚洲名胜精粹、民间语言掌故与全球公民视野的启迪。'
+            : isJa
+              ? '異文化理解の窓：アジア各地の歴史や食文化、現地言語の魅力、地球市民としての教養の育成。'
+              : 'Không gian văn hóa đa sắc tộc: khám phá vẻ đẹp danh lam thắng cảnh Châu Á, câu chuyện ngôn ngữ bản địa và nuôi dưỡng tư duy công dân toàn cầu.',
         programs: [
           {
             category: '5. Travel and Culture Blog',
@@ -487,10 +488,10 @@ export default function HomePage() {
             description: isEn
               ? 'Expanding cultural empathy, respecting global customs, non-verbal etiquette, and cosmopolitan communication graces.'
               : isZh
-              ? '拓宽文化共情能力、尊重多元风俗习俗、掌握非语言社交礼仪与国际交往规范。'
-              : isJa
-              ? '文化的共感力、各国の慣習や非言語コミュニケーションのマナー、国際社会での洗練された立ち振る舞い。'
-              : 'Mở rộng nhận thức văn hóa, tôn trọng phong tục đa quốc gia, nghi thức giao tiếp phi ngôn ngữ và kỹ năng ứng xử tinh tế trong thế giới phẳng.',
+                ? '拓宽文化共情能力、尊重多元风俗习俗、掌握非语言社交礼仪与国际交往规范。'
+                : isJa
+                  ? '文化的共感力、各国の慣習や非言語コミュニケーションのマナー、国際社会での洗練された立ち振る舞い。'
+                  : 'Mở rộng nhận thức văn hóa, tôn trọng phong tục đa quốc gia, nghi thức giao tiếp phi ngôn ngữ và kỹ năng ứng xử tinh tế trong thế giới phẳng.',
             targetAudience: isEn ? 'Culture Lovers & Travelers' : isZh ? '文化爱好者、背包客' : isJa ? '文化探訪を愛するすべての人' : 'Mọi người yêu thích văn hóa',
             format: 'Essays & Cultural Guides',
             icon: Globe,
@@ -504,10 +505,10 @@ export default function HomePage() {
             description: isEn
               ? 'Adventures through heritage landmarks, culinary gems, and cultural depth across Japan, China, Southeast Asia, and beyond.'
               : isZh
-              ? '走读日本、中国及东南亚各地的历史名胜古迹与舌尖上的传统美食。'
-              : isJa
-              ? '日本、中国、東南アジアの歴史遺産、郷土の味、奥深い歴史探訪記。'
-              : 'Hành trình trải nghiệm danh lam thắng cảnh, ẩm thực tinh hoa và chiều sâu lịch sử của các quốc gia Châu Á (Nhật Bản, Trung Quốc, Đông Nam Á...).',
+                ? '走读日本、中国及东南亚各地的历史名胜古迹与舌尖上的传统美食。'
+                : isJa
+                  ? '日本、中国、東南アジアの歴史遺産、郷土の味、奥深い歴史探訪記。'
+                  : 'Hành trình trải nghiệm danh lam thắng cảnh, ẩm thực tinh hoa và chiều sâu lịch sử của các quốc gia Châu Á (Nhật Bản, Trung Quốc, Đông Nam Á...).',
             targetAudience: isEn ? 'Explorers & World Travelers' : isZh ? '热爱旅行探索的旅人' : isJa ? '旅を愛する旅行者' : 'Người yêu du lịch & khám phá',
             format: 'Travel Journals',
             icon: Star,
@@ -521,10 +522,10 @@ export default function HomePage() {
             description: isEn
               ? 'The magic of local dialects, historical origins of quirky idioms, and touching everyday encounters with native peoples.'
               : isZh
-              ? '方言俚语的独特魅力、趣闻成语的演变历史与平凡质朴的人情故事。'
-              : isJa
-              ? '方言の豊かな響き、成句・慣用句の語源、心温まる人々の日常の物語。'
-              : 'Sự kỳ diệu của ngôn ngữ bản xứ, nguồn gốc thú vị của các thành ngữ địa phương và những câu chuyện con người bình dị, ấm áp.',
+                ? '方言俚语的独特魅力、趣闻成语的演变历史与平凡质朴的人情故事。'
+                : isJa
+                  ? '方言の豊かな響き、成句・慣用句の語源、心温まる人々の日常の物語。'
+                  : 'Sự kỳ diệu của ngôn ngữ bản xứ, nguồn gốc thú vị của các thành ngữ địa phương và những câu chuyện con người bình dị, ấm áp.',
             targetAudience: isEn ? 'Linguistics & Humanity Enthusiasts' : isZh ? '语言学与人文研究爱好者' : isJa ? '言語・人文科学ファン' : 'Người say mê ngôn ngữ học',
             format: 'Linguistic Chronicles',
             icon: Users,
@@ -608,15 +609,15 @@ export default function HomePage() {
 
       {/* 2. MAIN HEADER / NAVBAR (Zero-Shift 3-Zone Layout) */}
       <header className="sticky top-0 z-40 bg-white/98 backdrop-blur border-b border-[#E1EBF5] shadow-xs">
-        <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
-          
+        <div className="max-w-[1380px] mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+
           {/* Zone 1: Brand Logo & Title (Fixed min-width, never shifts) */}
-          <Link href="/" className="flex items-center gap-3.5 group shrink-0 min-w-0">
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#1B64B0] text-white font-black text-xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3.5 group shrink-0 min-w-0">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-[#1B64B0] text-white font-black text-base sm:text-xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
               TD
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-black text-lg sm:text-2xl text-[#14263D] tracking-tight leading-none group-hover:text-[#1B64B0] transition-colors truncate">
+              <span className="font-black text-base sm:text-2xl text-[#14263D] tracking-tight leading-none group-hover:text-[#1B64B0] transition-colors truncate">
                 Teacher Dong
               </span>
               <span className="text-[11px] sm:text-[11.5px] text-[#55687D] font-medium leading-tight mt-1 hidden sm:block truncate">
@@ -625,65 +626,67 @@ export default function HomePage() {
             </div>
           </Link>
 
-          {/* Zone 2: Desktop Nav Links (Hidden on mobile/tablet, centered) */}
-          <nav className="hidden xl:flex items-center justify-center gap-6 2xl:gap-8 flex-1 px-4">
-            <button
-              type="button"
-              onClick={() => scrollToSection('home-programs-section')}
-              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
-            >
-              {t('nav.programs')}
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('about-teacher-dong')}
-              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
-            >
-              {t('nav.about')}
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('tech-preview-section')}
-              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
-            >
-              {t('nav.techPreview')}
-            </button>
-            <Link
-              href="/blog"
-              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
-            >
-              {t('nav.blog')}
-            </Link>
-            <button
-              type="button"
-              onClick={() => scrollToSection('consultation-section')}
-              className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
-            >
-              {t('nav.consultation')}
-            </button>
-          </nav>
+          {/* Zone 2: Desktop Nav Links (Only displayed when logged in) */}
+          {user && (
+            <nav className="hidden xl:flex items-center justify-center gap-6 2xl:gap-8 flex-1 px-4">
+              <button
+                type="button"
+                onClick={() => scrollToSection('home-programs-section')}
+                className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
+              >
+                {t('nav.programs')}
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('about-teacher-dong')}
+                className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
+              >
+                {t('nav.about')}
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('tech-preview-section')}
+                className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
+              >
+                {t('nav.techPreview')}
+              </button>
+              <Link
+                href="/blog"
+                className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
+              >
+                {t('nav.blog')}
+              </Link>
+              <button
+                type="button"
+                onClick={() => scrollToSection('consultation-section')}
+                className="text-center font-bold text-[13.5px] text-[#334155] hover:text-[#1B64B0] transition-colors leading-tight cursor-pointer whitespace-nowrap"
+              >
+                {t('nav.consultation')}
+              </button>
+            </nav>
+          )}
 
-          {/* Zone 3: Right Controls (Language Selector, Login, Register) */}
-          <div className="flex items-center justify-end gap-2.5 sm:gap-4 shrink-0">
+          {/* Zone 3: Right Controls (Language Selector, Login / User Profile) */}
+          <div className="flex items-center justify-end gap-2 sm:gap-4 shrink-0">
             {/* Language Selector Pill with matching popup width */}
-            <div className="relative w-[145px] sm:w-[160px]" ref={langDropdownRef}>
+            <div className="relative w-auto sm:w-[160px]" ref={langDropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-                className="w-full flex items-center justify-between px-3 sm:px-3.5 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl hover:border-[#1B64B0] transition-all cursor-pointer shadow-2xs"
+                className="flex items-center justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl hover:border-[#1B64B0] transition-all cursor-pointer shadow-2xs"
                 aria-label="Language Selector"
               >
                 <span className="text-[11px] sm:text-[11.5px] font-black text-[#64748B] tracking-wider uppercase shrink-0">
                   {currentLangObj.tag}
                 </span>
-                <span className="text-[12.5px] sm:text-[13.5px] font-bold text-[#1E293B] truncate px-1 text-center">
+                <span className="text-[12px] sm:text-[13.5px] font-bold text-[#1E293B] hidden sm:inline truncate px-0.5 text-center">
                   {currentLangObj.label}
                 </span>
                 <ChevronDown className={`w-3.5 h-3.5 text-[#64748B] shrink-0 transition-transform duration-200 ${isLangDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isLangDropdownOpen && (
-                <div className="absolute left-0 right-0 mt-2 w-full bg-white border border-[#E1EBF5] rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
+                <div className="absolute right-0 sm:left-0 sm:right-0 mt-2 w-[150px] sm:w-full bg-white border border-[#E1EBF5] rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
                   {languages.map((l) => (
                     <button
                       key={l.code}
@@ -692,9 +695,8 @@ export default function HomePage() {
                         setLang(l.code);
                         setIsLangDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-2 text-xs sm:text-sm text-left hover:bg-[#F8FAFC] transition-colors cursor-pointer ${
-                        lang === l.code ? 'font-black text-[#1B64B0] bg-[#DDF3FC]/40' : 'text-[#1E293B] font-semibold'
-                      }`}
+                      className={`w-full flex items-center justify-between px-3 py-2 text-xs sm:text-sm text-left hover:bg-[#F8FAFC] transition-colors cursor-pointer ${lang === l.code ? 'font-black text-[#1B64B0] bg-[#DDF3FC]/40' : 'text-[#1E293B] font-semibold'
+                        }`}
                     >
                       <div className="flex items-center gap-2 truncate">
                         <span className="text-[10px] font-extrabold text-[#64748B] uppercase px-1 py-0.5 rounded bg-slate-100 shrink-0">{l.tag}</span>
@@ -707,65 +709,64 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Desktop Auth Buttons (Hidden on mobile < 640px, available in mobile drawer) */}
+            {/* Auth Buttons: When not logged in, ONLY show Login button; When logged in, show user profile & dashboard */}
             {user ? (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Link
                   href={user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#DDF3FC] text-[#1B64B0] text-xs sm:text-sm font-bold hover:bg-[#1B64B0] hover:text-white transition-all shadow-xs"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[#DDF3FC] text-[#1B64B0] text-xs sm:text-sm font-bold hover:bg-[#1B64B0] hover:text-white transition-all shadow-xs"
                 >
                   <GraduationCap className="w-4 h-4" />
-                  <span className="max-w-[110px] truncate">{user.fullName || user.email}</span>
+                  <span className="max-w-[90px] sm:max-w-[120px] truncate">{user.fullName || user.email}</span>
                 </Link>
                 <button
                   type="button"
                   onClick={() => logout()}
-                  className="p-2 text-[#55687D] hover:text-rose-600 rounded-full transition-colors"
+                  className="p-2 text-[#55687D] hover:text-rose-600 rounded-full transition-colors cursor-pointer"
                   title={t('nav.logout')}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {/* Đăng nhập */}
                 <Link
                   href="/login"
-                  className="flex items-center gap-2 px-5 py-2 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full transition-all shadow-sm hover:shadow hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2 text-[12.5px] sm:text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full transition-all shadow-sm hover:shadow hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
                 >
                   <span>{t('nav.login')}</span>
                 </Link>
               </div>
             )}
 
-            {/* Mobile/Tablet Hamburger Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setIsMobileMenuOpen(!isMobileMenuOpen);
-                if (!isMobileMenuOpen) setIsLangDropdownOpen(false);
-              }}
-              className="xl:hidden p-2 text-[#55687D] hover:text-[#1B64B0] hover:bg-[#F7FAFD] rounded-xl transition-all cursor-pointer flex items-center justify-center w-10 h-10 shrink-0"
-              aria-label="Toggle mobile menu"
-            >
-              <div className="w-5 h-4 flex flex-col justify-between items-center relative">
-                <span
-                  className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-500 ease-in-out transform origin-center ${
-                    isMobileMenuOpen ? 'rotate-45 translate-y-[7px] bg-[#1B64B0]' : ''
-                  }`}
-                />
-                <span
-                  className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-300 ease-in-out ${
-                    isMobileMenuOpen ? 'opacity-0 scale-x-0' : 'opacity-100'
-                  }`}
-                />
-                <span
-                  className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-500 ease-in-out transform origin-center ${
-                    isMobileMenuOpen ? '-rotate-45 -translate-y-[7px] bg-[#1B64B0]' : ''
-                  }`}
-                />
-              </div>
-            </button>
+            {/* Mobile/Tablet Hamburger Toggle (Only when logged in) */}
+            {user && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(!isMobileMenuOpen);
+                  if (!isMobileMenuOpen) setIsLangDropdownOpen(false);
+                }}
+                className="xl:hidden p-2 text-[#55687D] hover:text-[#1B64B0] hover:bg-[#F7FAFD] rounded-xl transition-all cursor-pointer flex items-center justify-center w-10 h-10 shrink-0"
+                aria-label="Toggle mobile menu"
+              >
+                <div className="w-5 h-4 flex flex-col justify-between items-center relative">
+                  <span
+                    className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-500 ease-in-out transform origin-center ${isMobileMenuOpen ? 'rotate-45 translate-y-[7px] bg-[#1B64B0]' : ''
+                      }`}
+                  />
+                  <span
+                    className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'opacity-0 scale-x-0' : 'opacity-100'
+                      }`}
+                  />
+                  <span
+                    className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-500 ease-in-out transform origin-center ${isMobileMenuOpen ? '-rotate-45 -translate-y-[7px] bg-[#1B64B0]' : ''
+                      }`}
+                  />
+                </div>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -773,17 +774,15 @@ export default function HomePage() {
       {/* Mobile Nav Backdrop Overlay (Full screen) */}
       <div
         onClick={() => setIsMobileMenuOpen(false)}
-        className={`xl:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 transition-opacity duration-500 ease-in-out ${
-          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`xl:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 transition-opacity duration-500 ease-in-out ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
         aria-hidden="true"
       />
 
       {/* Mobile Nav Right Side Drawer: Slides horizontally from right edge */}
       <div
-        className={`xl:hidden fixed top-0 bottom-0 right-0 z-50 h-full w-[310px] sm:w-[360px] max-w-[85vw] bg-white shadow-2xl flex flex-col justify-between overflow-hidden ${
-          isMobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
-        }`}
+        className={`xl:hidden fixed top-0 bottom-0 right-0 z-50 h-full w-[310px] sm:w-[360px] max-w-[85vw] bg-white shadow-2xl flex flex-col justify-between overflow-hidden ${isMobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
+          }`}
         style={{
           backgroundColor: '#ffffff',
           transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(100%)',
@@ -890,12 +889,12 @@ export default function HomePage() {
         </div>
       </div>
 
-      <main className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-14 sm:space-y-20">
+      <main className="max-w-[1380px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-12 space-y-14 sm:space-y-20 overflow-x-hidden">
         {/* ================= 3. HERO SECTION ================= */}
-        <section className="relative rounded-3xl border border-[#E1EBF5] bg-white p-5 sm:p-10 lg:p-14 shadow-sm overflow-hidden bg-[radial-gradient(800px_420px_at_85%_0%,rgba(85,184,232,0.25),transparent_65%),radial-gradient(520px_320px_at_0%_40%,rgba(255,181,71,0.2),transparent_65%)]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
+        <section className="relative rounded-2xl sm:rounded-3xl border border-[#E1EBF5] bg-white p-4 sm:p-10 lg:p-14 shadow-sm overflow-hidden bg-[radial-gradient(800px_420px_at_85%_0%,rgba(85,184,232,0.25),transparent_65%),radial-gradient(520px_320px_at_0%_40%,rgba(255,181,71,0.2),transparent_65%)]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center">
             {/* Left Column: Headline, CTAs, Hashtags */}
-            <div className="lg:col-span-7 space-y-5 sm:space-y-6">
+            <div className="lg:col-span-7 space-y-5 sm:space-y-6 relative z-10">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 bg-[#DDF3FC] text-[#1B64B0] px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#FFB547] animate-pulse"></span>
@@ -970,82 +969,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right Column: Hero Visual Frame & Adaptive Chips */}
-            <div className="lg:col-span-5 flex flex-col items-center">
-              <div className="relative w-full max-w-[300px] sm:max-w-[360px]">
-                {/* Arch Frame with Gradient */}
-                <div className="aspect-[5/6] rounded-t-full rounded-b-3xl bg-gradient-to-br from-[#1B83B6] via-[#1B64B0] to-[#154E8A] flex flex-col items-center justify-center text-center p-6 text-white shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-10 right-6 w-32 h-32 rounded-full bg-[#FFB547] opacity-80 blur-xs"></div>
-                  <div className="absolute bottom-6 left-4 w-44 h-44 rounded-full bg-white/10 blur-sm"></div>
-
-                  <div className="relative z-10 space-y-3">
-                    <div className="w-24 h-24 sm:w-26 sm:h-26 rounded-full bg-white text-[#1B64B0] font-black text-4xl flex items-center justify-center mx-auto shadow-xl ring-4 ring-white/30">
-                      TD
-                    </div>
-                    <div>
-                      <h3 className="font-black text-2xl text-white tracking-tight">Teacher Dong</h3>
-                      <p className="text-sm text-sky-100 font-semibold">M.Ed • International Educator</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Desktop Floating Skill Chips (Visible on xl screens only, prevents mobile overflow) */}
-                <div className="hidden xl:flex absolute top-[12%] -left-8 bg-white px-3.5 py-2 rounded-full font-bold text-xs shadow-md border border-[#E1EBF5] items-center gap-2 text-[#14263D] animate-bounce duration-1000">
-                  <span className="w-7 h-7 rounded-full bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center">
-                    <Headphones className="w-4 h-4" />
-                  </span>
-                  <span>Listening</span>
-                </div>
-
-                <div className="hidden xl:flex absolute top-[36%] -right-8 bg-white px-3.5 py-2 rounded-full font-bold text-xs shadow-md border border-[#E1EBF5] items-center gap-2 text-[#14263D]">
-                  <span className="w-7 h-7 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center">
-                    <Mic className="w-4 h-4" />
-                  </span>
-                  <span>Speaking</span>
-                </div>
-
-                <div className="hidden xl:flex absolute bottom-[24%] -left-10 bg-white px-3.5 py-2 rounded-full font-bold text-xs shadow-md border border-[#E1EBF5] items-center gap-2 text-[#14263D]">
-                  <span className="w-7 h-7 rounded-full bg-sky-100 text-[#1B83B6] flex items-center justify-center">
-                    <BookOpen className="w-4 h-4" />
-                  </span>
-                  <span>Reading</span>
-                </div>
-
-                <div className="hidden xl:flex absolute bottom-[8%] -right-6 bg-white px-3.5 py-2 rounded-full font-bold text-xs shadow-md border border-[#E1EBF5] items-center gap-2 text-[#14263D]">
-                  <span className="w-7 h-7 rounded-full bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center">
-                    <PenTool className="w-4 h-4" />
-                  </span>
-                  <span>Writing AI</span>
-                </div>
-              </div>
-
-              {/* Mobile/Tablet Inline Skill Chips (Neat 2x2 grid, NO horizontal overflow) */}
-              <div className="xl:hidden grid grid-cols-2 gap-2 mt-4 w-full max-w-[340px]">
-                <div className="bg-white px-3 py-2 rounded-2xl font-bold text-xs shadow-xs border border-[#E1EBF5] flex items-center gap-2 text-[#14263D]">
-                  <span className="w-6 h-6 rounded-full bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center shrink-0">
-                    <Headphones className="w-3.5 h-3.5" />
-                  </span>
-                  <span className="truncate">Listening</span>
-                </div>
-                <div className="bg-white px-3 py-2 rounded-2xl font-bold text-xs shadow-xs border border-[#E1EBF5] flex items-center gap-2 text-[#14263D]">
-                  <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-                    <Mic className="w-3.5 h-3.5" />
-                  </span>
-                  <span className="truncate">Speaking</span>
-                </div>
-                <div className="bg-white px-3 py-2 rounded-2xl font-bold text-xs shadow-xs border border-[#E1EBF5] flex items-center gap-2 text-[#14263D]">
-                  <span className="w-6 h-6 rounded-full bg-sky-100 text-[#1B83B6] flex items-center justify-center shrink-0">
-                    <BookOpen className="w-3.5 h-3.5" />
-                  </span>
-                  <span className="truncate">Reading</span>
-                </div>
-                <div className="bg-white px-3 py-2 rounded-2xl font-bold text-xs shadow-xs border border-[#E1EBF5] flex items-center gap-2 text-[#14263D]">
-                  <span className="w-6 h-6 rounded-full bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center shrink-0">
-                    <PenTool className="w-3.5 h-3.5" />
-                  </span>
-                  <span className="truncate">Writing AI</span>
-                </div>
-              </div>
+            {/* Right Column: Hero Visual 3D Open Book Diorama & 4 IELTS Skills */}
+            <div className="lg:col-span-5 flex flex-col items-center justify-center">
+              <HeroOpenBook />
             </div>
           </div>
         </section>
@@ -1114,66 +1040,60 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setActivePillarFilter('all')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activePillarFilter === 'all'
-                  ? 'bg-[#1B64B0] text-white shadow-md'
-                  : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-              }`}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'all'
+                ? 'bg-[#1B64B0] text-white shadow-md'
+                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
+                }`}
             >
               {t('pillars.filter.all')}
             </button>
             <button
               type="button"
               onClick={() => setActivePillarFilter('p1')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activePillarFilter === 'p1'
-                  ? 'bg-[#1B64B0] text-white shadow-md'
-                  : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-              }`}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p1'
+                ? 'bg-[#1B64B0] text-white shadow-md'
+                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
+                }`}
             >
               {t('pillars.filter.p1')}
             </button>
             <button
               type="button"
               onClick={() => setActivePillarFilter('p2')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activePillarFilter === 'p2'
-                  ? 'bg-[#1B83B6] text-white shadow-md'
-                  : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-              }`}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p2'
+                ? 'bg-[#1B83B6] text-white shadow-md'
+                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
+                }`}
             >
               {t('pillars.filter.p2')}
             </button>
             <button
               type="button"
               onClick={() => setActivePillarFilter('p3')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activePillarFilter === 'p3'
-                  ? 'bg-[#FFB547] text-[#14263D] shadow-md'
-                  : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-              }`}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p3'
+                ? 'bg-[#FFB547] text-[#14263D] shadow-md'
+                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
+                }`}
             >
               {t('pillars.filter.p3')}
             </button>
             <button
               type="button"
               onClick={() => setActivePillarFilter('p4')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activePillarFilter === 'p4'
-                  ? 'bg-[#E11D48] text-white shadow-md'
-                  : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-              }`}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p4'
+                ? 'bg-[#E11D48] text-white shadow-md'
+                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
+                }`}
             >
               {t('pillars.filter.p4')}
             </button>
             <button
               type="button"
               onClick={() => setActivePillarFilter('p5')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activePillarFilter === 'p5'
-                  ? 'bg-[#10B981] text-white shadow-md'
-                  : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-              }`}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p5'
+                ? 'bg-[#10B981] text-white shadow-md'
+                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
+                }`}
             >
               {t('pillars.filter.p5')}
             </button>

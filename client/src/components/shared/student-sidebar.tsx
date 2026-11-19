@@ -36,7 +36,6 @@ interface NavItem {
   href: string;
   label: string;
   icon: any;
-  exactTrack?: string | boolean;
 }
 
 interface NavSection {
@@ -51,14 +50,6 @@ export default function StudentSidebar() {
   const router = useRouter();
   const { t } = useI18n();
   const { isOpen, toggleSidebar } = useSidebar();
-  const [currentTrack, setCurrentTrack] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      setCurrentTrack(params.get('track'));
-    }
-  }, [pathname]);
 
   const [activeGoals, setActiveGoals] = useState<StudentGoalItem[]>([
     {
@@ -76,7 +67,7 @@ export default function StudentSidebar() {
       title: 'Học Tập & Chung',
       items: [
         { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
-        { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen, exactTrack: false },
+        { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen },
         { href: '/student/classroom', label: t('nav_classroom', 'Lớp trực tuyến WebRTC'), icon: Video },
         { href: '/student/library', label: t('nav_library', 'Học liệu số & Bảo mật'), icon: FolderLock },
       ],
@@ -87,15 +78,6 @@ export default function StudentSidebar() {
       badgeColor: 'bg-sky-100 text-sky-800',
       items: [
         { href: '/student/ielts', label: 'IELTS 4 Kỹ Năng Master', icon: Award },
-        { href: '/student/courses?track=english', label: 'Khóa Học Tiếng Anh', icon: Sparkles, exactTrack: 'english' },
-      ],
-    },
-    {
-      title: 'Phát Triển Cá Nhân & Sư Phạm',
-      badge: 'Kỹ Năng Sống',
-      badgeColor: 'bg-emerald-100 text-emerald-800',
-      items: [
-        { href: '/student/courses?track=personal_dev', label: 'Khóa Kỹ Năng & Sư Phạm', icon: Compass, exactTrack: 'personal_dev' },
       ],
     },
     {
@@ -265,15 +247,7 @@ export default function StudentSidebar() {
 
             {sec.items.map((item) => {
               const Icon = item.icon;
-              const isBaseActive = pathname.startsWith(item.href.split('?')[0]);
-              let isActive = false;
-              if (item.exactTrack) {
-                isActive = pathname === '/student/courses' && currentTrack === item.exactTrack;
-              } else if (item.href === '/student/courses') {
-                isActive = pathname === '/student/courses' && !currentTrack;
-              } else {
-                isActive = isBaseActive;
-              }
+              const isActive = pathname.startsWith(item.href);
 
               return (
                 <Link
