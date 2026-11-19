@@ -1,29 +1,65 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/auth.service';
 import { handleApiError } from '@/lib/api-error';
 import { toast } from '@/components/ui/toast';
-import { Lock, ArrowLeft, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, KeyRound, CheckCircle2, AlertCircle, Mail, Hash, RefreshCw } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 
 function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
-  const email = searchParams.get('email') || '';
+  const initialEmail = searchParams.get('email') || '';
 
+  const [email, setEmail] = useState(initialEmail);
+  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  const handleResendOtp = async () => {
+    if (!email) {
+      setErrorMsg('Vui lòng nhập địa chỉ email để nhận lại mã OTP.');
+      return;
+    }
+    setResending(true);
+    setErrorMsg('');
+    try {
+      await authService.forgotPassword(email.trim());
+      setCountdown(60);
+      toast.success('Mã OTP mới đã được gửi đến email của bạn!');
+    } catch (err) {
+      handleApiError(err, 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
-      setErrorMsg('Mã xác thực không tồn tại hoặc liên kết đã bị hỏng. Vui lòng thử lại.');
+
+    if (!token && (!otp || otp.length < 6)) {
+      setErrorMsg('Vui lòng nhập đầy đủ mã xác thực OTP 6 chữ số được gửi qua email.');
+      return;
+    }
+
+    if (!token && !email) {
+      setErrorMsg('Vui lòng cung cấp địa chỉ email tài khoản của bạn.');
       return;
     }
 
@@ -40,7 +76,15 @@ function ResetPasswordContent() {
     setLoading(true);
     setErrorMsg('');
     try {
-      await authService.resetPassword(token, newPassword);
+      if (otp && email) {
+        await authService.resetPasswordWithOtp({
+          email: email.trim(),
+          otp: otp.trim(),
+          newPassword,
+        });
+      } else if (token) {
+        await authService.resetPassword(token, newPassword);
+      }
       setIsSuccess(true);
       toast.success('Mật khẩu của bạn đã được cập nhật thành công!');
       setTimeout(() => {
@@ -49,11 +93,13 @@ function ResetPasswordContent() {
     } catch (err) {
       const code = handleApiError(err, 'Không thể đặt lại mật khẩu');
       if (code === 'AUTH_RESET_TOKEN_EXPIRED') {
-        setErrorMsg('Mã token khôi phục đã hết hạn (quá 15 phút). Vui lòng yêu cầu lại.');
+        setErrorMsg('Mã OTP hoặc liên kết khôi phục đã hết hạn. Vui lòng yêu cầu lại.');
+      } else if (code === 'AUTH_RESET_TOKEN_INVALID') {
+        setErrorMsg('Mã OTP không đúng hoặc không hợp lệ. Vui lòng kiểm tra lại.');
       } else if (code === 'AUTH_WEAK_PASSWORD') {
         setErrorMsg('Mật khẩu quá ngắn hoặc không đủ độ bảo mật.');
       } else {
-        setErrorMsg('Đã có lỗi xảy ra. Vui lòng yêu cầu lại liên kết đặt lại mật khẩu.');
+        setErrorMsg('Đã có lỗi xảy ra. Vui lòng thử lại.');
       }
     } finally {
       setLoading(false);
@@ -68,9 +114,11 @@ function ResetPasswordContent() {
           <div className="w-12 h-12 rounded-2xl bg-sky-50 text-primary flex items-center justify-center mx-auto mb-3">
             <KeyRound className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Đặt Lại Mật Khẩu</h1>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">Xác Thực & Đặt Lại Mật Khẩu</h1>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
-            {email ? `Tạo mật khẩu mới cho tài khoản ${email}` : 'Nhập mật khẩu mới an toàn cho tài khoản của bạn'}
+            {token
+              ? 'Xác thực qua liên kết bảo mật để đặt lại mật khẩu mới'
+              : 'Nhập mã OTP 6 chữ số gửi qua email để thiết lập mật khẩu mới'}
           </p>
         </div>
 
@@ -101,38 +149,86 @@ function ResetPasswordContent() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {!token && (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Địa chỉ Email <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="student@dong.edu.vn"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Mã xác thực OTP (6 chữ số) <span className="text-red-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={countdown > 0 || resending}
+                      onClick={handleResendOtp}
+                      className="text-[11px] text-primary hover:underline disabled:opacity-50 disabled:no-underline flex items-center gap-1 font-semibold"
+                    >
+                      {resending ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          <span>Đang gửi...</span>
+                        </>
+                      ) : countdown > 0 ? (
+                        <span>Gửi lại sau ({countdown}s)</span>
+                      ) : (
+                        <span>Gửi lại OTP</span>
+                      )}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="VD: 839201"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs tracking-widest font-mono font-bold focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Mật khẩu mới <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Tối thiểu 6 ký tự"
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-                />
-              </div>
+              <PasswordInput
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Tối thiểu 6 ký tự"
+              />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Xác nhận mật khẩu mới <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Nhập lại mật khẩu mới"
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-                />
-              </div>
+              <PasswordInput
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Nhập lại mật khẩu mới"
+              />
             </div>
 
             <button
@@ -146,7 +242,7 @@ function ResetPasswordContent() {
                   <span>Đang Cập Nhật Mật Khẩu...</span>
                 </>
               ) : (
-                <span>Lưu & Đặt Lại Mật Khẩu</span>
+                <span>Xác Thực & Đặt Lại Mật Khẩu</span>
               )}
             </button>
           </form>
@@ -173,4 +269,3 @@ export default function ResetPasswordPage() {
     </Suspense>
   );
 }
-

@@ -25,6 +25,8 @@ import { RolesGuard } from '../../core/common/guards/roles.guard';
 import { Roles } from '../../core/common/decorators/roles.decorator';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
 import { ResponseMessage } from '../../core/common/decorators/response-message.decorator';
+import { Throttle } from '@nestjs/throttler';
+import { AppThrottlerGuard } from '../../core/common/guards/app-throttler.guard';
 import { BroadcastNotificationDto } from './dto/broadcast-notification.dto';
 import { ConsultationRequestDto } from './dto/consultation-request.dto';
 import { Role } from '@prisma/client';
@@ -35,6 +37,8 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post('consultation')
+  @UseGuards(AppThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 600000 } })
   @ApiOperation({ summary: 'Khách hàng đăng ký nhận tư vấn từ Landing Page' })
   @ApiResponse({ status: 201, description: 'Đã tiếp nhận yêu cầu tư vấn' })
   @ResponseMessage('Đã gửi yêu cầu tư vấn thành công')

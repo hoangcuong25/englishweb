@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { api } from '@/lib/api';
 
 export type Language = 'vi' | 'en' | 'zh' | 'ja' | 'km';
 
@@ -1017,8 +1018,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const setLang = (newLang: Language) => {
     setLangState(newLang);
-    localStorage.setItem('preferred_lang', newLang);
-    document.cookie = `preferred_lang=${newLang}; path=/; max-age=31536000`;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preferred_lang', newLang);
+      document.cookie = `preferred_lang=${newLang}; path=/; max-age=31536000`;
+      const token = localStorage.getItem('access_token');
+      if (token && !token.startsWith('demo_')) {
+        api.put('/auth/language', { language: newLang.toUpperCase() }).catch(() => {});
+      }
+    }
   };
 
   const t = (key: string, fallback?: string): string => {

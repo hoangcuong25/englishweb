@@ -109,6 +109,11 @@ export const livekitService = {
     return response.data;
   },
 
+  async kickParticipant(data: { roomName: string; identity: string }) {
+    const response = await api.post('/livekit/kick-participant', data);
+    return response.data;
+  },
+
   async getWhiteboardSnapshot(roomName: string) {
     const response = await api.get(`/livekit/rooms/${roomName}/whiteboard`);
     return response.data?.data || response.data;

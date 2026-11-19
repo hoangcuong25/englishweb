@@ -8,6 +8,7 @@ import { quizzesService, QuizQuestion as RemoteQuizQuestion } from '@/services/q
 import { coursesService, Course } from '@/services/courses.service';
 import { writingService } from '@/services/writing.service';
 import { speakingService, SpeakingSubmission } from '@/services/speaking.service';
+import { extractErrorMessage } from '@/lib/api-error';
 import {
   Award,
   FileQuestion,
@@ -368,7 +369,7 @@ function AssessmentHubContent() {
       await fetchQuizzesAndTests();
       setIsTestModalOpen(false);
     } catch (err: unknown) {
-      showNotice(`❌ Lỗi khi lưu đề thi: ${err instanceof Error ? err.message : 'Thao tác thất bại'}`);
+      showNotice(`❌ Lỗi khi lưu đề thi: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
     }
   };
 
@@ -427,7 +428,7 @@ function AssessmentHubContent() {
       await fetchQuizzesAndTests();
       setIsQuestionModalOpen(false);
     } catch (err: unknown) {
-      showNotice(`❌ Lỗi khi thêm câu hỏi: ${err instanceof Error ? err.message : 'Thao tác thất bại'}`);
+      showNotice(`❌ Lỗi khi thêm câu hỏi: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
     }
   };
 

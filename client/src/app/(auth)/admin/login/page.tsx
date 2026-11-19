@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { Mail, Lock, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 
 export default function AdminLoginPage() {
   const { login } = useAuth();
@@ -87,17 +88,13 @@ export default function AdminLoginPage() {
                 Mật khẩu quản trị
               </label>
             </div>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition"
-              />
-            </div>
+            <PasswordInput
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="bg-slate-800/80 border-slate-700 text-white placeholder-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+            />
           </div>
 
           <button

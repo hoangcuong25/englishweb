@@ -364,8 +364,43 @@ export class AuthService {
   }
 
   /**
-   * 6. Change Password
+   * 6. Change Password & Request OTP
    */
+  async requestChangePasswordOtp(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const rateLimitKey = `rate_limit:change_pw_otp:${userId}`;
+    const isRateLimited = await this.redisService.get(rateLimitKey);
+    if (isRateLimited) {
+      throw AppException.badRequest(
+        AppErrorCode.AUTH_RATE_LIMIT_EXCEEDED,
+        'Mã OTP đã được gửi. Vui lòng đợi 60 giây trước khi yêu cầu mã mới.',
+      );
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await this.redisService.set(`otp:change_password:${userId}`, otpCode, 10 * 60);
+    await this.redisService.set(rateLimitKey, '1', 60);
+
+    try {
+      await this.mailService.sendChangePasswordOtpEmail({
+        email: user.email,
+        fullName: user.fullName,
+        otpCode,
+        expiresInMinutes: 10,
+      });
+    } catch {}
+
+    return {
+      success: true,
+      message: 'Mã xác thực OTP đã được gửi đến email đăng ký của bạn.',
+      otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
+    };
+  }
+
   async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -377,6 +412,18 @@ export class AuthService {
       if (!isMatch) {
         throw new BadRequestException('Current password does not match');
       }
+    }
+
+    // Verify OTP if OTP exists or if dto.otp provided
+    const storedOtp = await this.redisService.get(`otp:change_password:${userId}`);
+    if (dto.otp || storedOtp) {
+      if (!dto.otp || !storedOtp || dto.otp.trim() !== storedOtp) {
+        throw new BadRequestException('Mã OTP xác thực không chính xác hoặc đã hết hạn (quá 10 phút)');
+      }
+      // Clear OTP upon successful verification
+      try {
+        await this.redisService.del(`otp:change_password:${userId}`);
+      } catch {}
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -749,57 +796,110 @@ export class AuthService {
       await this.redisService.set(`password_reset:${user.id}`, resetToken, 15 * 60);
     } catch {}
 
+    // Generate 6-digit OTP code for password reset
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    try {
+      await this.redisService.set(`otp:password_reset:${user.email.toLowerCase()}`, otpCode, 10 * 60);
+    } catch {}
+
     await this.mailService.sendForgotPasswordEmail({
       email: user.email,
       fullName: user.fullName,
       resetToken,
     });
 
+    try {
+      await this.mailService.sendPasswordResetOtpEmail({
+        email: user.email,
+        fullName: user.fullName,
+        otpCode,
+        expiresInMinutes: 10,
+      });
+    } catch {}
+
     return {
       success: true,
-      message: 'Hướng dẫn đặt lại mật khẩu đã được gửi đến email của bạn.',
+      message: 'Mã xác thực OTP và liên kết đặt lại mật khẩu đã được gửi đến email của bạn.',
+      otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
     };
   }
 
   /**
-   * 12. Reset Password using token
+   * 12. Reset Password using OTP or token
    */
   async resetPassword(dto: ResetPasswordDto) {
-    const secret = this.configService.get<string>('JWT_SECRET');
-    let payload: any;
-    try {
-      payload = this.jwtService.verify(dto.token, { secret });
-    } catch {
-      throw AppException.badRequest(
-        AppErrorCode.AUTH_RESET_TOKEN_EXPIRED,
-        'Mã xác thực đặt lại mật khẩu không hợp lệ hoặc đã hết hạn (quá 15 phút).',
-      );
-    }
+    let user: any;
 
-    if (payload?.type !== 'PASSWORD_RESET' || !payload?.sub) {
+    if (dto.otp && dto.email) {
+      const storedOtp = await this.redisService.get(`otp:password_reset:${dto.email.toLowerCase()}`);
+      if (!storedOtp || storedOtp !== dto.otp.trim()) {
+        throw AppException.badRequest(
+          AppErrorCode.AUTH_RESET_TOKEN_INVALID,
+          'Mã xác thực OTP không hợp lệ hoặc đã hết hạn (quá 10 phút).',
+        );
+      }
+
+      user = await this.prisma.user.findUnique({
+        where: { email: dto.email.toLowerCase() },
+      });
+
+      if (!user) {
+        throw AppException.notFound(
+          AppErrorCode.AUTH_EMAIL_NOT_FOUND,
+          'Không tìm thấy thông tin tài khoản người dùng tương ứng.',
+        );
+      }
+
+      // Delete OTP on success
+      try {
+        await this.redisService.del(`otp:password_reset:${dto.email.toLowerCase()}`);
+      } catch {}
+    } else if (dto.token) {
+      const secret = this.configService.get<string>('JWT_SECRET');
+      let payload: any;
+      try {
+        payload = this.jwtService.verify(dto.token, { secret });
+      } catch {
+        throw AppException.badRequest(
+          AppErrorCode.AUTH_RESET_TOKEN_EXPIRED,
+          'Mã xác thực đặt lại mật khẩu không hợp lệ hoặc đã hết hạn (quá 15 phút).',
+        );
+      }
+
+      if (payload?.type !== 'PASSWORD_RESET' || !payload?.sub) {
+        throw AppException.badRequest(
+          AppErrorCode.AUTH_RESET_TOKEN_INVALID,
+          'Mã xác thực đặt lại mật khẩu không đúng mục đích.',
+        );
+      }
+
+      // SEC-004: Check Redis to ensure token has not been used or invalidated (Single-use token enforcement)
+      const storedResetToken = await this.redisService.get(`password_reset:${payload.sub}`);
+      if (!storedResetToken || storedResetToken !== dto.token) {
+        throw AppException.badRequest(
+          AppErrorCode.AUTH_RESET_TOKEN_EXPIRED,
+          'Mã xác thực đặt lại mật khẩu không hợp lệ hoặc đã được sử dụng.',
+        );
+      }
+
+      user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
+
+      if (!user) {
+        throw AppException.notFound(
+          AppErrorCode.AUTH_EMAIL_NOT_FOUND,
+          'Không tìm thấy thông tin tài khoản người dùng tương ứng.',
+        );
+      }
+
+      try {
+        await this.redisService.del(`password_reset:${user.id}`);
+      } catch {}
+    } else {
       throw AppException.badRequest(
         AppErrorCode.AUTH_RESET_TOKEN_INVALID,
-        'Mã xác thực đặt lại mật khẩu không đúng mục đích.',
-      );
-    }
-
-    // SEC-004: Check Redis to ensure token has not been used or invalidated (Single-use token enforcement)
-    const storedResetToken = await this.redisService.get(`password_reset:${payload.sub}`);
-    if (!storedResetToken || storedResetToken !== dto.token) {
-      throw AppException.badRequest(
-        AppErrorCode.AUTH_RESET_TOKEN_EXPIRED,
-        'Mã xác thực đặt lại mật khẩu không hợp lệ hoặc đã được sử dụng.',
-      );
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-    });
-
-    if (!user) {
-      throw AppException.notFound(
-        AppErrorCode.AUTH_EMAIL_NOT_FOUND,
-        'Không tìm thấy thông tin tài khoản người dùng tương ứng.',
+        'Vui lòng cung cấp mã OTP và email hoặc đường dẫn xác thực hợp lệ.',
       );
     }
 

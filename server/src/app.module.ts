@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './core/prisma/prisma.module';
@@ -28,6 +29,13 @@ import { MailModule } from './core/mail/mail.module';
       isGlobal: true,
       envFilePath: ['.env', '../.env'],
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 120, // baseline limit for general traffic
+      },
+    ]),
     PrismaModule,
     RedisModule,
     MailModule,

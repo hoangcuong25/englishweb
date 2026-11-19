@@ -6,12 +6,14 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n, Language } from '@/lib/i18n-context';
 import { notificationsService } from '@/services/notifications.service';
+import { toast } from '@/components/ui/toast';
 import SessionManagerDrawer from '../modals/session-manager-drawer';
 import {
   Globe,
   Shield,
   LogOut,
   Bell,
+  Megaphone,
   ChevronDown,
   CheckCheck,
   FileText,
@@ -116,6 +118,32 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState<boolean>(true);
   const [hasUnread, setHasUnread] = useState<boolean>(false);
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastContent, setBroadcastContent] = useState('');
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+
+  const handleSendBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastContent.trim()) return;
+    setIsSendingBroadcast(true);
+    try {
+      await notificationsService.broadcastNotification({
+        title: broadcastTitle.trim(),
+        content: broadcastContent.trim(),
+        type: 'SYSTEM',
+      });
+      toast.success('Đã phát thông báo hệ thống tới toàn thể học viên!');
+      setIsBroadcastModalOpen(false);
+      setBroadcastTitle('');
+      setBroadcastContent('');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi phát thông báo';
+      toast.error('Không thể phát thông báo: ' + msg);
+    } finally {
+      setIsSendingBroadcast(false);
+    }
+  };
 
   const fetchRealNotifications = async () => {
     try {
@@ -350,6 +378,17 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
             <Shield className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Phiên đơn</span>
           </button>
+
+          {/* Admin Broadcast Button (FR-14) */}
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={() => setIsBroadcastModalOpen(true)}
+              className="p-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
+              title="Phát thông báo loa phóng thanh toàn trường"
+            >
+              <Megaphone className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Notifications Dropdown */}
           <div className="relative" ref={notiRef}>
@@ -621,6 +660,80 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
           </div>
         </div>
       </div>
+
+      {/* Admin Broadcast Notification Modal (FR-14) */}
+      {isBroadcastModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl border border-line shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            <div className="p-5 border-b border-line flex items-center justify-between bg-amber-50/60">
+              <div className="flex items-center space-x-2 text-amber-900 font-bold text-sm">
+                <Megaphone className="w-4 h-4 text-amber-600" />
+                <span>Phát Thông Báo Toàn Trường (Broadcast)</span>
+              </div>
+              <button
+                onClick={() => setIsBroadcastModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendBroadcast} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tiêu đề thông báo <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={broadcastTitle}
+                  onChange={(e) => setBroadcastTitle(e.target.value)}
+                  placeholder="VD: Lịch học trực tuyến thay đổi hoặc Thông báo nghỉ lễ"
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nội dung chi tiết <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={broadcastContent}
+                  onChange={(e) => setBroadcastContent(e.target.value)}
+                  placeholder="Nhập nội dung thông báo gửi tức thời tới toàn bộ học viên đang trực tuyến..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs focus:outline-none focus:border-primary resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBroadcastModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-line text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingBroadcast}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-xs flex items-center space-x-1.5 disabled:opacity-50"
+                >
+                  {isSendingBroadcast ? (
+                    <span>Đang phát...</span>
+                  ) : (
+                    <>
+                      <Megaphone className="w-3.5 h-3.5" />
+                      <span>Phát Ngay Bây Giờ</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

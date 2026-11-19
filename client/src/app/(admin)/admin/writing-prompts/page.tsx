@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { writingService, WritingPrompt } from '@/services/writing.service';
 import { useI18n } from '@/lib/i18n-context';
+import { extractErrorMessage } from '@/lib/api-error';
 import {
   FileText,
   Plus,
@@ -115,7 +116,7 @@ export default function AdminWritingPromptsPage() {
       setIsModalOpen(false);
       setTimeout(() => setFeedbackNotice(''), 4000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi lưu đề thi';
+      const msg = extractErrorMessage(err, 'Lỗi khi lưu đề thi');
       setFeedbackNotice(`Không thể lưu đề thi: ${msg}`);
       setTimeout(() => setFeedbackNotice(''), 5000);
     } finally {

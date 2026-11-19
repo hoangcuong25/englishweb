@@ -191,6 +191,11 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
               );
             } else if (data.type === 'MUTE_ALL' && !isHost) {
               setIsMuted(true);
+            } else if (data.type === 'KICK_PARTICIPANT' && !isHost && (data.identity === user?.id || data.identity === 'me')) {
+              toast.error('Bạn đã bị giáo viên mời rời khỏi phòng học.');
+              setTimeout(() => {
+                router.push('/student/courses');
+              }, 1200);
             }
           } catch (e) {
             console.error('Error parsing DataChannel packet:', e);
@@ -456,6 +461,20 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
     );
   };
 
+  const handleKickParticipant = async (targetIdentity: string) => {
+    setParticipants((prev) => prev.filter((p) => p.identity !== targetIdentity));
+    broadcastData({ type: 'KICK_PARTICIPANT', identity: targetIdentity });
+    try {
+      await livekitService.kickParticipant({
+        roomName: roomId,
+        identity: targetIdentity,
+      });
+      toast.success(`Đã mời học viên ${targetIdentity} ra khỏi lớp học`);
+    } catch (e: any) {
+      toast.error('Không thể buộc học viên rời phòng: ' + (e?.message || 'Lỗi'));
+    }
+  };
+
   const handleMuteAllStudents = () => {
     setParticipants((prev) =>
       prev.map((p) => (!p.isHost ? { ...p, isMuted: true } : p)),
@@ -587,6 +606,7 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
                   layoutMode="stage"
                   onMuteParticipant={handleMuteParticipant}
                   onLowerHand={handleLowerHand}
+                  onKickParticipant={handleKickParticipant}
                 />
               </div>
             </div>
@@ -600,6 +620,7 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
                 layoutMode="gallery"
                 onMuteParticipant={handleMuteParticipant}
                 onLowerHand={handleLowerHand}
+                onKickParticipant={handleKickParticipant}
               />
             </div>
           )}

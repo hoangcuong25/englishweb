@@ -57,6 +57,16 @@ export const notificationsService = {
     return response.data?.data || response.data;
   },
 
+  async broadcastNotification(data: {
+    title: string;
+    content: string;
+    type?: 'WRITING' | 'SPEAKING' | 'LIVE' | 'QUIZ' | 'SYSTEM';
+    link?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/notifications/broadcast', data);
+    return response.data?.data || response.data;
+  },
+
   async deleteNotification(id: string): Promise<NotificationItem> {
     const response = await api.delete(`/notifications/${id}`);
     return response.data?.data || response.data;

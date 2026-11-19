@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { writingService } from '@/services/writing.service';
+import { extractErrorMessage } from '@/lib/api-error';
+import { toast } from '@/components/ui/toast';
 import {
   Clock,
   Sparkles,
@@ -93,6 +95,28 @@ export default function StudentWritingPage() {
 
     return () => clearTimeout(saveTimeout);
   }, [essayContent, currentPromptId, taskType, timeLeft]);
+
+  // Q-01: Emergency Auto-Save on Single Concurrent Session disconnect
+  useEffect(() => {
+    const handleEmergencySave = async () => {
+      if (currentPromptId && essayContent.trim()) {
+        try {
+          await writingService.saveDraft({
+            promptId: currentPromptId,
+            content: essayContent,
+            wordCount,
+            durationSeconds: (taskType === 'TASK_1' ? 20 * 60 : 40 * 60) - timeLeft,
+          });
+        } catch {
+          // Backup locally in case network or token already invalidated
+          localStorage.setItem(`emergency_writing_draft_${currentPromptId}`, essayContent);
+        }
+      }
+    };
+
+    window.addEventListener('emergency_auto_save', handleEmergencySave);
+    return () => window.removeEventListener('emergency_auto_save', handleEmergencySave);
+  }, [currentPromptId, essayContent, wordCount, taskType, timeLeft]);
 
   // Timer
   useEffect(() => {
@@ -210,8 +234,8 @@ export default function StudentWritingPage() {
       }
     } catch (err: unknown) {
       console.error('Lỗi gửi bài chấm AI:', err);
-      const msg = err instanceof Error ? err.message : 'Không thể gửi bài chấm AI lúc này. Vui lòng kiểm tra lại kết nối và thử lại.';
-      alert(msg);
+      const msg = extractErrorMessage(err, 'Không thể gửi bài chấm AI lúc này. Vui lòng kiểm tra lại kết nối và thử lại.');
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

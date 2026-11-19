@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { AccessToken, WebhookReceiver, RoomServiceClient } from 'livekit-server-sdk';
 import { Role, AttendanceStatus, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class LivekitService implements OnModuleInit, OnModuleDestroy {
@@ -17,6 +18,7 @@ export class LivekitService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
+    private redisService: RedisService,
   ) {
     this.apiKey = this.configService.get<string>('LIVEKIT_API_KEY', 'API_KEY_DEV');
     this.apiSecret = this.configService.get<string>('LIVEKIT_API_SECRET', 'API_SECRET_DEV_ENGLISHWEB_2026');
@@ -339,6 +341,23 @@ export class LivekitService implements OnModuleInit, OnModuleDestroy {
         return { status: 'ignored' };
       }
 
+      // Q-03 Idempotency check using composite key and event timestamp
+      const eventTimestamp = event.createdAt
+        ? (typeof event.createdAt === 'number' && event.createdAt < 1e12 ? event.createdAt * 1000 : Number(event.createdAt))
+        : Date.now();
+      const eventTime = new Date(eventTimestamp);
+      const eventKey = event.id || `${roomName}:${participant.identity}:${event.event}:${Math.floor(eventTimestamp / 1000)}`;
+      const dedupKey = `livekit_webhook_dedup:${eventKey}`;
+
+      if (this.redisService) {
+        const isProcessed = await this.redisService.get(dedupKey);
+        if (isProcessed) {
+          this.logger.warn(`LiveKit webhook event duplicate detected and ignored: ${eventKey}`);
+          return { status: 'duplicate_ignored', event: event.event };
+        }
+        await this.redisService.set(dedupKey, '1', 86400); // 24-hour deduplication window
+      }
+
       // Find corresponding Classroom in DB
       const classroom = await this.prisma.classroom.findFirst({
         where: { name: roomName },
@@ -357,8 +376,6 @@ export class LivekitService implements OnModuleInit, OnModuleDestroy {
         return { status: 'host_or_non_student' };
       }
 
-      const now = new Date();
-
       if (event.event === 'participant_joined') {
         await this.prisma.attendanceRecord.upsert({
           where: {
@@ -370,11 +387,11 @@ export class LivekitService implements OnModuleInit, OnModuleDestroy {
           create: {
             classroomId: classroom.id,
             studentId: student.id,
-            firstJoinedAt: now,
+            firstJoinedAt: eventTime,
             status: AttendanceStatus.PRESENT,
           },
           update: {
-            firstJoinedAt: now,
+            // Keep original firstJoinedAt if earlier
           },
         });
       } else if (event.event === 'participant_left') {
@@ -388,13 +405,15 @@ export class LivekitService implements OnModuleInit, OnModuleDestroy {
         });
 
         if (record && record.firstJoinedAt) {
+          const joinTime = new Date(record.firstJoinedAt).getTime();
+          const leftTime = Math.max(eventTime.getTime(), joinTime);
           const durationMinutes = Math.max(
             1,
-            Math.round((now.getTime() - record.firstJoinedAt.getTime()) / (1000 * 60)),
+            Math.round((leftTime - joinTime) / (1000 * 60)),
           );
 
           // Calculate attendance status:
-          const delayMinutes = (record.firstJoinedAt.getTime() - classroom.scheduledStartTime.getTime()) / (1000 * 60);
+          const delayMinutes = (joinTime - classroom.scheduledStartTime.getTime()) / (1000 * 60);
           let status: AttendanceStatus = AttendanceStatus.PRESENT;
 
           if (delayMinutes > 15) {
@@ -404,11 +423,14 @@ export class LivekitService implements OnModuleInit, OnModuleDestroy {
             status = AttendanceStatus.ABSENT;
           }
 
+          // Use Math.max to prevent duplicate cumulative addition if left webhook repeats
+          const updatedTotal = record.totalMinutes > 0 ? Math.max(record.totalMinutes, durationMinutes) : durationMinutes;
+
           await this.prisma.attendanceRecord.update({
             where: { id: record.id },
             data: {
-              lastLeftAt: now,
-              totalMinutes: record.totalMinutes + durationMinutes,
+              lastLeftAt: eventTime,
+              totalMinutes: updatedTotal,
               status: record.isManualOverride ? record.status : status,
             },
           });

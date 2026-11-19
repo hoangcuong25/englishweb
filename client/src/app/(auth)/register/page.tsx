@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import CustomSelect from '@/components/ui/custom-select';
 import GoogleSignInButton from '@/components/auth/google-sign-in-button';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Mail,
   Lock,
@@ -246,34 +247,24 @@ export default function RegisterPage() {
             <label className="block text-xs font-bold text-slate-700 mb-1">
               Mật khẩu mới <span className="text-red-500">*</span>
             </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Tối thiểu 8 ký tự, gồm số & chữ hoa"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-              />
-            </div>
+            <PasswordInput
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Tối thiểu 8 ký tự, gồm số & chữ hoa"
+            />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
               Xác nhận mật khẩu <span className="text-red-500">*</span>
             </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Nhập lại mật khẩu"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-              />
-            </div>
+            <PasswordInput
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Nhập lại mật khẩu"
+            />
           </div>
 
           <label className="flex items-start space-x-2 text-xs text-slate-600 cursor-pointer pt-1">
