@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { I18nProvider } from '@/lib/i18n-context';
 import { ToastProvider } from '@/components/ui/toast';
+import { SidebarProvider } from '@/lib/sidebar-context';
 
 export const metadata: Metadata = {
   title: 'Teacher Dong Academy — Nền Tảng Đào Tạo Anh Ngữ & WebRTC In-House',
@@ -28,7 +29,9 @@ export default function RootLayout({
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <I18nProvider>
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <SidebarProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </SidebarProvider>
           </AuthProvider>
         </I18nProvider>
       </body>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n, Language } from '@/lib/i18n-context';
+import { useSidebar } from '@/lib/sidebar-context';
 import { notificationsService } from '@/services/notifications.service';
 import SessionManagerDrawer from '../modals/session-manager-drawer';
 import {
@@ -36,6 +37,9 @@ import {
   FileQuestion,
   Users,
   Settings,
+  PanelLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 interface AppTopbarProps {
@@ -56,6 +60,7 @@ interface NotificationItem {
 export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useI18n();
+  const { isOpen, toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
