@@ -38,11 +38,49 @@ export default function AdminMessagesPage() {
   const [isSending, setIsSending] = useState(false);
   const [studentIsTyping, setStudentIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (chatContainerRef.current) {
+      if (behavior === 'auto') {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      } else {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    }
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    }
+  };
+
+  // Auto-scroll to latest message on opening conversation or switching mobile view
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToBottom('auto');
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [activeConversation?.id, activeMobileView]);
+
+  // Auto-scroll when new message arrives or is sent
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const timer = setTimeout(() => {
+      scrollToBottom('smooth');
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [messages.length]);
 
   useEffect(() => {
+    if (user?.id) {
+      chatService.joinUser(user.id);
+    }
     loadConversations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
 
   // Realtime Socket.IO subscriptions for active conversation
   useEffect(() => {
@@ -51,6 +89,7 @@ export default function AdminMessagesPage() {
     chatService.joinConversation(activeConversation.id);
 
     const unsubNewMsg = chatService.onNewMessage((newMsg) => {
+      // 1. Update message stream if belongs to active conversation
       if (newMsg.conversationId === activeConversation.id) {
         const isAdmin = newMsg.senderId === user?.id || newMsg.sender?.role === 'ADMIN';
         const formatted: ChatMessage = {
@@ -63,11 +102,58 @@ export default function AdminMessagesPage() {
             minute: '2-digit',
           }),
         };
-        setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, formatted]));
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+
+          // If this is my own message as Admin, replace matching temporary optimistic message
+          if (isAdmin) {
+            const tempIdx = prev.findIndex(
+              (m) => m.id.startsWith('m-') && m.text.trim() === newMsg.content.trim()
+            );
+            if (tempIdx !== -1) {
+              const updated = [...prev];
+              updated[tempIdx] = formatted;
+              return updated;
+            }
+          }
+
+          return [...prev, formatted];
+        });
+
         if (!isAdmin) {
           chatService.markAsRead(activeConversation.id).catch(() => {});
         }
       }
+
+      // 2. ALWAYS update conversations list: update lastMessage, lastMessageAt and sort newest to top!
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === newMsg.conversationId);
+        let updated: ConversationItem[];
+
+        if (exists) {
+          updated = prev.map((c) => {
+            if (c.id === newMsg.conversationId) {
+              const isCurrentActive = activeConversation?.id === c.id;
+              const isFromMe = newMsg.senderId === user?.id || newMsg.sender?.role === 'ADMIN';
+              return {
+                ...c,
+                lastMessage: newMsg,
+                lastMessageAt: newMsg.createdAt || new Date().toISOString(),
+                unreadCount: isCurrentActive || isFromMe ? 0 : (c.unreadCount || 0) + 1,
+              };
+            }
+            return c;
+          });
+        } else {
+          loadConversations();
+          return prev;
+        }
+
+        // Sort descending by lastMessageAt: conversation with latest message moves to top!
+        return [...updated].sort(
+          (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
+      });
     });
 
     const unsubTyping = chatService.onUserTyping((data) => {
@@ -100,8 +186,11 @@ export default function AdminMessagesPage() {
     try {
       const list = await chatService.getConversations();
       if (Array.isArray(list) && list.length > 0) {
-        setConversations(list);
-        const first = list[0];
+        const sorted = [...list].sort(
+          (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
+        setConversations(sorted);
+        const first = sorted[0];
         setActiveConversation(first);
         await loadMessages(first.id, first.student?.fullName || 'Học viên');
       }
@@ -130,6 +219,7 @@ export default function AdminMessagesPage() {
           };
         });
         setMessages(formatted);
+        setTimeout(() => scrollToBottom('auto'), 60);
       }
       await chatService.markAsRead(convId).catch(() => {});
     } catch (err) {
@@ -140,12 +230,16 @@ export default function AdminMessagesPage() {
   const handleSelectConversation = async (conv: ConversationItem) => {
     setActiveConversation(conv);
     setActiveMobileView('chat');
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c))
+    );
     await loadMessages(conv.id, conv.student?.fullName || 'Học viên');
+    setTimeout(() => scrollToBottom('auto'), 50);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || isSending) return;
 
     const content = inputMessage.trim();
     setInputMessage('');
@@ -166,8 +260,12 @@ export default function AdminMessagesPage() {
       try {
         const sent = await chatService.sendMessage(activeConversation.id, content);
         if (sent && sent.id) {
-          setMessages((prev) =>
-            prev.map((m) =>
+          setMessages((prev) => {
+            const alreadyHasReal = prev.some((m) => m.id === sent.id);
+            if (alreadyHasReal) {
+              return prev.filter((m) => m.id !== tempId);
+            }
+            return prev.map((m) =>
               m.id === tempId
                 ? {
                     ...m,
@@ -178,8 +276,26 @@ export default function AdminMessagesPage() {
                     }),
                   }
                 : m
-            )
-          );
+            );
+          });
+
+          // Update conversation lastMessage & move to top
+          setConversations((prev) => {
+            const updated = prev.map((c) => {
+              if (c.id === activeConversation.id) {
+                return {
+                  ...c,
+                  lastMessage: sent,
+                  lastMessageAt: sent.createdAt || new Date().toISOString(),
+                  unreadCount: 0,
+                };
+              }
+              return c;
+            });
+            return [...updated].sort(
+              (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+            );
+          });
         }
       } catch (err) {
         console.error('Failed to send admin message:', err);
@@ -393,7 +509,10 @@ export default function AdminMessagesPage() {
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-bg">
+        <div
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-bg scroll-smooth"
+        >
           {messages.map((msg) => {
             const isAdmin = msg.sender === 'ADMIN';
 
@@ -426,6 +545,8 @@ export default function AdminMessagesPage() {
               </span>
             </div>
           )}
+
+          <div ref={messagesEndRef} className="h-0 w-full" />
         </div>
 
         <form

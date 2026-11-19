@@ -22,6 +22,7 @@ import {
   ArrowRight,
   Send,
   ChevronDown,
+  ChevronRight,
   Menu,
   X,
   ExternalLink,
@@ -573,10 +574,12 @@ export default function HomePage() {
 
   const scrollToSection = (id: string) => {
     setIsMobileMenuOpen(false);
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    setTimeout(() => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 350);
   };
 
   const openProgramModalFromPillar = (program: ProgramDetail) => {
@@ -708,7 +711,7 @@ export default function HomePage() {
             {user ? (
               <div className="hidden sm:flex items-center gap-2">
                 <Link
-                  href={user.role === 'ADMIN' ? '/admin' : '/student'}
+                  href={user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'}
                   className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#DDF3FC] text-[#1B64B0] text-xs sm:text-sm font-bold hover:bg-[#1B64B0] hover:text-white transition-all shadow-xs"
                 >
                   <GraduationCap className="w-4 h-4" />
@@ -738,75 +741,154 @@ export default function HomePage() {
             {/* Mobile/Tablet Hamburger Toggle */}
             <button
               type="button"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="xl:hidden p-2 text-[#55687D] hover:text-[#1B64B0] hover:bg-[#F7FAFD] rounded-lg cursor-pointer"
+              onClick={() => {
+                setIsMobileMenuOpen(!isMobileMenuOpen);
+                if (!isMobileMenuOpen) setIsLangDropdownOpen(false);
+              }}
+              className="xl:hidden p-2 text-[#55687D] hover:text-[#1B64B0] hover:bg-[#F7FAFD] rounded-xl transition-all cursor-pointer flex items-center justify-center w-10 h-10 shrink-0"
               aria-label="Toggle mobile menu"
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              <div className="w-5 h-4 flex flex-col justify-between items-center relative">
+                <span
+                  className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-500 ease-in-out transform origin-center ${
+                    isMobileMenuOpen ? 'rotate-45 translate-y-[7px] bg-[#1B64B0]' : ''
+                  }`}
+                />
+                <span
+                  className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-300 ease-in-out ${
+                    isMobileMenuOpen ? 'opacity-0 scale-x-0' : 'opacity-100'
+                  }`}
+                />
+                <span
+                  className={`block h-0.5 w-5 bg-[#55687D] rounded-full transition-all duration-500 ease-in-out transform origin-center ${
+                    isMobileMenuOpen ? '-rotate-45 -translate-y-[7px] bg-[#1B64B0]' : ''
+                  }`}
+                />
+              </div>
             </button>
           </div>
         </div>
-
-        {/* Mobile Nav Drawer */}
-        {isMobileMenuOpen && (
-          <div className="xl:hidden border-t border-[#E1EBF5] bg-white px-5 py-5 space-y-3 animate-in slide-in-from-top-2 duration-150">
-            <button
-              type="button"
-              onClick={() => scrollToSection('home-programs-section')}
-              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
-            >
-              {t('nav.programs')}
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('about-teacher-dong')}
-              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
-            >
-              {t('nav.about')}
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('tech-preview-section')}
-              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
-            >
-              {t('nav.techPreview')}
-            </button>
-            <Link
-              href="/blog"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
-            >
-              {t('nav.blog')}
-            </Link>
-            <button
-              type="button"
-              onClick={() => scrollToSection('consultation-section')}
-              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-[#14263D] hover:bg-[#F7FAFD]"
-            >
-              {t('nav.consultation')}
-            </button>
-            <div className="pt-3 border-t border-[#E1EBF5] flex flex-col gap-2">
-              {!user ? (
-                <Link
-                  href="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 text-sm font-extrabold text-white bg-[#1B64B0] rounded-full shadow-sm"
-                >
-                  🔑 {t('nav.loginAccount')}
-                </Link>
-              ) : (
-                <Link
-                  href={user.role === 'ADMIN' ? '/admin' : '/student'}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 text-sm font-extrabold text-white bg-[#1B64B0] rounded-full"
-                >
-                  🚀 {user.role === 'ADMIN' ? 'Admin Portal' : 'Student Dashboard'}
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
       </header>
+
+      {/* Mobile Nav Backdrop Overlay (Full screen) */}
+      <div
+        onClick={() => setIsMobileMenuOpen(false)}
+        className={`xl:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 transition-opacity duration-500 ease-in-out ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        aria-hidden="true"
+      />
+
+      {/* Mobile Nav Right Side Drawer: Slides horizontally from right edge */}
+      <div
+        className={`xl:hidden fixed top-0 bottom-0 right-0 z-50 h-full w-[310px] sm:w-[360px] max-w-[85vw] bg-white shadow-2xl flex flex-col justify-between overflow-hidden ${
+          isMobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+        style={{
+          backgroundColor: '#ffffff',
+          transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: isMobileMenuOpen
+            ? 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)'
+            : 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        {/* Drawer Top Header: Brand info + Close Button */}
+        <div className="h-16 sm:h-20 px-5 flex items-center justify-between border-b border-[#E1EBF5] shrink-0 bg-white">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#1B64B0] to-[#55B8E8] flex items-center justify-center text-white font-black text-sm shadow-sm">
+              Đ
+            </div>
+            <span className="font-extrabold text-[15px] text-[#14263D] tracking-tight">
+              Teacher Dong
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-2 rounded-xl text-[#55687D] hover:text-[#1B64B0] hover:bg-[#F7FAFD] transition-colors cursor-pointer"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Drawer Body: Navigation Links */}
+        <div className="p-5 space-y-2 flex-1 overflow-y-auto bg-white">
+          <button
+            type="button"
+            onClick={() => scrollToSection('home-programs-section')}
+            className="w-full text-left px-3.5 py-3 rounded-xl text-[14.5px] font-bold text-[#14263D] hover:bg-[#F7FAFD] hover:text-[#1B64B0] transition-colors flex items-center justify-between cursor-pointer"
+          >
+            <span>{t('nav.programs')}</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('about-teacher-dong')}
+            className="w-full text-left px-3.5 py-3 rounded-xl text-[14.5px] font-bold text-[#14263D] hover:bg-[#F7FAFD] hover:text-[#1B64B0] transition-colors flex items-center justify-between cursor-pointer"
+          >
+            <span>{t('nav.about')}</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('tech-preview-section')}
+            className="w-full text-left px-3.5 py-3 rounded-xl text-[14.5px] font-bold text-[#14263D] hover:bg-[#F7FAFD] hover:text-[#1B64B0] transition-colors flex items-center justify-between cursor-pointer"
+          >
+            <span>{t('nav.techPreview')}</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+          <Link
+            href="/blog"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="w-full text-left px-3.5 py-3 rounded-xl text-[14.5px] font-bold text-[#14263D] hover:bg-[#F7FAFD] hover:text-[#1B64B0] transition-colors flex items-center justify-between"
+          >
+            <span>{t('nav.blog')}</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => scrollToSection('consultation-section')}
+            className="w-full text-left px-3.5 py-3 rounded-xl text-[14.5px] font-bold text-[#14263D] hover:bg-[#F7FAFD] hover:text-[#1B64B0] transition-colors flex items-center justify-between cursor-pointer"
+          >
+            <span>{t('nav.consultation')}</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+        </div>
+
+        {/* Drawer Bottom Footer: Auth & Profile */}
+        <div className="p-5 border-t border-[#E1EBF5] bg-slate-50/80 shrink-0">
+          {!user ? (
+            <Link
+              href="/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full text-center py-3 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full shadow-sm block transition-all"
+            >
+              🔑 {t('nav.loginAccount')}
+            </Link>
+          ) : (
+            <div className="space-y-2">
+              <Link
+                href={user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full text-center py-3 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full shadow-sm block transition-all"
+              >
+                🚀 {user.role === 'ADMIN' ? 'Admin Portal' : 'Student Dashboard'}
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full text-center py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+              >
+                {t('nav.logout')}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       <main className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-14 sm:space-y-20">
         {/* ================= 3. HERO SECTION ================= */}

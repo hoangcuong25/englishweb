@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n-context';
+import { useSidebar } from '@/lib/sidebar-context';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -15,12 +16,15 @@ import {
   Settings,
   Newspaper,
   Award,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
+  const { isOpen, toggleSidebar } = useSidebar();
 
   const navSections = [
     {
@@ -60,21 +64,55 @@ export default function AdminSidebar() {
   }, []);
 
   return (
-    <aside className="hidden lg:flex w-64 bg-slate-900 text-slate-300 flex-col h-[calc(100vh-4rem)] sticky top-16 select-none border-r border-slate-800 shrink-0">
-      <div className="p-4 border-b border-slate-800">
-        <span className="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">
-          {t('role_admin', 'Quản Trị Viên & Giảng Viên')}
-        </span>
+    <aside
+      className={`hidden lg:flex flex-col h-full select-none shrink-0 overflow-hidden bg-slate-900 text-slate-300 border-r border-slate-800 transition-[width] duration-300 ease-in-out ${
+        isOpen ? 'w-64' : 'w-20'
+      }`}
+      aria-label="Thanh điều hướng Quản trị"
+    >
+      {/* Header with Title and Toggle Button on the Right */}
+      <div className={`h-10 px-3.5 border-b border-slate-800 flex items-center shrink-0 ${isOpen ? 'justify-between' : 'justify-center'}`}>
+        {isOpen ? (
+          <>
+            <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider truncate">
+              {t('role_admin', 'Quản Trị Viên / Giảng Viên')}
+            </span>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer shrink-0"
+              title="Thu gọn sidebar (Chế độ Icon)"
+              aria-label="Thu gọn thanh bên"
+            >
+              <PanelLeftClose className="w-3.5 h-3.5" />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="p-1 rounded-md text-amber-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            title="Mở rộng sidebar (Chi tiết)"
+            aria-label="Mở rộng thanh bên"
+          >
+            <PanelLeftOpen className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+      {/* Nav List: Icon + Text when open, Centered Icons when collapsed */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-4 overflow-x-hidden">
         {navSections.map((sec, sIdx) => (
           <div key={sIdx} className="space-y-1">
-            <div className="px-3 py-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                {sec.title}
-              </span>
-            </div>
+            {isOpen ? (
+              <div className="px-3 py-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 truncate block">
+                  {sec.title}
+                </span>
+              </div>
+            ) : sIdx > 0 ? (
+              <div className="my-2 border-t border-slate-800/80 mx-1" />
+            ) : null}
 
             {sec.items.map((item) => {
               const Icon = item.icon;
@@ -86,14 +124,17 @@ export default function AdminSidebar() {
                   href={item.href}
                   prefetch={true}
                   onMouseEnter={() => router.prefetch(item.href)}
-                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
+                  title={item.label}
+                  className={`flex items-center rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
+                    isOpen ? 'space-x-3 px-3.5 py-2.5' : 'justify-center p-2.5'
+                  } ${
                     isActive
                       ? 'bg-primary text-white shadow-md shadow-primary/30'
                       : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
                   <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span className="truncate">{item.label}</span>
+                  {isOpen && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
@@ -102,13 +143,22 @@ export default function AdminSidebar() {
       </nav>
 
       {/* SFU Status indicator */}
-      <div className="p-3 m-3 rounded-xl bg-slate-800 border border-slate-700 text-xs">
-        <div className="flex items-center space-x-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="font-bold text-white">LiveKit SFU Online</span>
+      {isOpen ? (
+        <div className="p-3 m-3 rounded-xl bg-slate-800 border border-slate-700 text-xs shrink-0">
+          <div className="flex items-center space-x-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+            <span className="font-bold text-white truncate">LiveKit SFU Online</span>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1 truncate">Uptime 99.98% • Latency 42ms</p>
         </div>
-        <p className="text-[11px] text-slate-400 mt-1">Uptime 99.98% • Latency 42ms</p>
-      </div>
+      ) : (
+        <div
+          className="p-2 my-3 mx-auto rounded-xl bg-slate-800/60 border border-slate-700 flex items-center justify-center cursor-pointer shrink-0"
+          title="LiveKit SFU Online • Uptime 99.98% • Latency 42ms"
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        </div>
+      )}
     </aside>
   );
 }

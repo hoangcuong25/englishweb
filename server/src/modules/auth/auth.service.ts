@@ -12,6 +12,8 @@ import { AppException } from '../../core/common/errors/app.exception';
 import { AppErrorCode } from '../../core/common/errors/error-codes.enum';
 import { MailService } from '../../core/mail/mail.service';
 import { RedisService } from '../../core/redis/redis.service';
+import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import * as bcrypt from 'bcrypt';
 import { Role, Language } from '@prisma/client';
 import { randomBytes } from 'crypto';
@@ -24,6 +26,7 @@ export class AuthService {
     private configService: ConfigService,
     private mailService: MailService,
     private redisService: RedisService,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   /**
@@ -567,6 +570,83 @@ export class AuthService {
       ...user,
       isGoogleLinked: !!user.googleAccount,
     };
+  }
+
+  /**
+   * Update personal profile information (phone, fullName, avatarUrl)
+   */
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy thông tin người dùng');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        phone: dto.phone !== undefined ? dto.phone.trim() : user.phone,
+        fullName: dto.fullName !== undefined ? dto.fullName.trim() : user.fullName,
+        avatarUrl: dto.avatarUrl !== undefined ? dto.avatarUrl.trim() : user.avatarUrl,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        avatarUrl: true,
+        preferredLang: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Upload and update user avatar image
+   */
+  async updateAvatar(userId: string, file: Express.Multer.File) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy thông tin người dùng');
+    }
+
+    if (!file) {
+      throw new BadRequestException('Vui lòng chọn file hình ảnh hợp lệ để upload avatar');
+    }
+
+    const uploadRes = await this.cloudinaryService.uploadImage(
+      file,
+      'teacher_dong_academy/avatars',
+    );
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarUrl: uploadRes.secureUrl,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        avatarUrl: true,
+        preferredLang: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updated;
   }
 
   /**

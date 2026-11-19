@@ -55,7 +55,10 @@ api.interceptors.response.use(
       originalRequest.url?.includes('/auth/refresh') ||
       originalRequest.url?.includes('/auth/logout');
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthUrl) {
+    const currentToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const isDemoToken = currentToken?.startsWith('demo_');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthUrl && !isDemoToken) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

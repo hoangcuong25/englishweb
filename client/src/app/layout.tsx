@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { I18nProvider } from '@/lib/i18n-context';
 import { ToastProvider } from '@/components/ui/toast';
+import { SidebarProvider } from '@/lib/sidebar-context';
 
 export const metadata: Metadata = {
   title: 'Teacher Dong Academy — Nền Tảng Đào Tạo Anh Ngữ & WebRTC In-House',
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -21,12 +24,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
-      <body className="min-h-screen bg-bg text-text antialiased font-sans">
+    <html lang="vi" className="overflow-x-hidden max-w-full">
+      <body className="min-h-screen bg-bg text-text antialiased font-sans overflow-x-hidden max-w-full">
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <I18nProvider>
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <SidebarProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </SidebarProvider>
           </AuthProvider>
         </I18nProvider>
       </body>

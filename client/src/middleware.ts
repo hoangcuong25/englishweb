@@ -24,6 +24,9 @@ export function middleware(request: NextRequest) {
     if (role && role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/student/dashboard', request.url));
     }
+    if (pathname === '/admin' || pathname === '/admin/') {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    }
   }
 
   // Protect Student routes
@@ -34,6 +37,9 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
     // Admin can also access student preview if needed, but students cannot access admin
+    if (pathname === '/student' || pathname === '/student/') {
+      return NextResponse.redirect(new URL('/student/dashboard', request.url));
+    }
   }
 
   // If already logged in, redirect away from login/register

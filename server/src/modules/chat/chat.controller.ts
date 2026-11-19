@@ -75,7 +75,12 @@ export class ChatController {
     );
 
     // Notify realtime listeners
-    this.chatGateway.broadcastNewMessage(conversationId, message);
+    this.chatGateway.broadcastNewMessage(
+      conversationId,
+      message,
+      (message as any).studentId,
+      (message as any).adminId,
+    );
 
     return message;
   }

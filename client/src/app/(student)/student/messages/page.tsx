@@ -30,7 +30,7 @@ export default function StudentMessagesPage() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [activeConversation, setActiveConversation] = useState<ConversationItem | null>(null);
-  const [activeMobileView, setActiveMobileView] = useState<'list' | 'chat'>('list');
+  const [activeMobileView, setActiveMobileView] = useState<'list' | 'chat'>('chat');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
@@ -38,6 +38,41 @@ export default function StudentMessagesPage() {
   const [isSending, setIsSending] = useState(false);
   const [partnerIsTyping, setPartnerIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (chatContainerRef.current) {
+      if (behavior === 'auto') {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      } else {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    }
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    }
+  };
+
+  // Auto-scroll to latest message on opening conversation or switching to chat view
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToBottom('auto');
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [activeConversation?.id, activeMobileView]);
+
+  // Auto-scroll when new message arrives or is sent
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const timer = setTimeout(() => {
+      scrollToBottom('smooth');
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [messages.length]);
 
   // Load conversations on mount
   useEffect(() => {
@@ -64,11 +99,58 @@ export default function StudentMessagesPage() {
           }),
           isRead: newMsg.isRead,
         };
-        setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, formatted]));
+        setMessages((prev) => {
+          // If already exists by id, do nothing
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+
+          // If this is my own message, replace matching optimistic temporary message
+          if (isMe) {
+            const tempIdx = prev.findIndex(
+              (m) => m.id.startsWith('m-') && m.text.trim() === newMsg.content.trim()
+            );
+            if (tempIdx !== -1) {
+              const updated = [...prev];
+              updated[tempIdx] = formatted;
+              return updated;
+            }
+          }
+
+          return [...prev, formatted];
+        });
+
         if (!isMe) {
           chatService.markAsRead(activeConversation.id).catch(() => {});
         }
       }
+
+      // Update conversations list so latest message shows snippet and moves conversation to top
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === newMsg.conversationId);
+        let updated: ConversationItem[];
+
+        if (exists) {
+          updated = prev.map((c) => {
+            if (c.id === newMsg.conversationId) {
+              const isCurrentActive = activeConversation?.id === c.id;
+              const isMe = newMsg.senderId === user?.id || newMsg.sender?.role === 'STUDENT';
+              return {
+                ...c,
+                lastMessage: newMsg,
+                lastMessageAt: newMsg.createdAt || new Date().toISOString(),
+                unreadCount: isCurrentActive || isMe ? 0 : (c.unreadCount || 0) + 1,
+              };
+            }
+            return c;
+          });
+        } else {
+          loadConversations();
+          return prev;
+        }
+
+        return [...updated].sort(
+          (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
+      });
     });
 
     const unsubTyping = chatService.onUserTyping((data) => {
@@ -100,10 +182,47 @@ export default function StudentMessagesPage() {
     try {
       const list = await chatService.getConversations();
       if (Array.isArray(list) && list.length > 0) {
-        setConversations(list);
-        const current = list[0];
+        const sorted = [...list].sort(
+          (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
+        setConversations(sorted);
+        const current = sorted[0];
         setActiveConversation(current);
         await loadMessages(current.id);
+      } else {
+        // Fallback default conversation with Teacher Dong
+        const fallbackConv: ConversationItem = {
+          id: 'conv-teacher-dong',
+          studentId: user?.id || 'std-default',
+          adminId: 'adm-teacher-dong',
+          lastMessageAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          admin: {
+            id: 'adm-teacher-dong',
+            fullName: 'Thầy Đông (IELTS 8.5)',
+            email: 'admin@dong.edu.vn',
+            role: 'ADMIN',
+          },
+          lastMessage: {
+            id: 'msg-welcome-0',
+            conversationId: 'conv-teacher-dong',
+            senderId: 'adm-teacher-dong',
+            content: 'Chào em! Thầy Đông có thể hỗ trợ gì cho em hôm nay?',
+            isRead: true,
+            createdAt: new Date().toISOString(),
+          },
+        };
+        setConversations([fallbackConv]);
+        setActiveConversation(fallbackConv);
+        setMessages([
+          {
+            id: 'msg-welcome-0',
+            sender: 'TEACHER',
+            text: 'Chào em! Thầy Đông có thể hỗ trợ gì cho lộ trình học IELTS và kỹ năng của em hôm nay?',
+            time: '08:00',
+            isRead: true,
+          },
+        ]);
       }
     } catch (err) {
       console.warn('Could not load chat conversations from server, using default messages:', err);
@@ -130,6 +249,7 @@ export default function StudentMessagesPage() {
           };
         });
         setMessages(formatted);
+        setTimeout(() => scrollToBottom('auto'), 60);
       }
       // Mark as read
       await chatService.markAsRead(convId).catch(() => {});
@@ -140,7 +260,7 @@ export default function StudentMessagesPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || isSending) return;
 
     const content = inputMessage.trim();
     setInputMessage('');
@@ -161,8 +281,12 @@ export default function StudentMessagesPage() {
       try {
         const sent = await chatService.sendMessage(activeConversation.id, content);
         if (sent && sent.id) {
-          setMessages((prev) =>
-            prev.map((m) =>
+          setMessages((prev) => {
+            const alreadyHasReal = prev.some((m) => m.id === sent.id);
+            if (alreadyHasReal) {
+              return prev.filter((m) => m.id !== tempId);
+            }
+            return prev.map((m) =>
               m.id === tempId
                 ? {
                     ...m,
@@ -173,8 +297,26 @@ export default function StudentMessagesPage() {
                     }),
                   }
                 : m
-            )
-          );
+            );
+          });
+
+          // Update conversation lastMessage & move to top
+          setConversations((prev) => {
+            const updated = prev.map((c) => {
+              if (c.id === activeConversation.id) {
+                return {
+                  ...c,
+                  lastMessage: sent,
+                  lastMessageAt: sent.createdAt || new Date().toISOString(),
+                  unreadCount: 0,
+                };
+              }
+              return c;
+            });
+            return [...updated].sort(
+              (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+            );
+          });
         }
       } catch (err) {
         console.error('Failed to send message via API:', err);
@@ -237,8 +379,12 @@ export default function StudentMessagesPage() {
                   key={conv.id}
                   onClick={() => {
                     setActiveConversation(conv);
+                    setConversations((prev) =>
+                      prev.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c))
+                    );
                     loadMessages(conv.id);
                     setActiveMobileView('chat');
+                    setTimeout(() => scrollToBottom('auto'), 50);
                   }}
                   className={`p-4 flex items-start space-x-3 cursor-pointer transition ${
                     activeConversation?.id === conv.id
@@ -344,7 +490,10 @@ export default function StudentMessagesPage() {
         </div>
 
         {/* Messages Stream */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-bg">
+        <div
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-bg scroll-smooth"
+        >
           {messages.map((msg) => {
             const isMe = msg.sender === 'ME';
 
@@ -378,6 +527,8 @@ export default function StudentMessagesPage() {
               <span className="text-[11px] text-primary font-semibold">Thầy Đông đang soạn tin nhắn...</span>
             </div>
           )}
+
+          <div ref={messagesEndRef} className="h-0 w-full" />
         </div>
 
         {/* Input Form Bar (Form 19 in Plan) */}

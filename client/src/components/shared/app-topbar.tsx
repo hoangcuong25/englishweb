@@ -7,18 +7,18 @@ import { useAuth } from '@/lib/auth-context';
 import { useI18n, Language } from '@/lib/i18n-context';
 import { notificationsService } from '@/services/notifications.service';
 import SessionManagerDrawer from '../modals/session-manager-drawer';
-import { 
-  Globe, 
-  Shield, 
-  LogOut, 
-  Bell, 
-  ChevronDown, 
-  CheckCheck, 
-  FileText, 
-  Video, 
-  Mic, 
-  CheckCircle2, 
-  Clock, 
+import {
+  Globe,
+  Shield,
+  LogOut,
+  Bell,
+  ChevronDown,
+  CheckCheck,
+  FileText,
+  Video,
+  Mic,
+  CheckCircle2,
+  Clock,
   Sparkles,
   Menu,
   X,
@@ -250,21 +250,21 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
 
   return (
     <>
-      <header className="bg-white border-b border-line sticky top-0 z-30 h-16 px-4 sm:px-6 flex items-center justify-between shadow-sm">
+      <header className="bg-white border-b border-line sticky top-0 z-30 h-16 px-4 sm:px-6 flex items-center justify-between shadow-sm shrink-0">
         {/* Left: Brand or Page Title */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Mobile Navigation Drawer Toggle */}
+          {/* Mobile Navigation Drawer Toggle (Mobile ONLY) */}
           <button
             type="button"
             onClick={() => setShowMobileDrawer(true)}
-            className="lg:hidden p-2 -ml-1 text-slate-600 hover:text-primary hover:bg-slate-100 rounded-xl transition"
+            className="lg:hidden p-2 -ml-1 text-slate-600 hover:text-primary hover:bg-slate-100 rounded-xl transition cursor-pointer"
             aria-label="Mở menu điều hướng"
           >
             <Menu className="w-5 h-5" />
           </button>
 
           <Link href="/" className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-dark to-primary flex items-center justify-center text-white font-extrabold text-base shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-dark to-primary flex items-center justify-center text-white font-extrabold text-base shadow-sm shrink-0">
               TD
             </div>
             <div className="hidden sm:block">
@@ -323,9 +323,8 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
                       setLang(l.code);
                       setShowLangMenu(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition cursor-pointer ${
-                      lang === l.code ? 'font-bold text-primary bg-sky-50/70' : 'text-slate-700 font-medium'
-                    }`}
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition cursor-pointer ${lang === l.code ? 'font-bold text-primary bg-sky-50/70' : 'text-slate-700 font-medium'
+                      }`}
                   >
                     <div className="flex items-center space-x-2 truncate">
                       <span className="text-[10px] font-extrabold text-slate-500 uppercase px-1 py-0.5 rounded bg-slate-100 shrink-0">
@@ -410,9 +409,8 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
                         key={item.id}
                         href={item.link || '#'}
                         onClick={() => handleNotificationClick(item)}
-                        className={`p-3.5 block transition hover:bg-sky-50/40 ${
-                          item.unread ? 'bg-sky-50/20' : 'bg-white'
-                        }`}
+                        className={`p-3.5 block transition hover:bg-sky-50/40 ${item.unread ? 'bg-sky-50/20' : 'bg-white'
+                          }`}
                       >
                         <div className="flex items-start space-x-3">
                           <div
@@ -425,9 +423,8 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <p
-                                className={`text-xs truncate ${
-                                  item.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'
-                                }`}
+                                className={`text-xs truncate ${item.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'
+                                  }`}
                               >
                                 {item.title}
                               </p>
@@ -488,141 +485,142 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
         onClose={() => setShowSessionDrawer(false)}
       />
 
-      {/* Mobile Navigation Drawer */}
-      {showMobileDrawer && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-            onClick={() => setShowMobileDrawer(false)}
-          />
+      {/* Mobile Navigation Drawer (Left Side Sheet: Slides in from Left, Slides out to Left) */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden flex overflow-hidden ${showMobileDrawer ? 'pointer-events-auto' : 'pointer-events-none'
+          }`}
+      >
+        {/* Backdrop */}
+        <div
+          className={`fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-500 ease-in-out ${
+            showMobileDrawer ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={() => setShowMobileDrawer(false)}
+          aria-hidden="true"
+        />
 
-          {/* Drawer Panel */}
-          <div
-            className={`relative flex-1 flex flex-col max-w-xs w-full shadow-2xl z-10 animate-in slide-in-from-left duration-200 ${
-              currentPortal === 'admin' ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-800'
+        {/* Drawer Panel: Slides in from the LEFT, slides back out to the LEFT */}
+        <div
+          className={`relative flex flex-col max-w-xs sm:max-w-sm w-full h-full shadow-2xl z-10 ${currentPortal === 'admin' ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-800'
             }`}
+          style={{
+            transform: showMobileDrawer ? 'translateX(0)' : 'translateX(-100%)',
+            transition: showMobileDrawer
+              ? 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)'
+              : 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          {/* Drawer Header */}
+          <div
+            className={`p-4 flex items-center justify-between border-b ${currentPortal === 'admin' ? 'border-slate-800' : 'border-line'
+              }`}
           >
-            {/* Drawer Header */}
-            <div
-              className={`p-4 flex items-center justify-between border-b ${
-                currentPortal === 'admin' ? 'border-slate-800' : 'border-line'
-              }`}
-            >
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-dark to-primary flex items-center justify-center text-white font-extrabold text-sm shadow-sm">
-                  TD
-                </div>
-                <div>
-                  <span
-                    className={`font-extrabold text-xs tracking-tight block ${
-                      currentPortal === 'admin' ? 'text-white' : 'text-slate-900'
-                    }`}
-                  >
-                    Teacher Dong Academy
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider ${
-                      currentPortal === 'admin' ? 'text-amber-400' : 'text-primary'
-                    }`}
-                  >
-                    {currentPortal === 'admin' ? 'Quản Trị Viên & Giảng Viên' : 'Cổng Học Viên'}
-                  </span>
-                </div>
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-dark to-primary flex items-center justify-center text-white font-extrabold text-sm shadow-sm">
+                TD
               </div>
+              <div>
+                <span
+                  className={`font-extrabold text-xs tracking-tight block ${currentPortal === 'admin' ? 'text-white' : 'text-slate-900'
+                    }`}
+                >
+                  Teacher Dong Academy
+                </span>
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider ${currentPortal === 'admin' ? 'text-amber-400' : 'text-primary'
+                    }`}
+                >
+                  {currentPortal === 'admin' ? 'Quản Trị Viên & Giảng Viên' : 'Cổng Học Viên'}
+                </span>
+              </div>
+            </div>
 
-              <button
-                type="button"
-                onClick={() => setShowMobileDrawer(false)}
-                className={`p-1.5 rounded-lg transition ${
-                  currentPortal === 'admin'
-                    ? 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+            <button
+              type="button"
+              onClick={() => setShowMobileDrawer(false)}
+              className={`p-1.5 rounded-lg transition ${currentPortal === 'admin'
+                ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                 }`}
-                aria-label="Đóng menu"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Drawer Navigation List */}
-            <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-              {activeNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname.startsWith(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch={true}
-                    onClick={() => {
-                      setTimeout(() => setShowMobileDrawer(false), 50);
-                    }}
-                    className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer touch-manipulation ${
-                      isActive
-                        ? currentPortal === 'admin'
-                          ? 'bg-slate-800 text-white font-bold border-l-4 border-amber-400'
-                          : 'bg-sky-50 text-primary font-bold border-l-4 border-primary'
-                        : currentPortal === 'admin'
-                        ? 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <Icon
-                      className={`w-4 h-4 shrink-0 ${
-                        isActive
-                          ? currentPortal === 'admin'
-                            ? 'text-amber-400'
-                            : 'text-primary'
-                          : currentPortal === 'admin'
-                          ? 'text-slate-500'
-                          : 'text-slate-400'
-                      }`}
-                    />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* Drawer User Summary Footer */}
-            <div
-              className={`p-3.5 border-t flex items-center justify-between ${
-                currentPortal === 'admin' ? 'border-slate-800 bg-slate-950/40' : 'border-line bg-slate-50'
-              }`}
+              aria-label="Đóng menu"
             >
-              <div className="flex items-center space-x-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center text-xs shrink-0">
-                  {user?.fullName?.charAt(0) || 'U'}
-                </div>
-                <div className="min-w-0">
-                  <p
-                    className={`text-xs font-bold truncate ${
-                      currentPortal === 'admin' ? 'text-white' : 'text-slate-800'
-                    }`}
-                  >
-                    {user?.fullName || (currentPortal === 'admin' ? 'Teacher Dong' : 'Học Viên')}
-                  </p>
-                  <p className="text-[10px] text-muted truncate">{user?.email || 'user@dong.edu.vn'}</p>
-                </div>
-              </div>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMobileDrawer(false);
-                  logout();
-                }}
-                className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition"
-                title="Đăng xuất"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+          {/* Drawer Navigation List */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            {activeNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={true}
+                  onClick={() => {
+                    setTimeout(() => setShowMobileDrawer(false), 50);
+                  }}
+                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer touch-manipulation ${isActive
+                    ? currentPortal === 'admin'
+                      ? 'bg-slate-800 text-white font-bold border-l-4 border-amber-400'
+                      : 'bg-sky-50 text-primary font-bold border-l-4 border-primary'
+                    : currentPortal === 'admin'
+                      ? 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                >
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${isActive
+                      ? currentPortal === 'admin'
+                        ? 'text-amber-400'
+                        : 'text-primary'
+                      : currentPortal === 'admin'
+                        ? 'text-slate-500'
+                        : 'text-slate-400'
+                      }`}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Drawer User Summary Footer */}
+          <div
+            className={`p-3.5 border-t flex items-center justify-between ${currentPortal === 'admin' ? 'border-slate-800 bg-slate-950/40' : 'border-line bg-slate-50'
+              }`}
+          >
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center text-xs shrink-0">
+                {user?.fullName?.charAt(0) || 'U'}
+              </div>
+              <div className="min-w-0">
+                <p
+                  className={`text-xs font-bold truncate ${currentPortal === 'admin' ? 'text-white' : 'text-slate-800'
+                    }`}
+                >
+                  {user?.fullName || (currentPortal === 'admin' ? 'Teacher Dong' : 'Học Viên')}
+                </p>
+                <p className="text-[10px] text-muted truncate">{user?.email || 'user@dong.edu.vn'}</p>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowMobileDrawer(false);
+                logout();
+              }}
+              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition"
+              title="Đăng xuất"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }

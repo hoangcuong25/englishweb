@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n-context';
+import { useSidebar } from '@/lib/sidebar-context';
 import { coursesService } from '@/services/courses.service';
 import {
   LayoutDashboard,
@@ -18,6 +19,8 @@ import {
   Compass,
   GraduationCap,
   Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 interface StudentGoalItem {
@@ -46,6 +49,8 @@ interface NavSection {
 export default function StudentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
+  const { isOpen, toggleSidebar } = useSidebar();
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,8 +59,6 @@ export default function StudentSidebar() {
       setCurrentTrack(params.get('track'));
     }
   }, [pathname]);
-
-  const { t } = useI18n();
 
   const [activeGoals, setActiveGoals] = useState<StudentGoalItem[]>([
     {
@@ -205,26 +208,60 @@ export default function StudentSidebar() {
   }, []);
 
   return (
-    <aside className="hidden lg:flex w-64 bg-white border-r border-line flex-col h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0">
-      <div className="p-4 border-b border-line/60">
-        <span className="text-[11px] font-extrabold text-muted uppercase tracking-wider">
-          {t('role_student', 'Học viên')} (STUDENT)
-        </span>
+    <aside
+      className={`hidden lg:flex flex-col h-full select-none shrink-0 overflow-hidden bg-white text-slate-800 border-r border-line transition-[width] duration-300 ease-in-out ${
+        isOpen ? 'w-64' : 'w-20'
+      }`}
+      aria-label="Thanh điều hướng Học viên"
+    >
+      {/* Header with Title and Toggle Button on the Right */}
+      <div className={`h-10 px-3.5 border-b border-line/60 flex items-center shrink-0 ${isOpen ? 'justify-between' : 'justify-center'}`}>
+        {isOpen ? (
+          <>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
+              {t('role_student', 'Học viên')} (STUDENT)
+            </span>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
+              title="Thu gọn sidebar (Chế độ Icon)"
+              aria-label="Thu gọn thanh bên"
+            >
+              <PanelLeftClose className="w-3.5 h-3.5" />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+            title="Mở rộng sidebar (Chi tiết)"
+            aria-label="Mở rộng thanh bên"
+          >
+            <PanelLeftOpen className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+      {/* Nav List: Icon + Text when open, Centered Icons when collapsed */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-4 overflow-x-hidden">
         {navSections.map((sec, sIdx) => (
           <div key={sIdx} className="space-y-1">
-            <div className="flex items-center justify-between px-3 py-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                {sec.title}
-              </span>
-              {sec.badge && (
-                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${sec.badgeColor}`}>
-                  {sec.badge}
+            {isOpen ? (
+              <div className="flex items-center justify-between px-3 py-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 truncate">
+                  {sec.title}
                 </span>
-              )}
-            </div>
+                {sec.badge && (
+                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${sec.badgeColor} shrink-0`}>
+                    {sec.badge}
+                  </span>
+                )}
+              </div>
+            ) : sIdx > 0 ? (
+              <div className="my-2 border-t border-slate-100 mx-1" />
+            ) : null}
 
             {sec.items.map((item) => {
               const Icon = item.icon;
@@ -244,14 +281,17 @@ export default function StudentSidebar() {
                   href={item.href}
                   prefetch={true}
                   onMouseEnter={() => router.prefetch(item.href)}
-                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
+                  title={item.label}
+                  className={`flex items-center rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
+                    isOpen ? 'space-x-3 px-3.5 py-2.5' : 'justify-center p-2.5'
+                  } ${
                     isActive
                       ? 'bg-primary text-white shadow-md shadow-primary/20'
                       : 'text-slate-700 hover:bg-slate-100 hover:text-primary'
                   }`}
                 >
                   <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span className="truncate">{item.label}</span>
+                  {isOpen && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
@@ -259,45 +299,54 @@ export default function StudentSidebar() {
         ))}
       </nav>
 
-      {/* Target Personal Goal(s): Dynamically tailored to student's enrolled track(s) */}
-      {activeGoals.length === 1 ? (
-        <div className="p-3 m-3 rounded-2xl bg-sky-50/80 border border-sky-100 text-xs space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5 text-primary" />
-              <span>Mục tiêu cá nhân</span>
+      {/* Target Personal Goal(s): Full card when open, Icon badge when collapsed */}
+      {isOpen ? (
+        activeGoals.length === 1 ? (
+          <div className="p-3 m-3 rounded-2xl bg-sky-50/80 border border-sky-100 text-xs space-y-1.5 shrink-0">
+            <div className="flex items-center justify-between">
+              <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-primary" />
+                <span>Mục tiêu cá nhân</span>
+              </p>
+              <span className="text-[9.5px] font-black text-sky-800 bg-sky-100/90 px-1.5 py-0.5 rounded-md">
+                {activeGoals[0].badge}
+              </span>
+            </div>
+            <p className="text-slate-600 text-[11.5px] pt-0.5">
+              {activeGoals[0].label}: <strong className={`font-black ${activeGoals[0].textColor}`}>{activeGoals[0].value}</strong>
             </p>
-            <span className="text-[9.5px] font-black text-sky-800 bg-sky-100/90 px-1.5 py-0.5 rounded-md">
-              {activeGoals[0].badge}
-            </span>
           </div>
-          <p className="text-slate-600 text-[11.5px] pt-0.5">
-            {activeGoals[0].label}: <strong className={`font-black ${activeGoals[0].textColor}`}>{activeGoals[0].value}</strong>
-          </p>
-        </div>
-      ) : (
-        <div className="p-3 m-3 rounded-2xl bg-gradient-to-b from-sky-50/90 to-slate-50 border border-sky-100/90 text-xs space-y-2">
-          <div className="flex items-center justify-between border-b border-sky-100/70 pb-1.5">
-            <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5 text-primary" />
-              <span>Mục tiêu cá nhân</span>
-            </p>
-            <span className="text-[9.5px] font-black text-sky-800 bg-sky-100/90 px-1.5 py-0.5 rounded-md">
-              {activeGoals.length} Lộ Trình
-            </span>
-          </div>
+        ) : (
+          <div className="p-3 m-3 rounded-2xl bg-gradient-to-b from-sky-50/90 to-slate-50 border border-sky-100/90 text-xs space-y-2 shrink-0">
+            <div className="flex items-center justify-between border-b border-sky-100/70 pb-1.5">
+              <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-primary" />
+                <span>Mục tiêu cá nhân</span>
+              </p>
+              <span className="text-[9.5px] font-black text-sky-800 bg-sky-100/90 px-1.5 py-0.5 rounded-md">
+                {activeGoals.length} Lộ Trình
+              </span>
+            </div>
 
-          <div className="space-y-1.5 text-[11px]">
-            {activeGoals.map((g, idx) => (
-              <div key={idx} className="p-1.5 rounded-lg bg-white/90 border border-sky-100/70 flex items-center justify-between shadow-2xs">
-                <span className="text-slate-600 font-medium flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${g.dotColor} shrink-0`}></span>
-                  <span>{g.label}:</span>
-                </span>
-                <span className={`font-black ${g.textColor}`}>{g.value}</span>
-              </div>
-            ))}
+            <div className="space-y-1.5 text-[11px]">
+              {activeGoals.map((g, idx) => (
+                <div key={idx} className="p-1.5 rounded-lg bg-white/90 border border-sky-100/70 flex items-center justify-between shadow-2xs">
+                  <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${g.dotColor} shrink-0`}></span>
+                    <span>{g.label}:</span>
+                  </span>
+                  <span className={`font-black ${g.textColor}`}>{g.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
+        )
+      ) : (
+        <div
+          className="p-2.5 my-3 mx-auto rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center cursor-pointer text-primary shrink-0"
+          title={`Mục tiêu cá nhân: ${activeGoals[0]?.value || 'IELTS 7.5+'}`}
+        >
+          <Target className="w-5 h-5 text-primary" />
         </div>
       )}
     </aside>
