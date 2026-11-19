@@ -30,6 +30,18 @@ export default function BlogDetailPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  // Lock horizontal scroll to 0 on mount & disable scrollRestoration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollLeft = 0;
+      document.body.scrollLeft = 0;
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!slug) return;
 
@@ -290,7 +302,7 @@ export default function BlogDetailPage() {
         case 'paragraph':
         default:
           return (
-            <p key={idx} className="my-4 text-sm sm:text-base text-[#334155] leading-relaxed whitespace-pre-line">
+            <p key={idx} className="my-4 text-sm sm:text-base text-[#334155] leading-relaxed whitespace-pre-line break-words">
               {parseInlineFormatting(block.content || '')}
             </p>
           );
@@ -332,12 +344,12 @@ export default function BlogDetailPage() {
       {/* ================= 1. HEADER ================= */}
       <header className="bg-white/95 backdrop-blur-md border-b border-[#E1EBF5] sticky top-0 z-40 transition-all shadow-xs w-full overflow-hidden">
         <div className="max-w-[1380px] mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-18 flex items-center justify-between gap-2 sm:gap-4 w-full">
-          <Link href="/blog" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 sm:flex-initial">
+          <Link href="/blog" className="flex items-center gap-2 group min-w-0 max-w-[calc(100%-105px)] sm:max-w-none">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#1B64B0] to-[#55B8E8] flex items-center justify-center text-white font-black text-base sm:text-xl shadow-md shadow-[#1B64B0]/20 group-hover:scale-105 transition-transform shrink-0">
               Đ
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-extrabold text-[13.5px] sm:text-[17px] text-[#14263D] tracking-tight group-hover:text-[#1B64B0] transition-colors leading-tight truncate">
+            <div className="flex flex-col min-w-0 truncate">
+              <span className="font-extrabold text-[13px] sm:text-[17px] text-[#14263D] tracking-tight group-hover:text-[#1B64B0] transition-colors leading-tight truncate">
                 Teacher Dong Academy
               </span>
               <span className="hidden sm:block text-[10px] sm:text-[11px] font-bold text-[#55687D] tracking-wider uppercase truncate">
@@ -548,7 +560,7 @@ export default function BlogDetailPage() {
             )}
 
             {/* Full Markdown-rendered Body */}
-            <div className="prose max-w-none text-[#334155] pt-2">
+            <div className="prose max-w-none text-[#334155] pt-2 break-words overflow-hidden">
               {renderFormattedContent(post.content)}
             </div>
 

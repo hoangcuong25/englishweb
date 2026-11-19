@@ -28,11 +28,31 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
+html {
+  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
+
 body {
+  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  position: relative;
   color: var(--text);
   background: var(--bg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
 }
 
 /* Custom Scrollbar */
@@ -51,9 +71,19 @@ body {
   background: #94a3b8;
 }
 
+/* Hide scrollbar utility */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Custom utilities */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 }
+

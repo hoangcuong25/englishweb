@@ -73,7 +73,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
       {/* Toast Notification Container */}
-      <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0">
+      <div className="fixed bottom-5 right-4 sm:right-5 z-[9999] flex flex-col gap-2 pointer-events-none max-w-[calc(100vw-2rem)] sm:max-w-sm">
         {toasts.map((t) => {
           const typeStyles = {
             success: 'bg-emerald-900/90 border-emerald-500/40 text-emerald-100',
