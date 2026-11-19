@@ -9,9 +9,14 @@ import {
   Max,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SkillType } from '@prisma/client';
+import { CourseCategory, SkillType } from '@prisma/client';
 
 export class CreateQuizDto {
+  @ApiPropertyOptional({ example: 'course-uuid-here', description: 'ID khóa học (nếu bài quiz thuộc khóa học)' })
+  @IsOptional()
+  @IsString()
+  courseId?: string;
+
   @ApiPropertyOptional({ example: 'lesson-uuid-here', description: 'ID bài học (nếu là bài kiểm tra trong bài học)' })
   @IsOptional()
   @IsString()
@@ -27,12 +32,29 @@ export class CreateQuizDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({
+    enum: CourseCategory,
+    default: CourseCategory.IELTS,
+    description: 'Phân hệ khóa học (IELTS, ENGLISH, BUSINESS, KIDS, PEDAGOGY, LIFE_SKILLS, SOFT_SKILLS, PERSONAL_DEV)',
+  })
+  @IsOptional()
+  @IsEnum(CourseCategory)
+  category?: CourseCategory;
+
+  @ApiPropertyOptional({
+    example: 'LESSON_QUIZ',
+    description: 'Loại bài Quiz: LESSON_QUIZ, SITUATION_QUIZ, PRACTICE_TEST, FULL_MOCK_TEST, DIAGNOSTIC_TEST',
+  })
+  @IsOptional()
+  @IsString()
+  quizType?: string;
+
   @ApiPropertyOptional({ enum: SkillType, default: SkillType.READING, description: 'Kỹ năng IELTS (READING, LISTENING, WRITING, SPEAKING)' })
   @IsOptional()
   @IsEnum(SkillType)
   skill?: SkillType;
 
-  @ApiPropertyOptional({ example: 'FULL_MOCK_TEST', description: 'Loại bài thi (LESSON_QUIZ, PRACTICE_TEST, FULL_MOCK_TEST)' })
+  @ApiPropertyOptional({ example: 'FULL_MOCK_TEST', description: 'Loại bài thi (LESSON_QUIZ, SITUATION_QUIZ, PRACTICE_TEST, FULL_MOCK_TEST)' })
   @IsOptional()
   @IsString()
   testType?: string;

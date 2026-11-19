@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { coursesService, Course, CourseEnrollment, DEFAULT_COVERS } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
 import { materialsService } from '@/services/materials.service';
@@ -1350,6 +1351,13 @@ export default function AdminCoursesPage() {
                     <Paperclip className="w-4 h-4 text-[#14263D]" />
                     <span>+ Đính Kèm Học Liệu</span>
                   </button>
+                  <Link
+                    href={`/admin/assessments?tab=mocktest&courseId=${activeCourse.id}&category=${activeCourse.category}&action=new_quiz`}
+                    className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                  >
+                    <HelpCircle className="w-4 h-4 text-white" />
+                    <span>+ Thêm Quiz / Test</span>
+                  </Link>
                 </div>
               </div>
 

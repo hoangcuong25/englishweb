@@ -24,10 +24,16 @@ export interface Quiz {
   passage?: string;
   audioUrl?: string;
   skill?: string;
+  category?: string;
+  quizType?: string;
+  testType?: string;
+  courseId?: string;
+  course?: { id: string; title: string; category?: string; isEnglishCourse?: boolean };
   timeLimitMinutes?: number;
   passScore?: number;
   passingScore?: number;
   lessonId?: string;
+  lesson?: { id: string; title: string };
   questions: QuizQuestion[];
 }
 
@@ -80,10 +86,16 @@ export const quizzesService = {
     return response.data?.data || response.data;
   },
 
-  async getSkillsTests(skill?: string) {
+  async getSkillsTests(params?: { skill?: string; category?: string; quizType?: string; courseId?: string } | string) {
+    const queryParams = typeof params === 'string' ? { skill: params } : params;
     const response = await api.get('/quizzes/skills/tests', {
-      params: { skill },
+      params: queryParams,
     });
+    return response.data?.data || response.data || [];
+  },
+
+  async getQuizzesByCourse(courseId: string): Promise<Quiz[]> {
+    const response = await api.get(`/quizzes/course/${courseId}`);
     return response.data?.data || response.data || [];
   },
 
@@ -91,7 +103,10 @@ export const quizzesService = {
     title: string;
     description?: string;
     skill?: string;
+    category?: string;
+    quizType?: string;
     testType?: string;
+    courseId?: string;
     passage?: string;
     audioUrl?: string;
     timeLimitMinutes?: number;
@@ -143,6 +158,9 @@ export const quizzesService = {
 
   async getAllQuizzes(params?: {
     skill?: string;
+    category?: string;
+    quizType?: string;
+    courseId?: string;
     testType?: string;
     search?: string;
     page?: number;

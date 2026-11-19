@@ -59,6 +59,9 @@ export interface QuizTestData {
   id: string;
   title: string;
   skill: 'READING' | 'LISTENING' | 'GRAMMAR';
+  category?: string;
+  quizType?: string;
+  courseTitle?: string;
   timeLimitMinutes: number;
   passScore: number;
   passage?: string;
@@ -71,7 +74,14 @@ export default function StudentQuizPage() {
   // Entitlement / Access State
   const [accessLoading, setAccessLoading] = useState(true);
   const [hasEnglishAccess, setHasEnglishAccess] = useState(false);
+  const [hasPersonalDevAccess, setHasPersonalDevAccess] = useState(false);
   const [availableEnglishCourses, setAvailableEnglishCourses] = useState<Course[]>([]);
+  const [availablePersonalDevCourses, setAvailablePersonalDevCourses] = useState<Course[]>([]);
+
+  // Multi-Track & Multi-Dimensional Filter States
+  const [selectedTrack, setSelectedTrack] = useState<'ENGLISH' | 'PERSONAL_DEV'>('ENGLISH');
+  const [filterQuizType, setFilterQuizType] = useState<string>('ALL');
+  const [filterCategory, setFilterCategory] = useState<string>('ALL');
 
   // Test Selection State
   const [selectedQuizIndex, setSelectedQuizIndex] = useState<number>(0);
@@ -101,6 +111,8 @@ export default function StudentQuizPage() {
       id: 'mock-reading-cambridge-academic',
       title: 'IELTS Academic Reading Mock Test: The Architecture of Sustainable Smart Cities',
       skill: 'READING',
+      category: 'IELTS',
+      quizType: 'FULL_MOCK_TEST',
       timeLimitMinutes: 20,
       passScore: 80,
       passage: `READING PASSAGE 1: THE ARCHITECTURE OF SUSTAINABLE SMART CITIES
@@ -197,6 +209,8 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
       id: 'mock-listening-cambridge-section-1',
       title: 'IELTS Listening Mock Test: University Campus Accommodation & Facilities Registration',
       skill: 'LISTENING',
+      category: 'IELTS',
+      quizType: 'FULL_MOCK_TEST',
       timeLimitMinutes: 15,
       passScore: 80,
       audioUrl: 'https://actions.google.com/sounds/v1/ambiences/office_room_tone.ogg',
@@ -260,6 +274,8 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
       id: 'mock-checkpoint-grammar-academic',
       title: 'Module 03 Diagnostic Checkpoint: Formal Academic Register & Collocations',
       skill: 'GRAMMAR',
+      category: 'ENGLISH',
+      quizType: 'LESSON_QUIZ',
       timeLimitMinutes: 10,
       passScore: 80,
       questions: [
@@ -287,35 +303,136 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
         },
       ],
     },
+    {
+      id: 'mock-pedagogy-case-01',
+      title: 'Case Study Sư Phạm EdTech 01: Quản Trị Tương Tác & Giải Quyết Xung Đột Nhóm Trong Lớp Trực Tuyến',
+      skill: 'READING',
+      category: 'PEDAGOGY',
+      quizType: 'SITUATION_QUIZ',
+      timeLimitMinutes: 20,
+      passScore: 80,
+      passage: `TÌNH HUỐNG THỰC TẾ (PEDAGOGICAL CASE STUDY):\n\nBối cảnh: Trong một buổi học trực tuyến qua WebRTC kéo dài 90 phút với 8 học viên người lớn (khóa đào tạo kỹ năng doanh nghiệp), giáo viên giao bài tập thảo luận nhóm (Breakout Room) 4 người để xây dựng kế hoạch dự án.\n\nDiễn biến 1: Tại Phòng 1, học viên A (giữ vị trí trưởng phòng ngoài đời) lập tức áp đặt quan điểm, liên tục ngắt lời và phủ nhận ý kiến của học viên B (một sinh viên mới ra trường). Học viên B sau đó tắt hoàn toàn camera và micro, không tham gia thêm bất kỳ hoạt động nào.\n\nDiễn biến 2: Giáo viên ghé thăm Phòng 1 và nhận thấy không khí căng thẳng cực độ, chỉ có học viên A nói một mình trong khi 3 thành viên còn lại đều im lặng. Thời gian thảo luận nhóm chỉ còn lại 7 phút trước khi quay trở lại phòng chính.\n\nYêu cầu: Người học trong vai trò Giáo viên điều phối cần phân tích động lực tâm lý nhóm và lựa chọn phương án can thiệp tức thời và hậu kỳ sư phạm tối ưu.`,
+      questions: [
+        {
+          id: 'ped-1',
+          type: 'SINGLE_CHOICE',
+          typeLabel: 'Tình Huống Sư Phạm',
+          text: 'Khi bước vào phòng breakout và thấy học viên B tắt cam/mic còn học viên A độc thoại, hành động can thiệp tức thời (Immediate Action) nào của giáo viên là sư phạm và chuyên nghiệp nhất?',
+          options: [
+            { key: 'A', text: 'Ngắt lời học viên A ngay lập tức và phê bình trước nhóm vì hành vi lấn át người khác.' },
+            { key: 'B', text: 'Tái cấu trúc vòng thảo luận (Round-robin): Đặt câu hỏi mở và mời lần lượt từng thành viên có 90 giây nêu góc nhìn riêng theo vai trò.' },
+            { key: 'C', text: 'Bỏ qua và chờ hết giờ thảo luận để gọi học viên B phát biểu trước toàn lớp lớn.' },
+            { key: 'D', text: 'Đưa ngay học viên B sang một nhóm breakout khác để tránh xung đột.' },
+          ],
+          correctAnswer: 'B',
+          explanation: 'Không nên chỉ trích công khai học viên A làm mất thể diện. Giáo viên cần tái cấu trúc hoạt động bằng cách phân bổ mỗi thành viên 90 giây trình bày một khía cạnh cụ thể theo vòng tròn, tạo không gian an toàn cho học viên B cất tiếng nói.',
+        },
+        {
+          id: 'ped-2',
+          type: 'SINGLE_CHOICE',
+          typeLabel: 'Tâm Lý Học Viên',
+          text: 'Để tái kết nối với học viên B sau buổi học nhằm giữ chân và duy trì động lực học tập, giáo viên nên thực hiện bước nào?',
+          options: [
+            { key: 'A', text: 'Gửi tin nhắn riêng thăm hỏi, ghi nhận sự đóng góp ở các buổi trước và lắng nghe cảm nhận mà không đổ lỗi.' },
+            { key: 'B', text: 'Yêu cầu học viên B phải tự tin hơn nếu muốn tiếp tục theo học khóa học.' },
+            { key: 'C', text: 'Yêu cầu học viên A gửi lời xin lỗi học viên B trong nhóm chat chung.' },
+            { key: 'D', text: 'Đánh giá điểm chuyên cần thấp cho học viên B vì tắt camera giữa chừng.' },
+          ],
+          correctAnswer: 'A',
+          explanation: 'Nhắn tin riêng 1-on-1 bày tỏ sự đồng cảm, lắng nghe khó khăn của học viên và khích lệ họ là nguyên tắc then chốt trong sư phạm hiện đại.',
+        },
+      ],
+    },
+    {
+      id: 'mock-lifeskills-case-01',
+      title: 'Trắc Nghiệm Tình Huống Kỹ Năng Sống: Thuyết Trình Trước Hội Đồng & Vượt Qua Nỗi Sợ Phản Biện',
+      skill: 'READING',
+      category: 'LIFE_SKILLS',
+      quizType: 'SITUATION_QUIZ',
+      timeLimitMinutes: 15,
+      passScore: 80,
+      passage: `BỐI CẢNH TÌNH HUỐNG THUYẾT TRÌNH (PRESENTATION DILEMMA):\n\nBạn đang trình bày dự án chiến lược trước Hội đồng thẩm định gồm 5 thành viên ban giám đốc và các chuyên gia cấp cao. Bài thuyết trình đã chuẩn bị kỹ lưỡng kéo dài 15 phút.\n\nKhi bạn đang ở slide thứ 3 trình bày về dự toán ngân sách, một thành viên hội đồng có tầm ảnh hưởng lớn đột ngột cắt ngang bằng giọng điệu gay gắt: "Số liệu chi phí này hoàn toàn phi thực tế và thiếu căn cứ thị trường, bạn lấy nguồn khảo sát này từ đâu mà dám đưa vào đây?"\n\nCả hội trường im lặng hướng mắt về phía bạn. Bạn cảm thấy tim đập nhanh, cổ họng nghẹn lại và nhận ra số liệu đó do một đồng nghiệp phụ trách tài chính cung cấp chưa kịp đối chiếu bảng gốc sáng nay.`,
+      questions: [
+        {
+          id: 'life-1',
+          type: 'SINGLE_CHOICE',
+          typeLabel: 'Làm Chủ Cảm Xúc',
+          text: 'Trong 5 giây đầu tiên sau khi bị ngắt lời gay gắt, phản ứng tâm lý và hành vi chuẩn mực của diễn giả chuyên nghiệp là gì?',
+          options: [
+            { key: 'A', text: 'Lập tức thanh minh rằng số liệu do đồng nghiệp làm sai chứ không phải lỗi của mình.' },
+            { key: 'B', text: 'Hít sâu 3 giây, giữ ánh mắt bình thản, ghi nhận sự chú ý sắc sảo của giám khảo và cảm ơn câu hỏi phản biện.' },
+            { key: 'C', text: 'Im lặng lướt nhanh qua slide tiếp theo để tránh tranh cãi.' },
+            { key: 'D', text: 'Bật lại giám khảo rằng số liệu đã được nghiên cứu kỹ và không thể vô lý.' },
+          ],
+          correctAnswer: 'B',
+          explanation: 'Dừng lại 2-3 giây hít thở sâu, duy trì giao tiếp ánh mắt điềm tĩnh, mỉm cười nhẹ và ghi nhận câu hỏi thay vì phản xạ cãi lại hoặc tỏ ra bối rối.',
+        },
+      ],
+    },
   ];
 
   const [testsList, setTestsList] = useState<QuizTestData[]>(mockTestsList);
-  const activeQuiz = testsList[selectedQuizIndex] || testsList[0];
-  const questions = activeQuiz.questions;
+
+  // Multi-Track Filtered Test List
+  const filteredTestsList = useMemo(() => {
+    return testsList.filter((test) => {
+      // 1. Track filter
+      const isEnglishTrack = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(test.category || 'IELTS');
+      if (selectedTrack === 'ENGLISH' && !isEnglishTrack) return false;
+      if (selectedTrack === 'PERSONAL_DEV' && isEnglishTrack) return false;
+
+      // 2. Quiz Type filter
+      if (filterQuizType !== 'ALL' && test.quizType !== filterQuizType) return false;
+
+      // 3. Category filter
+      if (filterCategory !== 'ALL' && test.category !== filterCategory) return false;
+
+      return true;
+    });
+  }, [testsList, selectedTrack, filterQuizType, filterCategory]);
+
+  const activeQuiz = filteredTestsList[selectedQuizIndex] || filteredTestsList[0] || testsList[0];
+  const questions = activeQuiz?.questions || [];
   const currentQuestion = questions[currentIdx] || questions[0];
 
-  // Check IELTS entitlement on mount
+  // Check Dual-Track entitlement on mount
   useEffect(() => {
     const checkAccess = async () => {
       setAccessLoading(true);
       try {
+        let englishAccess = false;
+        let personalDevAccess = false;
+
         const accessRes = await coursesService.checkIeltsAccess();
         if (accessRes && accessRes.hasAccess) {
-          setHasEnglishAccess(true);
-        } else {
-          const myLearning = await coursesService.getMyLearning();
-          if (Array.isArray(myLearning)) {
-            const hasActiveEnglish = myLearning.some(
+          englishAccess = true;
+        }
+
+        const myLearning = await coursesService.getMyLearning();
+        if (Array.isArray(myLearning)) {
+          if (!englishAccess) {
+            englishAccess = myLearning.some(
               (c: Record<string, unknown>) =>
                 ((c.status as string) === 'ACTIVE' || !c.status) &&
                 (['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(c.category as string) ||
                  c.isEnglishCourse === true ||
                  (typeof c.title === 'string' && (c.title.includes('IELTS') || c.title.includes('English'))))
             );
-            setHasEnglishAccess(hasActiveEnglish);
-          } else {
-            setHasEnglishAccess(false);
           }
+          personalDevAccess = myLearning.some(
+            (c: Record<string, unknown>) =>
+              ((c.status as string) === 'ACTIVE' || !c.status) &&
+              (['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(c.category as string) ||
+               c.isEnglishCourse === false)
+          );
+        }
+
+        setHasEnglishAccess(englishAccess);
+        setHasPersonalDevAccess(personalDevAccess);
+
+        // Auto-switch track if user only has personal development access
+        if (!englishAccess && personalDevAccess) {
+          setSelectedTrack('PERSONAL_DEV');
         }
 
         // Fetch courses for recommendation if locked
@@ -324,12 +441,21 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
           const englishOnly = catalog.filter(
             (c) =>
               ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(c.category) ||
+              c.isEnglishCourse === true ||
               (c.title && (c.title.includes('IELTS') || c.title.includes('English')))
           );
           setAvailableEnglishCourses(englishOnly.slice(0, 4));
+
+          const personalDevOnly = catalog.filter(
+            (c) =>
+              ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(c.category) ||
+              c.isEnglishCourse === false
+          );
+          setAvailablePersonalDevCourses(personalDevOnly.slice(0, 4));
         }
       } catch {
         setHasEnglishAccess(false);
+        setHasPersonalDevAccess(false);
       } finally {
         setAccessLoading(false);
       }
@@ -345,7 +471,19 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
         if (Array.isArray(tests) && tests.length > 0) {
           type RemoteOption = { id: string; content: string; isCorrect?: boolean };
           type RemoteQuestion = { id: string; content: string; type?: string; subCategory?: string; explanation?: string; options?: RemoteOption[] };
-          type RemoteQuizItem = { id: string; title: string; skill?: string; timeLimitMinutes?: number; passScore?: number; passage?: string; audioUrl?: string; questions?: RemoteQuestion[] };
+          type RemoteQuizItem = {
+            id: string;
+            title: string;
+            skill?: string;
+            category?: string;
+            quizType?: string;
+            course?: { title?: string };
+            timeLimitMinutes?: number;
+            passScore?: number;
+            passage?: string;
+            audioUrl?: string;
+            questions?: RemoteQuestion[];
+          };
 
           const mapped: QuizTestData[] = (tests as RemoteQuizItem[]).map((t) => {
             const skillStr: 'READING' | 'LISTENING' | 'GRAMMAR' =
@@ -392,6 +530,9 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
               id: t.id,
               title: t.title,
               skill: skillStr,
+              category: t.category || (t.skill === 'LISTENING' ? 'IELTS' : 'ENGLISH'),
+              quizType: t.quizType || 'PRACTICE_TEST',
+              courseTitle: t.course?.title,
               timeLimitMinutes: t.timeLimitMinutes || defaultTemplate.timeLimitMinutes,
               passScore: t.passScore || defaultTemplate.passScore,
               passage: t.passage || defaultTemplate.passage,
@@ -415,7 +556,8 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
 
   // Reset exam on switch
   useEffect(() => {
-    setTimeLeft(activeQuiz.timeLimitMinutes * 60);
+    if (!activeQuiz) return;
+    setTimeLeft((activeQuiz.timeLimitMinutes || 15) * 60);
     setCurrentIdx(0);
     setSelectedAnswers({});
     setIsSubmitted(false);
@@ -425,7 +567,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-  }, [selectedQuizIndex, activeQuiz.timeLimitMinutes]);
+  }, [selectedQuizIndex, activeQuiz?.id, activeQuiz?.timeLimitMinutes]);
 
   // Exam Countdown Timer
   useEffect(() => {
@@ -650,128 +792,223 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const isReadingSplitView = activeQuiz.skill === 'READING';
-  const isListeningExam = activeQuiz.skill === 'LISTENING';
+  const isReadingSplitView = Boolean(activeQuiz?.passage);
+  const isListeningExam = activeQuiz?.skill === 'LISTENING';
 
   if (accessLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
         <RefreshCw className="w-8 h-8 animate-spin text-sky-600" />
-        <span className="text-xs font-semibold text-slate-500">Đang kiểm tra quyền truy cập phòng thi IELTS Mock Test...</span>
-      </div>
-    );
-  }
-
-  if (!hasEnglishAccess) {
-    return (
-      <div className="max-w-3xl mx-auto my-8 p-8 sm:p-12 rounded-3xl bg-white border border-line shadow-xl text-center space-y-6">
-        <div className="w-20 h-20 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner border border-amber-200">
-          <Lock className="w-10 h-10 text-amber-600" />
-        </div>
-
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
-            Phân Hệ Đang Bị Khóa
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Yêu Cầu Sở Hữu Khóa Học Tiếng Anh Để Làm IELTS Mock Tests
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Hệ thống đề thi thử IELTS Mock Test (Chia đôi màn hình Reading với công cụ Highlight, Nghe audio streaming, Chấm điểm và phân tích Radar Chart dạng bài) chỉ dành cho học viên đăng ký các khóa học <strong>Tiếng Anh</strong> (IELTS, Business English, Kids). Hiện tại tài khoản của bạn chưa có khóa học Tiếng Anh nào được kích hoạt.
-          </p>
-        </div>
-
-        {/* Suggested English Courses */}
-        <div className="pt-4 border-t border-slate-100 space-y-4 text-left">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider text-center">
-            Đăng ký khóa học Tiếng Anh để kích hoạt phòng thi thử:
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {availableEnglishCourses.map((c) => (
-              <div
-                key={c.id}
-                className="p-5 rounded-2xl border border-slate-200 hover:border-sky-500 bg-slate-50/50 hover:bg-sky-50/20 transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-2">
-                  <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-black uppercase">
-                    {c.category || 'IELTS'}
-                  </span>
-                  <h4 className="font-extrabold text-sm text-slate-900 leading-snug line-clamp-2">
-                    {c.title}
-                  </h4>
-                  <p className="text-xs text-slate-500 line-clamp-2">
-                    {c.description || 'Chương trình luyện thi IELTS chuẩn Cambridge tích hợp AI.'}
-                  </p>
-                </div>
-
-                <Link
-                  href="/student/courses"
-                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs shadow-sm transition-all"
-                >
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span>Xem khóa học & Quét QR đăng ký</span>
-                </Link>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center pt-2">
-            <Link
-              href="/student/courses"
-              className="inline-flex items-center gap-2 text-xs font-black text-sky-600 hover:text-sky-700 underline"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Xem tất cả khóa học trên hệ thống</span>
-            </Link>
-          </div>
-        </div>
+        <span className="text-xs font-semibold text-slate-500">Đang kiểm tra quyền truy cập phòng thi trực tuyến...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Quiz Category & Format Switcher Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-line pb-4">
-        <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-100 text-primary text-xs font-bold mb-1">
-            <Award className="w-3.5 h-3.5" />
-            <span>IELTS Academic Mock Examination & Diagnostic Engine</span>
-          </div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
-            <span>{activeQuiz.title}</span>
-          </h1>
-          <p className="text-xs text-muted mt-0.5">
-            Mô phỏng 100% định dạng thi máy tính Cambridge IELTS: Chia đôi màn hình Reading, Audio Stream Listening & Biểu đồ mạng nhện phân tích dạng bài.
-          </p>
+      {/* 1. Track Selector & Quick Type Pills */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-3xl bg-white border border-line shadow-xs">
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl shrink-0">
+          <button
+            onClick={() => {
+              setSelectedTrack('ENGLISH');
+              setFilterCategory('ALL');
+              setFilterQuizType('ALL');
+              setSelectedQuizIndex(0);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+              selectedTrack === 'ENGLISH'
+                ? 'bg-primary text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>🇬🇧 Tiếng Anh & IELTS</span>
+            {hasEnglishAccess && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
+          </button>
+          <button
+            onClick={() => {
+              setSelectedTrack('PERSONAL_DEV');
+              setFilterCategory('ALL');
+              setFilterQuizType('ALL');
+              setSelectedQuizIndex(0);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+              selectedTrack === 'PERSONAL_DEV'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>🌟 Kỹ Năng & Sư Phạm</span>
+            {hasPersonalDevAccess && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
+          </button>
         </div>
 
-        {/* Tab switchers */}
-        <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl shrink-0 overflow-x-auto">
-          {testsList.map((quiz, idx) => (
+        {/* Quick Quiz Type Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+          {[
+            { id: 'ALL', label: 'Tất cả loại bài' },
+            { id: 'SITUATION_QUIZ', label: '🎯 Tình Huống / Case Study' },
+            { id: 'FULL_MOCK_TEST', label: '🏆 Đề Thi Thử (Mock)' },
+            { id: 'PRACTICE_TEST', label: '📝 Luyện Tập Chuyên Đề' },
+            { id: 'LESSON_QUIZ', label: '📖 Củng Cố Bài Học' },
+          ].map((type) => (
             <button
-              key={quiz.id}
-              onClick={() => setSelectedQuizIndex(idx)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
-                selectedQuizIndex === idx
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+              key={type.id}
+              onClick={() => {
+                setFilterQuizType(type.id);
+                setSelectedQuizIndex(0);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition ${
+                filterQuizType === type.id
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
               }`}
             >
-              {quiz.skill === 'READING' ? (
-                <Columns className="w-3.5 h-3.5" />
-              ) : quiz.skill === 'LISTENING' ? (
-                <Headphones className="w-3.5 h-3.5" />
-              ) : (
-                <FileText className="w-3.5 h-3.5" />
-              )}
-              <span>{quiz.skill === 'READING' ? 'Reading Mock Test' : quiz.skill === 'LISTENING' ? 'Listening Mock Test' : 'Grammar Check'}</span>
+              {type.label}
             </button>
           ))}
         </div>
       </div>
+
+      {/* 2. Check if selected track is locked */}
+      {selectedTrack === 'ENGLISH' && !hasEnglishAccess ? (
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border border-line shadow-xl text-center space-y-6">
+          <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner border border-amber-200">
+            <Lock className="w-8 h-8 text-amber-600" />
+          </div>
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+              Phân Hệ Tiếng Anh Đang Khóa
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Yêu Cầu Sở Hữu Khóa Học Tiếng Anh Để Làm IELTS Mock Tests
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
+              Phòng thi trực tuyến Cambridge IELTS (Chia đôi màn hình Reading với bộ công cụ dạ quang, Nghe streaming và Radar Chart) chỉ dành cho học viên đăng ký các khóa học Tiếng Anh.
+            </p>
+          </div>
+          <div className="pt-4 border-t border-slate-100 space-y-4 text-left">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider text-center">
+              Khóa học Tiếng Anh đề xuất để kích hoạt phòng thi:
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {availableEnglishCourses.map((c) => (
+                <div key={c.id} className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                  <div className="space-y-1.5">
+                    <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-black uppercase">{c.category || 'IELTS'}</span>
+                    <h4 className="font-extrabold text-sm text-slate-900 leading-snug">{c.title}</h4>
+                    <p className="text-xs text-slate-500 line-clamp-2">{c.description}</p>
+                  </div>
+                  <Link href="/student/courses" className="mt-4 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs transition">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Xem khóa học & Kích hoạt</span>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : selectedTrack === 'PERSONAL_DEV' && !hasPersonalDevAccess ? (
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border border-line shadow-xl text-center space-y-6">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-inner border border-emerald-200">
+            <Lock className="w-8 h-8 text-emerald-600" />
+          </div>
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black uppercase">
+              <AlertTriangle className="w-3.5 h-3.5 text-emerald-700" />
+              Phân Hệ Kỹ Năng & Sư Phạm Đang Khóa
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Yêu Cầu Sở Hữu Khóa Học Để Làm Trắc Nghiệm Tình Huống Sư Phạm & Kỹ Năng Sống
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
+              Các bài kiểm tra trắc nghiệm tình huống thực tế (Case Study Dilemmas, xử lý xung đột lớp học, thuyết trình đám đông) chỉ dành cho học viên đăng ký phân hệ Sư Phạm EdTech & Phát Triển Bản Thân.
+            </p>
+          </div>
+          <div className="pt-4 border-t border-slate-100 space-y-4 text-left">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider text-center">
+              Khóa học Kỹ Năng & Sư Phạm đề xuất để kích hoạt:
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {availablePersonalDevCourses.map((c) => (
+                <div key={c.id} className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                  <div className="space-y-1.5">
+                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">{c.category || 'PEDAGOGY'}</span>
+                    <h4 className="font-extrabold text-sm text-slate-900 leading-snug">{c.title}</h4>
+                    <p className="text-xs text-slate-500 line-clamp-2">{c.description}</p>
+                  </div>
+                  <Link href="/student/courses" className="mt-4 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Xem khóa học & Kích hoạt</span>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : filteredTestsList.length === 0 ? (
+        <div className="p-12 text-center bg-white rounded-3xl border border-line space-y-3">
+          <AlertCircle className="w-10 h-10 text-slate-400 mx-auto" />
+          <h3 className="font-bold text-slate-800 text-sm">Chưa có bài Quiz nào phù hợp với bộ lọc hiện tại</h3>
+          <p className="text-xs text-muted max-w-md mx-auto">Hãy thử chọn lại "Tất cả loại bài" hoặc chuyển sang danh mục khác để tìm đề thi phù hợp.</p>
+          <button
+            onClick={() => {
+              setFilterQuizType('ALL');
+              setFilterCategory('ALL');
+            }}
+            className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold shadow-xs hover:bg-primary-dark transition"
+          >
+            Đặt lại bộ lọc
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Quiz Category & Format Switcher Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-line pb-4">
+            <div>
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-100 text-primary text-xs font-bold mb-1">
+                <Award className="w-3.5 h-3.5" />
+                <span>
+                  {selectedTrack === 'ENGLISH'
+                    ? 'IELTS & English Examination & Diagnostic Engine'
+                    : 'Personal Development & EdTech Pedagogy Assessment'}
+                </span>
+              </div>
+              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
+                <span>{activeQuiz.title}</span>
+              </h1>
+              <p className="text-xs text-muted mt-0.5">
+                {activeQuiz.quizType === 'SITUATION_QUIZ'
+                  ? 'Phân tích tình huống thực tế (Case Study), bôi màu từ khóa dữ kiện và đưa ra quyết định tối ưu.'
+                  : 'Mô phỏng 100% định dạng thi chuẩn hóa: Chia đôi màn hình, công cụ Highlight, Audio Stream & Biểu đồ phân tích dạng bài.'}
+              </p>
+            </div>
+
+            {/* Tab switchers */}
+            <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl shrink-0 overflow-x-auto max-w-full">
+              {filteredTestsList.map((quiz, idx) => (
+                <button
+                  key={quiz.id}
+                  onClick={() => setSelectedQuizIndex(idx)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 shrink-0 ${
+                    selectedQuizIndex === idx
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 uppercase">
+                    {quiz.quizType === 'SITUATION_QUIZ'
+                      ? 'Tình Huống'
+                      : quiz.quizType === 'FULL_MOCK_TEST'
+                      ? 'Mock Test'
+                      : 'Quiz'}
+                  </span>
+                  <span className="max-w-[150px] truncate">{quiz.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
       {/* Sticky Exam Info Bar with Question Matrix & Timer */}
       <div className="p-4 rounded-2xl bg-white border border-line shadow-sm flex flex-wrap items-center justify-between gap-3 sticky top-16 z-20 backdrop-blur-md bg-white/95">
@@ -892,7 +1129,11 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
             <div className="p-3.5 border-b border-line bg-slate-50 flex items-center justify-between">
               <div className="flex items-center space-x-2 text-xs font-bold text-slate-800">
                 <BookOpen className="w-4 h-4 text-primary" />
-                <span>Reading Passage (Cuộn độc lập)</span>
+                <span>
+                  {activeQuiz?.quizType === 'SITUATION_QUIZ'
+                    ? 'Bối Cảnh Tình Huống Thực Tế (Case Study - Cuộn độc lập)'
+                    : 'Reading Passage (Cuộn độc lập)'}
+                </span>
               </div>
 
               {/* Highlighter Tool Palette */}
@@ -951,6 +1192,17 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
               ref={passageContainerRef}
               className="flex-1 overflow-y-auto p-6 space-y-4 text-xs sm:text-sm text-slate-800 leading-relaxed font-sans select-text"
             >
+              {activeQuiz.quizType === 'SITUATION_QUIZ' && (
+                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-black text-amber-800 uppercase tracking-wide">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <span>Kịch Bản Nghiên Cứu Tình Huống (Case Study)</span>
+                  </div>
+                  <p className="text-slate-700 leading-relaxed text-[11px]">
+                    Hãy đọc kỹ diễn biến tình huống, xung đột lợi ích và tâm lý nhân vật bên dưới. Sử dụng công cụ dạ quang để đánh dấu từ khóa dữ kiện trước khi đưa ra quyết định xử lý ở cột câu hỏi bên phải.
+                  </p>
+                </div>
+              )}
               {activeQuiz.passage?.split('\n\n').map((paragraph, pIdx) => (
                 <p key={pIdx} className="leading-relaxed">
                   {paragraph}
@@ -965,9 +1217,17 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
           <div className="bg-white rounded-3xl border border-line shadow-sm p-6 space-y-5">
             {/* Question Header & Type Tag */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-sky-100 text-primary border border-sky-200">
-                {currentQuestion.typeLabel}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {activeQuiz.quizType === 'SITUATION_QUIZ' && (
+                  <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    <span>Tình Huống</span>
+                  </span>
+                )}
+                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-sky-100 text-primary border border-sky-200">
+                  {currentQuestion.typeLabel}
+                </span>
+              </div>
               <span className="text-xs font-bold text-slate-400 font-mono">Câu #{currentIdx + 1} / {questions.length}</span>
             </div>
 
@@ -1319,6 +1579,8 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
