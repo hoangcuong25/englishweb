@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { coursesService, Course, CourseModule, CourseLesson } from '@/services/courses.service';
+import { useSearchParams } from 'next/navigation';
+import { coursesService, Course, CourseModule, CourseLesson, getCourseCoverUrl, DEFAULT_COVERS } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
 import { authService, User } from '@/services/auth.service';
 import {
@@ -27,6 +28,7 @@ import {
   CreditCard,
   X,
   ShieldCheck,
+  Compass,
 } from 'lucide-react';
 
 interface MockLesson {
@@ -47,7 +49,27 @@ interface MockModule {
   lessons: MockLesson[];
 }
 
-export default function StudentCoursesPage() {
+function StudentCoursesContent() {
+  const searchParams = useSearchParams();
+  const urlTrack = searchParams?.get('track');
+
+  // Track: 'ALL' | 'ENGLISH' | 'PERSONAL_DEV'
+  const [activeTrack, setActiveTrack] = useState<'ALL' | 'ENGLISH' | 'PERSONAL_DEV'>(
+    urlTrack === 'english'
+      ? 'ENGLISH'
+      : urlTrack === 'personal_dev' || urlTrack === 'skills'
+      ? 'PERSONAL_DEV'
+      : 'ALL',
+  );
+
+  useEffect(() => {
+    if (urlTrack === 'english') {
+      setActiveTrack('ENGLISH');
+    } else if (urlTrack === 'personal_dev' || urlTrack === 'skills') {
+      setActiveTrack('PERSONAL_DEV');
+    }
+  }, [urlTrack]);
+
   // Tabs: 'my-courses' | 'recommended' | 'curriculum'
   const [activeTab, setActiveTab] = useState<'my-courses' | 'recommended' | 'curriculum'>('my-courses');
 
@@ -258,35 +280,148 @@ export default function StudentCoursesPage() {
     );
   };
 
-  // Category Badge helper
+  // Helper check if a course belongs to a specific track
+  const isCourseInTrack = (c: Course, track: 'ALL' | 'ENGLISH' | 'PERSONAL_DEV') => {
+    if (track === 'ALL') return true;
+    const cat = (c.category || '').toUpperCase();
+    const isEng = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(cat) || c.isEnglishCourse === true;
+    if (track === 'ENGLISH') return isEng;
+    if (track === 'PERSONAL_DEV') return !isEng || ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(cat);
+    return true;
+  };
+
+  // Filtered My Courses by Track
+  const filteredMyCourses = useMemo(() => {
+    return myCourses.filter((c) => isCourseInTrack(c, activeTrack));
+  }, [myCourses, activeTrack]);
+
+  // Counts for each track
+  const englishTotalCount = useMemo(() => {
+    const fromMy = myCourses.filter((c) => isCourseInTrack(c, 'ENGLISH')).length;
+    const fromRec = recommendedCourses.filter((c) => isCourseInTrack(c, 'ENGLISH')).length;
+    return fromMy + fromRec;
+  }, [myCourses, recommendedCourses]);
+
+  const personalDevTotalCount = useMemo(() => {
+    const fromMy = myCourses.filter((c) => isCourseInTrack(c, 'PERSONAL_DEV')).length;
+    const fromRec = recommendedCourses.filter((c) => isCourseInTrack(c, 'PERSONAL_DEV')).length;
+    return fromMy + fromRec;
+  }, [myCourses, recommendedCourses]);
+
+  // Category Badge helper with explicit Track indicator
   const renderCategoryBadge = (category?: string) => {
-    switch (category) {
+    const cat = (category || '').toUpperCase();
+    switch (cat) {
       case 'IELTS':
-        return <span className="px-2.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[11px] font-black uppercase">IELTS Masterclass</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[11px] font-black uppercase flex items-center gap-1">
+            <span>🇬🇧</span>
+            <span>IELTS Masterclass</span>
+          </span>
+        );
       case 'BUSINESS':
-        return <span className="px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[11px] font-black uppercase">Business English</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[11px] font-black uppercase flex items-center gap-1">
+            <span>🇬🇧</span>
+            <span>Business English</span>
+          </span>
+        );
       case 'KIDS':
-        return <span className="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[11px] font-black uppercase">Tiếng Anh Thiếu Nhi</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[11px] font-black uppercase flex items-center gap-1">
+            <span>🇬🇧</span>
+            <span>Tiếng Anh Thiếu Nhi</span>
+          </span>
+        );
+      case 'ENGLISH':
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[11px] font-black uppercase flex items-center gap-1">
+            <span>🇬🇧</span>
+            <span>General English</span>
+          </span>
+        );
       case 'PEDAGOGY':
-        return <span className="px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[11px] font-black uppercase">Năng Lực Sư Phạm</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[11px] font-black uppercase flex items-center gap-1">
+            <span>🌟</span>
+            <span>Năng Lực Sư Phạm</span>
+          </span>
+        );
       case 'LIFE_SKILLS':
-        return <span className="px-2.5 py-0.5 rounded-md bg-teal-100 text-teal-800 text-[11px] font-black uppercase">Kỹ Năng Sống</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-teal-100 text-teal-800 text-[11px] font-black uppercase flex items-center gap-1">
+            <span>🌟</span>
+            <span>Kỹ Năng Sống</span>
+          </span>
+        );
+      case 'SOFT_SKILLS':
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-black uppercase flex items-center gap-1">
+            <span>🌟</span>
+            <span>Kỹ Năng Mềm</span>
+          </span>
+        );
+      case 'PERSONAL_DEV':
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-[11px] font-black uppercase flex items-center gap-1">
+            <span>🌟</span>
+            <span>Phát Triển Bản Thân</span>
+          </span>
+        );
       default:
-        return <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-black uppercase">{category || 'Khóa học'}</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-black uppercase">
+            {category || 'Khóa học'}
+          </span>
+        );
     }
   };
 
-  // Filtered recommended list
+  // Dynamic Subcategory Filter Pills based on activeTrack
+  const categoryFilterPills = useMemo(() => {
+    if (activeTrack === 'ENGLISH') {
+      return [
+        { id: 'ALL', label: 'Tất cả Tiếng Anh' },
+        { id: 'IELTS', label: 'IELTS Masterclass' },
+        { id: 'ENGLISH', label: 'General English' },
+        { id: 'BUSINESS', label: 'Business English' },
+        { id: 'KIDS', label: 'Tiếng Anh Thiếu Nhi' },
+      ];
+    }
+    if (activeTrack === 'PERSONAL_DEV') {
+      return [
+        { id: 'ALL', label: 'Tất cả Kỹ Năng & Sư Phạm' },
+        { id: 'PEDAGOGY', label: 'Năng Lực Sư Phạm EdTech' },
+        { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống & Thuyết Trình' },
+        { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
+        { id: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân' },
+      ];
+    }
+    return [
+      { id: 'ALL', label: 'Tất cả lĩnh vực' },
+      { id: 'IELTS', label: 'IELTS 4 Kỹ Năng' },
+      { id: 'ENGLISH', label: 'Tiếng Anh Tổng Quát' },
+      { id: 'BUSINESS', label: 'Business English' },
+      { id: 'KIDS', label: 'Tiếng Anh Thiếu Nhi' },
+      { id: 'PEDAGOGY', label: 'Sư Phạm EdTech' },
+      { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
+      { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
+      { id: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân' },
+    ];
+  }, [activeTrack]);
+
+  // Filtered recommended list based on Track + Subcategory + Search
   const filteredRecommended = useMemo(() => {
     return recommendedCourses.filter((c) => {
+      const matchTrack = isCourseInTrack(c, activeTrack);
       const matchCat = filterCategory === 'ALL' || c.category === filterCategory;
       const matchSearch =
         !searchQuery.trim() ||
         c.title.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
         (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase().trim()));
-      return matchCat && matchSearch;
+      return matchTrack && matchCat && matchSearch;
     });
-  }, [recommendedCourses, filterCategory, searchQuery]);
+  }, [recommendedCourses, activeTrack, filterCategory, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -295,6 +430,198 @@ export default function StudentCoursesPage() {
         <div className="fixed top-20 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-sm font-extrabold shadow-lg animate-in fade-in slide-in-from-top-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* 0. Primary Track Switcher (Tiếng Anh vs Phát triển cá nhân) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        {/* Track 1: All */}
+        <button
+          onClick={() => {
+            setActiveTrack('ALL');
+            setFilterCategory('ALL');
+          }}
+          className={`p-4 sm:p-5 rounded-3xl border text-left transition-all flex items-center justify-between gap-3 ${
+            activeTrack === 'ALL'
+              ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/15 ring-2 ring-slate-900/20'
+              : 'bg-white text-slate-700 border-line hover:border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          <div className="flex items-center gap-3.5">
+            <div
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                activeTrack === 'ALL' ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-black tracking-tight">Tất Cả Lộ Trình</h3>
+              <p className={`text-[11px] font-medium ${activeTrack === 'ALL' ? 'text-slate-300' : 'text-slate-500'}`}>
+                Toàn bộ chương trình đào tạo
+              </p>
+            </div>
+          </div>
+          <span
+            className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+              activeTrack === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
+            }`}
+          >
+            {myCourses.length + recommendedCourses.length}
+          </span>
+        </button>
+
+        {/* Track 2: English & IELTS Track */}
+        <button
+          onClick={() => {
+            setActiveTrack('ENGLISH');
+            setFilterCategory('ALL');
+          }}
+          className={`p-4 sm:p-5 rounded-3xl border text-left transition-all flex items-center justify-between gap-3 ${
+            activeTrack === 'ENGLISH'
+              ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white border-sky-600 shadow-lg shadow-sky-600/25 ring-2 ring-sky-500/30'
+              : 'bg-white text-slate-700 border-line hover:border-sky-200 hover:bg-sky-50/40'
+          }`}
+        >
+          <div className="flex items-center gap-3.5">
+            <div
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                activeTrack === 'ENGLISH' ? 'bg-white/20 text-white' : 'bg-sky-50 text-sky-600'
+              }`}
+            >
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="text-xs sm:text-sm font-black tracking-tight">Đào Tạo Tiếng Anh & IELTS</h3>
+                <span
+                  className={`text-[9px] font-black px-1.5 py-0.2 rounded-md ${
+                    activeTrack === 'ENGLISH' ? 'bg-white/20 text-white' : 'bg-sky-100 text-sky-800'
+                  }`}
+                >
+                  IELTS 8.5
+                </span>
+              </div>
+              <p className={`text-[11px] font-medium ${activeTrack === 'ENGLISH' ? 'text-sky-100' : 'text-slate-500'}`}>
+                IELTS • Giao tiếp • Doanh nghiệp • Thiếu nhi
+              </p>
+            </div>
+          </div>
+          <span
+            className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+              activeTrack === 'ENGLISH' ? 'bg-white/20 text-white' : 'bg-sky-50 text-sky-700'
+            }`}
+          >
+            {englishTotalCount}
+          </span>
+        </button>
+
+        {/* Track 3: Personal Development & Pedagogy */}
+        <button
+          onClick={() => {
+            setActiveTrack('PERSONAL_DEV');
+            setFilterCategory('ALL');
+          }}
+          className={`p-4 sm:p-5 rounded-3xl border text-left transition-all flex items-center justify-between gap-3 ${
+            activeTrack === 'PERSONAL_DEV'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-emerald-600 shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-500/30'
+              : 'bg-white text-slate-700 border-line hover:border-emerald-200 hover:bg-emerald-50/40'
+          }`}
+        >
+          <div className="flex items-center gap-3.5">
+            <div
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                activeTrack === 'PERSONAL_DEV' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'
+              }`}
+            >
+              <Compass className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="text-xs sm:text-sm font-black tracking-tight">Phát Triển Cá Nhân & Sư Phạm</h3>
+                <span
+                  className={`text-[9px] font-black px-1.5 py-0.2 rounded-md ${
+                    activeTrack === 'PERSONAL_DEV' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  Kỹ Năng Sống
+                </span>
+              </div>
+              <p className={`text-[11px] font-medium ${activeTrack === 'PERSONAL_DEV' ? 'text-emerald-100' : 'text-slate-500'}`}>
+                Sư phạm EdTech • Kỹ năng mềm • Lãnh đạo
+              </p>
+            </div>
+          </div>
+          <span
+            className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+              activeTrack === 'PERSONAL_DEV' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700'
+            }`}
+          >
+            {personalDevTotalCount}
+          </span>
+        </button>
+      </div>
+
+      {/* Special Spotlight Strip according to active track */}
+      {activeTrack === 'ENGLISH' && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-sky-50 via-sky-50/80 to-blue-50 border border-sky-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-extrabold text-sky-950 text-xs sm:text-sm">
+                Không gian chuyên biệt: Khảo Thí & Luyện Tập IELTS 4 Kỹ Năng
+              </p>
+              <p className="text-sky-700 text-[11px] mt-0.5">
+                Luyện viết chấm 4 tiêu chí với AI, thu âm giọng nói wave studio và luyện mock tests chuẩn đề thi.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <Link
+              href="/student/ielts"
+              className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold shadow-sm transition flex items-center gap-1"
+            >
+              <span>IELTS Hub</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/student/writing"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-100 text-sky-800 font-bold border border-sky-200 transition"
+            >
+              Writing AI
+            </Link>
+            <Link
+              href="/student/speaking"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-100 text-sky-800 font-bold border border-sky-200 transition"
+            >
+              Speaking Studio
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {activeTrack === 'PERSONAL_DEV' && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-emerald-50/80 to-teal-50 border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Compass className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-extrabold text-emerald-950 text-xs sm:text-sm">
+                Không gian chuyên biệt: Năng Lực Giảng Dạy & Kỹ Năng Sống
+              </p>
+              <p className="text-emerald-700 text-[11px] mt-0.5">
+                Các phương pháp sư phạm ứng dụng EdTech, thuyết trình, tư duy phản biện và chứng chỉ hoàn thành xuất sắc.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="px-3 py-1.5 rounded-xl bg-white text-emerald-800 font-extrabold border border-emerald-200 shadow-2xs">
+              ⭐ Tích lũy điểm năng lực
+            </span>
+          </div>
         </div>
       )}
 
@@ -417,139 +744,185 @@ export default function StudentCoursesPage() {
               <span className="text-xs text-slate-500 font-bold">Bấm vào khóa học để mở đề cương chi tiết</span>
             </div>
 
-            {myCourses.length === 0 ? (
+            {filteredMyCourses.length === 0 ? (
               <div className="bg-white rounded-3xl border border-line p-12 text-center space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mx-auto">
-                  <BookOpen className="w-8 h-8" />
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${
+                  activeTrack === 'PERSONAL_DEV' ? 'bg-emerald-50 text-emerald-600' : 'bg-sky-50 text-sky-600'
+                }`}>
+                  {activeTrack === 'PERSONAL_DEV' ? <Compass className="w-8 h-8" /> : <BookOpen className="w-8 h-8" />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-800">Bạn chưa đăng ký khóa học nào</h3>
+                  <h3 className="text-lg font-extrabold text-slate-800">
+                    {activeTrack === 'ENGLISH'
+                      ? 'Bạn chưa đăng ký khóa học Tiếng Anh nào'
+                      : activeTrack === 'PERSONAL_DEV'
+                      ? 'Bạn chưa đăng ký khóa học Kỹ Năng & Sư Phạm nào'
+                      : 'Bạn chưa đăng ký khóa học nào'}
+                  </h3>
                   <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
-                    Khám phá ngay danh mục 5 trụ cột chương trình đào tạo của Teacher Dong Academy để bắt đầu lộ trình nâng cao trình độ.
+                    {activeTrack === 'ENGLISH'
+                      ? 'Khám phá ngay lộ trình luyện thi IELTS 4 kỹ năng và Tiếng Anh giao tiếp bứt phá cùng Thầy Đông.'
+                      : activeTrack === 'PERSONAL_DEV'
+                      ? 'Nâng cao năng lực giảng dạy EdTech và hoàn thiện bộ kỹ năng sống thực chiến.'
+                      : 'Khám phá ngay danh mục các chương trình đào tạo của Teacher Dong Academy để bắt đầu học tập.'}
                   </p>
                 </div>
                 <button
                   onClick={() => setActiveTab('recommended')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 text-white font-extrabold text-xs sm:text-sm hover:bg-sky-700 shadow-md shadow-sky-600/20"
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-xs sm:text-sm shadow-md ${
+                    activeTrack === 'PERSONAL_DEV'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                      : 'bg-sky-600 hover:bg-sky-700 shadow-sky-600/20'
+                  }`}
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Khám phá các khóa học gợi ý</span>
+                  <span>
+                    {activeTrack === 'ENGLISH'
+                      ? 'Khám phá khóa học Tiếng Anh'
+                      : activeTrack === 'PERSONAL_DEV'
+                      ? 'Khám phá khóa học Sư Phạm & Kỹ Năng'
+                      : 'Khám phá tất cả khóa học'}
+                  </span>
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {myCourses.map((course) => {
+                {filteredMyCourses.map((course) => {
                   const progress = course.progressPercent ?? course.progress ?? 0;
+                  const coverUrl = getCourseCoverUrl(course.thumbnail, course.category);
 
                   return (
                     <div
                       key={course.id}
-                      className="bg-white rounded-3xl border border-line p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                      className="bg-white rounded-3xl border border-line overflow-hidden shadow-xs hover:shadow-lg hover:border-sky-200 transition-all duration-300 flex flex-col justify-between group"
                     >
-                      <div className="space-y-4">
-                        {/* Course Header Banner */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-2 flex-wrap">
+                      <div>
+                        {/* 16:9 Course Cover Thumbnail */}
+                        <div className="relative w-full aspect-video overflow-hidden bg-slate-100">
+                          <img
+                            src={coverUrl}
+                            alt={course.title}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = DEFAULT_COVERS.IELTS;
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/25" />
+
+                          {/* Floating Badges Top */}
+                          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               {renderCategoryBadge(course.category)}
-                              <span className="text-[11px] font-bold text-slate-400">
+                              <span className="px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-md text-white text-[10.5px] font-bold">
                                 {course.level || 'Academic'}
                               </span>
-                              {course.enrollmentStatus === 'PENDING' ? (
-                                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase flex items-center gap-1 border border-amber-300">
-                                  <Clock className="w-3 h-3 text-amber-600 animate-spin" />
-                                  <span>Chờ Admin duyệt CK</span>
-                                </span>
-                              ) : (
-                                <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
-                                  Đang học
-                                </span>
-                              )}
                             </div>
-                            <h3 className="text-lg font-black text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2">
-                              {course.title}
-                            </h3>
+                            {course.enrollmentStatus === 'PENDING' ? (
+                              <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase flex items-center gap-1 shadow-sm">
+                                <Clock className="w-3 h-3 text-slate-950 animate-spin" />
+                                <span>Chờ duyệt CK</span>
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase shadow-sm">
+                                Đang học
+                              </span>
+                            )}
                           </div>
+
+                          {/* Floating Progress Pill on Bottom-Right */}
+                          {course.enrollmentStatus !== 'PENDING' && (
+                            <div className="absolute bottom-2.5 right-3 px-2.5 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-white text-xs font-black flex items-center gap-1.5 border border-white/10">
+                              <span className="text-[10px] text-sky-300 font-bold">Tiến độ</span>
+                              <span className="text-emerald-400">{progress}%</span>
+                            </div>
+                          )}
                         </div>
 
-                        {/* Description */}
-                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                          {course.description || 'Chương trình đào tạo tương tác trực tuyến chuẩn EdTech.'}
-                        </p>
+                        {/* Content Area */}
+                        <div className="p-5 sm:p-6 space-y-3">
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug">
+                            {course.title}
+                          </h3>
 
-                        {course.enrollmentStatus === 'PENDING' ? (
-                          <div className="space-y-3 pt-2">
-                            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
-                              <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 animate-spin" />
-                              <div>
-                                <p className="font-extrabold text-amber-950">Chờ xác nhận giao dịch ngân hàng</p>
-                                <p className="text-[11px] text-amber-800 mt-0.5">
-                                  Admin Thầy Đông đang đối soát sao kê để kích hoạt khóa học vào tài khoản của bạn.
-                                </p>
+                          {/* Description */}
+                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                            {course.description || 'Chương trình đào tạo tương tác trực tuyến chuẩn EdTech.'}
+                          </p>
+
+                          {course.enrollmentStatus === 'PENDING' ? (
+                            <div className="space-y-3 pt-2">
+                              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
+                                <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 animate-spin" />
+                                <div>
+                                  <p className="font-extrabold text-amber-950">Chờ xác nhận giao dịch ngân hàng</p>
+                                  <p className="text-[11px] text-amber-800 mt-0.5">
+                                    Admin Thầy Đông đang đối soát sao kê để kích hoạt khóa học vào tài khoản của bạn.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+                                <span>Ghi danh: {course.enrolledAt || 'Hôm nay'}</span>
+                                <span className="font-bold text-sky-700">Học phí: {(course.price || 2490000).toLocaleString('vi-VN')} đ</span>
+                              </div>
+                              <div className="pt-2">
+                                <button
+                                  onClick={() => handleOpenPaymentModal(course)}
+                                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-amber-500/20 transition-all"
+                                >
+                                  <QrCode className="w-4 h-4" />
+                                  <span>Xem lại mã QR & Thông tin chuyển khoản</span>
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
-                              <span>Ghi danh: {course.enrolledAt || 'Hôm nay'}</span>
-                              <span className="font-bold text-sky-700">Học phí: {(course.price || 2490000).toLocaleString('vi-VN')} đ</span>
-                            </div>
-                            <div className="pt-2">
-                              <button
-                                onClick={() => handleOpenPaymentModal(course)}
-                                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-amber-500/20 transition-all"
-                              >
-                                <QrCode className="w-4 h-4" />
-                                <span>Xem lại mã QR & Thông tin chuyển khoản</span>
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            {/* Progress Bar */}
-                            <div className="space-y-1.5 pt-1">
-                              <div className="flex items-center justify-between text-xs font-bold">
-                                <span className="text-slate-600 flex items-center gap-1.5">
-                                  <Clock className="w-3.5 h-3.5 text-sky-600" />
-                                  <span>Tiến độ học tập</span>
-                                </span>
-                                <span className="text-sky-600 font-extrabold">{progress}%</span>
+                          ) : (
+                            <>
+                              {/* Progress Bar */}
+                              <div className="space-y-1.5 pt-1">
+                                <div className="flex items-center justify-between text-xs font-bold">
+                                  <span className="text-slate-600 flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-sky-600" />
+                                    <span>Tiến độ học tập</span>
+                                  </span>
+                                  <span className="text-sky-600 font-extrabold">{progress}%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                  <div
+                                    className="bg-gradient-to-r from-sky-500 to-sky-600 h-2.5 rounded-full transition-all duration-700"
+                                    style={{ width: `${progress}%` }}
+                                  />
+                                </div>
                               </div>
-                              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                                <div
-                                  className="bg-gradient-to-r from-sky-500 to-sky-600 h-2.5 rounded-full transition-all duration-700"
-                                  style={{ width: `${progress}%` }}
-                                />
+
+                              {/* Meta Info */}
+                              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                                <span>{course.totalModules || 4} Chuyên đề Modules</span>
+                                <span>•</span>
+                                <span>{course.totalLessons || 15} Bài học & Quiz</span>
+                                <span>•</span>
+                                <span>Ghi danh: {course.enrolledAt || '15/10/2026'}</span>
                               </div>
-                            </div>
 
-                            {/* Meta Info */}
-                            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
-                              <span>{course.totalModules || 4} Chuyên đề Modules</span>
-                              <span>•</span>
-                              <span>{course.totalLessons || 15} Bài học & Quiz</span>
-                              <span>•</span>
-                              <span>Ghi danh: {course.enrolledAt || '15/10/2026'}</span>
-                            </div>
+                              {/* Action Buttons */}
+                              <div className="pt-4 mt-2 border-t border-slate-100 flex items-center gap-3">
+                                <button
+                                  onClick={() => handleOpenCurriculum(course)}
+                                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 font-extrabold text-xs sm:text-sm border border-sky-100 transition-all"
+                                >
+                                  <Layers className="w-4 h-4" />
+                                  <span>Xem đề cương bài học</span>
+                                </button>
 
-                            {/* Action Buttons */}
-                            <div className="pt-5 mt-4 border-t border-slate-100 flex items-center gap-3">
-                              <button
-                                onClick={() => handleOpenCurriculum(course)}
-                                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 font-extrabold text-xs sm:text-sm border border-sky-100 transition-all"
-                              >
-                                <Layers className="w-4 h-4" />
-                                <span>Xem đề cương bài học</span>
-                              </button>
-
-                              <button
-                                onClick={() => handleOpenCurriculum(course)}
-                                className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
-                              >
-                                <PlayCircle className="w-4 h-4" />
-                                <span>Vào học ngay</span>
-                              </button>
-                            </div>
-                          </>
-                        )}
+                                <button
+                                  onClick={() => handleOpenCurriculum(course)}
+                                  className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                                >
+                                  <PlayCircle className="w-4 h-4" />
+                                  <span>Vào học ngay</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -601,22 +974,17 @@ export default function StudentCoursesPage() {
               />
             </div>
 
-            {/* Category Filter Pills */}
+            {/* Category Filter Pills (Dynamically matched to activeTrack) */}
             <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-              {[
-                { id: 'ALL', label: 'Tất cả trụ cột' },
-                { id: 'IELTS', label: 'IELTS' },
-                { id: 'BUSINESS', label: 'Business' },
-                { id: 'KIDS', label: 'Thiếu nhi' },
-                { id: 'PEDAGOGY', label: 'Sư phạm' },
-                { id: 'LIFE_SKILLS', label: 'Kỹ năng sống' },
-              ].map((tab) => (
+              {categoryFilterPills.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setFilterCategory(tab.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     filterCategory === tab.id
-                      ? 'bg-sky-600 text-white font-extrabold shadow-sm'
+                      ? activeTrack === 'PERSONAL_DEV'
+                        ? 'bg-emerald-600 text-white font-extrabold shadow-sm'
+                        : 'bg-sky-600 text-white font-extrabold shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
                   }`}
                 >
@@ -627,43 +995,87 @@ export default function StudentCoursesPage() {
           </div>
 
           {/* Recommended Courses Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
-            {filteredRecommended.map((course) => (
-              <div
-                key={course.id}
-                className="bg-white rounded-3xl border border-line p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+          {filteredRecommended.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-line p-10 text-center space-y-3">
+              <p className="text-slate-500 text-sm font-semibold">
+                Không tìm thấy khóa học nào phù hợp với từ khóa hoặc bộ lọc trong phân hệ này.
+              </p>
+              <button
+                onClick={() => {
+                  setFilterCategory('ALL');
+                  setSearchQuery('');
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
               >
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
+                Đặt lại bộ lọc
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
+              {filteredRecommended.map((course) => {
+                const coverUrl = getCourseCoverUrl(course.thumbnail, course.category);
+
+                return (
+                  <div
+                    key={course.id}
+                    className="bg-white rounded-3xl border border-line overflow-hidden shadow-xs hover:shadow-lg hover:border-sky-200 transition-all duration-300 flex flex-col justify-between group"
+                >
+                  <div>
+                    {/* 16:9 Course Cover Thumbnail */}
+                    <div className="relative w-full aspect-video overflow-hidden bg-slate-100">
+                      <img
+                        src={coverUrl}
+                        alt={course.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = DEFAULT_COVERS.IELTS;
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-black/20" />
+
+                      {/* Floating Badges Top */}
+                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {renderCategoryBadge(course.category)}
-                          <span className="text-[11px] font-bold text-slate-400">
+                          <span className="px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-md text-white text-[10.5px] font-bold">
                             {course.level || 'Đào tạo chuẩn'}
                           </span>
                         </div>
-                        <h3 className="text-lg font-black text-slate-900 group-hover:text-sky-600 transition-colors">
-                          {course.title}
-                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-md bg-sky-500/90 text-white text-[10.5px] font-extrabold shadow-xs backdrop-blur-sm flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          <span>{course.studentCount || 150}</span>
+                        </span>
+                      </div>
+
+                      {/* Floating Price Tag Bottom-Right */}
+                      <div className="absolute bottom-2.5 right-3 px-3 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/10 text-amber-300 font-black text-xs sm:text-sm">
+                        {(course.price || 2490000).toLocaleString('vi-VN')} đ
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">
-                      {course.description || 'Chương trình đào tạo chuyên sâu kết hợp thực hành WebRTC LiveKit và trí tuệ nhân tạo AI.'}
-                    </p>
+                    {/* Content Area */}
+                    <div className="p-5 sm:p-6 space-y-3">
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug">
+                        {course.title}
+                      </h3>
 
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-600 pt-2 border-t border-slate-100">
-                      <span className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-sky-600" />
-                        <span>{course.studentCount || 150} học viên</span>
-                      </span>
-                      <span className="text-sm font-black text-sky-700">
-                        {(course.price || 2490000).toLocaleString('vi-VN')} đ
-                      </span>
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                        {course.description || 'Chương trình đào tạo chuyên sâu kết hợp thực hành WebRTC LiveKit và trí tuệ nhân tạo AI.'}
+                      </p>
+
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-600 pt-2 border-t border-slate-100">
+                        <span className="flex items-center gap-1.5 text-slate-500">
+                          <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Giảng viên: Teacher Dong</span>
+                        </span>
+                        <span className="text-xs font-extrabold text-emerald-600">
+                          Học trực tuyến + WebRTC
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="pt-5 mt-4 border-t border-slate-100 flex items-center gap-3">
+                  <div className="p-5 sm:p-6 pt-0">
                     <button
                       onClick={() => handleOpenPaymentModal(course)}
                       className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
@@ -673,10 +1085,12 @@ export default function StudentCoursesPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
 
       {/* ================= VIEW 3: ACTIVE COURSE CURRICULUM ================= */}
       {activeTab === 'curriculum' && (
@@ -692,36 +1106,53 @@ export default function StudentCoursesPage() {
 
           {/* Active Course Banner */}
           {selectedCourse && (
-            <div className="bg-white rounded-3xl border border-line p-6 sm:p-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  {renderCategoryBadge(selectedCourse.category)}
-                  <span className="text-xs text-slate-500 font-medium">Giảng viên: Thầy Đông (IELTS 8.5)</span>
+            <div className="bg-white rounded-3xl border border-line p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
+                {/* 16:9 Cover Preview */}
+                <div className="relative w-full sm:w-44 aspect-video rounded-2xl overflow-hidden shrink-0 border border-slate-200 shadow-xs">
+                  <img
+                    src={getCourseCoverUrl(selectedCourse.thumbnail, selectedCourse.category)}
+                    alt={selectedCourse.title}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_COVERS.IELTS;
+                    }}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                  <div className="absolute bottom-2 left-2">
+                    {renderCategoryBadge(selectedCourse.category)}
+                  </div>
                 </div>
-                <h2 className="text-lg sm:text-xl font-black text-slate-900 leading-snug">
-                  {selectedCourse.title}
-                </h2>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1 font-semibold">
-                  <span>{modules.length} Modules chuyên đề</span>
-                  <span>•</span>
-                  <span>
-                    {modules.reduce((acc, m) => acc + m.lessons.length, 0)} Bài học
-                  </span>
-                  <span>•</span>
-                  <span className="font-extrabold text-sky-600">
-                    Tiến độ: {selectedCourse.progressPercent ?? selectedCourse.progress ?? 0}%
-                  </span>
+
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 font-bold">Giảng viên: Thầy Đông (IELTS 8.5)</span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-slate-900 leading-snug line-clamp-2">
+                    {selectedCourse.title}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 pt-0.5 font-semibold">
+                    <span>{modules.length} Chuyên đề Modules</span>
+                    <span>•</span>
+                    <span>
+                      {modules.reduce((acc, m) => acc + m.lessons.length, 0)} Bài học & Quiz
+                    </span>
+                    <span>•</span>
+                    <span className="font-extrabold text-sky-600">
+                      Tiến độ: {selectedCourse.progressPercent ?? selectedCourse.progress ?? 0}%
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="w-full md:w-56 space-y-1.5">
+              <div className="w-full md:w-56 space-y-1.5 shrink-0">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-600">
                   <span>Tiến độ hoàn thành</span>
-                  <span className="text-sky-600">{selectedCourse.progressPercent ?? selectedCourse.progress ?? 0}%</span>
+                  <span className="text-sky-600 font-black">{selectedCourse.progressPercent ?? selectedCourse.progress ?? 0}%</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className="bg-sky-600 h-2.5 rounded-full transition-all duration-700"
+                    className="bg-gradient-to-r from-sky-500 to-sky-600 h-2.5 rounded-full transition-all duration-700"
                     style={{ width: `${selectedCourse.progressPercent ?? selectedCourse.progress ?? 0}%` }}
                   />
                 </div>
@@ -1083,5 +1514,20 @@ export default function StudentCoursesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function StudentCoursesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-slate-500 font-bold flex items-center justify-center gap-2">
+          <RefreshCw className="w-5 h-5 animate-spin text-sky-600" />
+          <span>Đang tải thông tin khóa học...</span>
+        </div>
+      }
+    >
+      <StudentCoursesContent />
+    </Suspense>
   );
 }

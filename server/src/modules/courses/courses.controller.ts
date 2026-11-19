@@ -84,6 +84,30 @@ export class CoursesController {
     return this.coursesService.findBySlugOrId(slugOrId, user?.id, user?.role);
   }
 
+  @Post('upload-thumbnail')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin tải lên ảnh bìa cho khóa học và nhận về URL' })
+  uploadThumbnailGeneral(@UploadedFile() file: Express.Multer.File) {
+    return this.coursesService.uploadThumbnailGeneral(file);
+  }
+
+  @Post(':id/thumbnail')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin tải lên ảnh bìa và cập nhật trực tiếp vào khóa học' })
+  @ApiParam({ name: 'id', description: 'UUID của khóa học' })
+  uploadThumbnail(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.coursesService.uploadThumbnail(id, file);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -184,20 +208,5 @@ export class CoursesController {
   @ApiOperation({ summary: 'Admin ghi danh thủ công học viên vào khóa học' })
   manualEnroll(@Body() body: { courseId: string; userId: string }) {
     return this.coursesService.manualEnroll(body.courseId, body.userId);
-  }
-
-  @Post(':id/thumbnail')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin upload ảnh thumbnail khóa học lên Cloudinary' })
-  @ApiParam({ name: 'id', description: 'UUID của khóa học' })
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
-  uploadThumbnail(
-    @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    return this.coursesService.updateThumbnail(id, file);
   }
 }

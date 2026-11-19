@@ -87,6 +87,7 @@ export class CoursesService {
     const course = await this.prisma.course.findFirst({
       where: isUuid ? { id: identifier } : { slug: identifier },
       include: {
+        materials: true,
         modules: {
           orderBy: { orderIndex: 'asc' },
           include: {
@@ -292,13 +293,41 @@ export class CoursesService {
     };
   }
 
-  async createCourse(dto: CreateCourseDto) {
-    const existing = await this.prisma.course.findUnique({
-      where: { slug: dto.slug },
-    });
+  private generateSlug(title: string): string {
+    return (
+      title
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-') || `course-${Date.now().toString().slice(-6)}`
+    );
+  }
 
+  async createCourse(dto: CreateCourseDto) {
+    const rawSlug = dto.slug && dto.slug.trim() ? dto.slug.trim() : dto.title;
+    const baseSlug = this.generateSlug(rawSlug);
+
+    let finalSlug = baseSlug;
+    const existing = await this.prisma.course.findUnique({ where: { slug: finalSlug } });
     if (existing) {
-      throw new ConflictException(`Đường dẫn slug "${dto.slug}" đã tồn tại trên hệ thống`);
+      // Nếu bị trùng tên, thêm date ở đằng sau (YYYYMMDD)
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}${mm}${dd}`;
+      finalSlug = `${baseSlug}-${dateStr}`;
+
+      let counter = 1;
+      while (await this.prisma.course.findUnique({ where: { slug: finalSlug } })) {
+        finalSlug = `${baseSlug}-${dateStr}-${counter}`;
+        counter++;
+      }
     }
 
     const isEnglishCourse = (
@@ -312,13 +341,13 @@ export class CoursesService {
 
     const created = await this.prisma.course.create({
       data: {
-        title: dto.title,
-        slug: dto.slug,
-        description: dto.description,
+        title: dto.title.trim(),
+        slug: finalSlug,
+        description: dto.description || null,
         category: dto.category,
         isEnglishCourse,
-        thumbnail: dto.thumbnail,
-        isPublished: dto.isPublished ?? false,
+        thumbnail: dto.thumbnail || null,
+        isPublished: dto.isPublished !== undefined ? dto.isPublished : true,
       },
     });
 
@@ -341,11 +370,54 @@ export class CoursesService {
       }
     }
 
+    const dataToUpdate: any = {};
+    if (dto.title !== undefined) dataToUpdate.title = dto.title.trim();
+    if (dto.slug !== undefined) dataToUpdate.slug = dto.slug.trim();
+    if (dto.description !== undefined) dataToUpdate.description = dto.description;
+    if (dto.category !== undefined) {
+      dataToUpdate.category = dto.category;
+      dataToUpdate.isEnglishCourse = (
+        [
+          CourseCategory.ENGLISH,
+          CourseCategory.IELTS,
+          CourseCategory.BUSINESS,
+          CourseCategory.KIDS,
+        ] as CourseCategory[]
+      ).includes(dto.category);
+    }
+    if (dto.thumbnail !== undefined) dataToUpdate.thumbnail = dto.thumbnail;
+    if (dto.isPublished !== undefined) dataToUpdate.isPublished = dto.isPublished;
+
     const updated = await this.prisma.course.update({
       where: { id },
-      data: dto,
+      data: dataToUpdate,
     });
 
+    await this.redisService.delPattern('cache:courses:*');
+    return updated;
+  }
+
+  async uploadThumbnailGeneral(file: Express.Multer.File) {
+    if (!file) {
+      throw new NotFoundException('Vui lòng chọn tệp ảnh bìa khóa học.');
+    }
+    const result = await this.cloudinaryService.uploadImage(file, 'teacher_dong_academy/courses');
+    return { url: result.secureUrl || result.url };
+  }
+
+  async uploadThumbnail(courseId: string, file: Express.Multer.File) {
+    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) {
+      throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
+    }
+    if (!file) {
+      throw new NotFoundException('Vui lòng chọn tệp ảnh bìa khóa học.');
+    }
+    const result = await this.cloudinaryService.uploadImage(file, 'teacher_dong_academy/courses');
+    const updated = await this.prisma.course.update({
+      where: { id: courseId },
+      data: { thumbnail: result.secureUrl || result.url },
+    });
     await this.redisService.delPattern('cache:courses:*');
     return updated;
   }
@@ -593,25 +665,5 @@ export class CoursesService {
       message: `Đã ghi danh thủ công học viên "${user.fullName}" vào khóa học "${course.title}" thành công!`,
       enrollment,
     };
-  }
-
-  async updateThumbnail(courseId: string, file: Express.Multer.File) {
-    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
-    if (!course) {
-      throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
-    }
-
-    const uploadRes = await this.cloudinaryService.uploadImage(
-      file,
-      'teacher_dong_academy/courses',
-    );
-
-    const updated = await this.prisma.course.update({
-      where: { id: courseId },
-      data: { thumbnail: uploadRes.secureUrl },
-    });
-
-    await this.redisService.delPattern('cache:courses:*');
-    return updated;
   }
 }

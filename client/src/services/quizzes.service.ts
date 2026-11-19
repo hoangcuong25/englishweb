@@ -9,6 +9,7 @@ export interface QuizQuestionOption {
 export interface QuizQuestion {
   id: string;
   content: string;
+  questionText?: string;
   type: string;
   skillType?: string;
   order: number;
@@ -115,6 +116,24 @@ export const quizzesService = {
   ) {
     const response = await api.post(`/quizzes/${quizId}/questions`, data);
     return response.data?.data || response.data;
+  },
+
+  async createQuestion(data: {
+    quizId: string;
+    questionText?: string;
+    content?: string;
+    skillType?: string;
+    type?: string;
+    explanation?: string;
+    options: { content: string; isCorrect: boolean }[];
+  }) {
+    return this.addQuestion(data.quizId, {
+      content: data.questionText || data.content || '',
+      skill: data.skillType,
+      type: data.type,
+      explanation: data.explanation,
+      options: data.options,
+    });
   },
 
   async deleteQuiz(id: string) {

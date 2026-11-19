@@ -9,14 +9,12 @@ import {
   GraduationCap,
   FolderLock,
   Video,
-  FileCheck,
-  Headphones,
-  FileQuestion,
   CalendarCheck,
   Users,
   MessageSquare,
   Settings,
   Newspaper,
+  Award,
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -24,24 +22,39 @@ export default function AdminSidebar() {
   const router = useRouter();
   const { t } = useI18n();
 
-  const navItems = [
-    { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
-    { href: '/admin/courses', label: t('nav_admin_courses', 'Quản lý khóa học'), icon: GraduationCap },
-    { href: '/admin/library', label: t('nav_admin_library', 'Kho học liệu số'), icon: FolderLock },
-    { href: '/admin/classroom', label: t('nav_admin_classroom', 'Quản trị phòng học LiveKit'), icon: Video },
-    { href: '/admin/writing-review', label: t('nav_writing_review', 'Duyệt bài viết IELTS AI'), icon: FileCheck },
-    { href: '/admin/speaking-grading', label: t('nav_speaking_grading', 'Chấm bài nói Speaking'), icon: Headphones },
-    { href: '/admin/quizzes', label: t('nav_admin_quizzes', 'Đề thi Quiz & Mock Test'), icon: FileQuestion },
-    { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },
-    { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
-    { href: '/admin/blogs', label: t('nav_admin_blogs', 'Quản lý bài viết Blog'), icon: Newspaper },
-    { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },
-    { href: '/admin/account', label: t('nav_system_settings', 'Cài đặt hệ thống'), icon: Settings },
+  const navSections = [
+    {
+      title: 'Quản Trị Đào Tạo',
+      items: [
+        { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
+        { href: '/admin/courses', label: t('nav_admin_courses', 'Khóa học & Cây giáo trình'), icon: GraduationCap },
+        { href: '/admin/library', label: t('nav_admin_library', 'Kho học liệu số bảo mật'), icon: FolderLock },
+        { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến LiveKit'), icon: Video },
+      ],
+    },
+    {
+      title: 'Khảo Thí & Chấm Thi IELTS',
+      items: [
+        { href: '/admin/assessments', label: t('nav_admin_assessments', 'Khảo thí & Chấm thi IELTS'), icon: Award },
+      ],
+    },
+    {
+      title: 'Học Viên & Vận Hành',
+      items: [
+        { href: '/admin/attendance', label: t('nav_admin_attendance', 'Điểm danh & Chuyên cần'), icon: CalendarCheck },
+        { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
+        { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },
+        { href: '/admin/blogs', label: t('nav_admin_blogs', 'Quản lý bài viết Blog'), icon: Newspaper },
+        { href: '/admin/account', label: t('nav_system_settings', 'Cài đặt hệ thống'), icon: Settings },
+      ],
+    },
   ];
+
+  const allNavItems = navSections.flatMap((s) => s.items);
 
   // Eagerly prefetch all routes on mount so transitions are instant
   useEffect(() => {
-    navItems.forEach((item) => {
+    allNavItems.forEach((item) => {
       router.prefetch(item.href);
     });
   }, []);
@@ -54,28 +67,38 @@ export default function AdminSidebar() {
         </span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname.startsWith(item.href);
+      <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+        {navSections.map((sec, sIdx) => (
+          <div key={sIdx} className="space-y-1">
+            <div className="px-3 py-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                {sec.title}
+              </span>
+            </div>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={true}
-              onMouseEnter={() => router.prefetch(item.href)}
-              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
-                isActive
-                  ? 'bg-primary text-white shadow-md shadow-primary/30'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          );
-        })}
+            {sec.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer select-none active:scale-[0.98] ${
+                    isActive
+                      ? 'bg-primary text-white shadow-md shadow-primary/30'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* SFU Status indicator */}

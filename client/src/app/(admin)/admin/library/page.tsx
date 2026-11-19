@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { materialsService } from '@/services/materials.service';
-import { coursesService } from '@/services/courses.service';
+import { coursesService, Course } from '@/services/courses.service';
 import CustomSelect from '@/components/ui/custom-select';
 import { toast } from '@/components/ui/toast';
 import { handleApiError } from '@/lib/api-error';
@@ -14,6 +14,7 @@ import {
   FileText,
   Music,
   GraduationCap,
+  Filter,
 } from 'lucide-react';
 
 interface MaterialItem {
@@ -21,6 +22,7 @@ interface MaterialItem {
   title: string;
   fileType: 'PDF' | 'AUDIO_MP3';
   fileSize: string;
+  courseId: string;
   courseTitle: string;
   isSignedUrl: boolean;
   isWatermark: boolean;
@@ -32,14 +34,17 @@ interface RawMaterial {
   title: string;
   type?: string;
   fileSize?: number;
+  courseId?: string;
+  course?: { id?: string; title?: string };
   isWatermarked?: boolean;
   createdAt?: string;
-  lesson?: { module?: { course?: { title?: string } } };
+  lesson?: { module?: { course?: { id?: string; title?: string } } };
 }
 
 export default function AdminLibraryPage() {
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
-
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -52,7 +57,8 @@ export default function AdminLibraryPage() {
           title: m.title,
           fileType: m.type === 'AUDIO' ? 'AUDIO_MP3' : 'PDF',
           fileSize: m.fileSize ? `${(m.fileSize / (1024 * 1024)).toFixed(1)} MB` : '6.2 MB',
-          courseTitle: m.lesson?.module?.course?.title || 'IELTS Masterclass 7.5+ Intensive',
+          courseId: m.courseId || m.course?.id || m.lesson?.module?.course?.id || '',
+          courseTitle: m.course?.title || m.lesson?.module?.course?.title || 'Tài liệu chung',
           isSignedUrl: true,
           isWatermark: m.isWatermarked !== false,
           uploadDate: m.createdAt ? new Date(m.createdAt).toLocaleDateString('vi-VN') : '08/11/2026',
@@ -65,17 +71,34 @@ export default function AdminLibraryPage() {
   };
 
   useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const list = await coursesService.getCourses();
+        if (Array.isArray(list)) {
+          setCourses(list);
+          if (list.length > 0) {
+            setFormData((prev) => ({
+              ...prev,
+              courseId: prev.courseId || list[0].id,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load courses for library:', err);
+      }
+    };
+    loadCourses();
     fetchMaterials();
   }, []);
 
-  // Form State (#materialModal - Form 5 in Plan)
+  // Form State (#materialModal)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     fileType: 'PDF' as 'PDF' | 'AUDIO_MP3',
-    courseTitle: 'IELTS Masterclass 7.5+ Intensive',
+    courseId: '',
     isSignedUrl: true,
     isWatermark: true,
     allowDownload: false,
@@ -116,27 +139,20 @@ export default function AdminLibraryPage() {
       toast.error('Vui lòng chọn tệp tin PDF hoặc MP3 từ máy tính để tải lên!');
       return;
     }
+    if (!formData.courseId) {
+      toast.error('Vui lòng chọn khóa học để gán học liệu này!');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      let targetLessonId = '';
-      try {
-        const courses = await coursesService.getCourses();
-        if (Array.isArray(courses) && courses.length > 0) {
-          const firstCourse = await coursesService.getCourseBySlug(courses[0].slug || courses[0].id);
-          targetLessonId = firstCourse?.modules?.[0]?.lessons?.[0]?.id || '';
-        }
-      } catch {}
-
       const fd = new FormData();
       fd.append('file', selectedFile);
       fd.append('title', formData.title.trim() || selectedFile.name);
       fd.append('type', formData.fileType === 'AUDIO_MP3' ? 'AUDIO' : 'PDF');
+      fd.append('courseId', formData.courseId);
       fd.append('isPrivate', String(formData.isSignedUrl));
       fd.append('isWatermarked', String(formData.isWatermark));
-      if (targetLessonId) {
-        fd.append('lessonId', targetLessonId);
-      }
 
       await materialsService.uploadWithFile(fd);
       await fetchMaterials();
@@ -146,12 +162,12 @@ export default function AdminLibraryPage() {
       setFormData({
         title: '',
         fileType: 'PDF',
-        courseTitle: 'IELTS Masterclass 7.5+ Intensive',
+        courseId: courses[0]?.id || '',
         isSignedUrl: true,
         isWatermark: true,
         allowDownload: false,
       });
-      toast.success(`Đã tải lên và mã hóa học liệu "${formData.title || selectedFile.name}" thành công!`);
+      toast.success(`Đã tải lên và mã hóa học liệu "${formData.title || selectedFile.name}" cho khóa học thành công!`);
     } catch (err) {
       handleApiError(err, 'Lỗi khi tải lên học liệu số');
     } finally {
@@ -170,6 +186,11 @@ export default function AdminLibraryPage() {
     setTimeout(() => setNotice(''), 3000);
   };
 
+  const filteredMaterials = materials.filter((m) => {
+    if (selectedCourseFilter === 'ALL') return true;
+    return m.courseId === selectedCourseFilter;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -179,16 +200,21 @@ export default function AdminLibraryPage() {
             Quản Lý & Bảo Mật Học Liệu Số (LIB-SCR-001)
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Tất cả tài liệu được bảo vệ bằng Signed URL thời hạn 15 phút và Dynamic Watermark chống quay trộm.
+            Quản trị viên tải lên học liệu riêng cho từng khóa học. Mọi tài liệu được bảo vệ bằng Signed URL 15 phút và Dynamic Watermark.
           </p>
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            if (courses.length > 0 && !formData.courseId) {
+              setFormData((prev) => ({ ...prev, courseId: courses[0].id }));
+            }
+            setIsModalOpen(true);
+          }}
           className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md shadow-primary/20 transition flex items-center space-x-1.5"
         >
           <Upload className="w-4 h-4" />
-          <span>Tải Lên Học Liệu (#materialModal)</span>
+          <span>Tải Lên Học Liệu Cho Khóa Học</span>
         </button>
       </div>
 
@@ -199,12 +225,29 @@ export default function AdminLibraryPage() {
         </div>
       )}
 
-      {/* Materials Table */}
+      {/* Materials Table & Filter */}
       <div className="bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-line flex items-center justify-between">
+        <div className="p-4 border-b border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-            Tài liệu số đã bảo mật ({materials.length})
+            Tài liệu số đã bảo mật ({filteredMaterials.length})
           </h3>
+
+          <div className="flex items-center space-x-2">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-500">Lọc theo khóa:</span>
+            <select
+              value={selectedCourseFilter}
+              onChange={(e) => setSelectedCourseFilter(e.target.value)}
+              className="px-3 py-1.5 rounded-xl border border-line text-xs font-semibold text-slate-700 bg-white focus:outline-none focus:border-primary shadow-sm"
+            >
+              <option value="ALL">Tất cả khóa học ({materials.length})</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -222,59 +265,76 @@ export default function AdminLibraryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {materials.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-50/50 transition">
-                  <td className="py-3.5 px-4 font-bold text-slate-800 max-w-xs">
-                    {m.title}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        m.fileType === 'PDF'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      {m.fileType}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-muted">{m.fileSize}</td>
-                  <td className="py-3.5 px-4 text-slate-700">{m.courseTitle}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">
-                      Bật (15:00)
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-sky-100 text-primary">
-                      Bật (12s random)
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-muted">{m.uploadDate}</td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => handleDeleteMaterial(m.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition"
-                      title="Xóa học liệu"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              {filteredMaterials.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-slate-400 font-medium">
+                    Không có học liệu nào phù hợp với bộ lọc.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredMaterials.map((m) => (
+                  <tr key={m.id} className="hover:bg-slate-50/50 transition">
+                    <td className="py-3.5 px-4 font-bold text-slate-800 max-w-xs">
+                      {m.title}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          m.fileType === 'PDF'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        {m.fileType}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-muted">{m.fileSize}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-semibold text-primary bg-sky-50 px-2 py-0.5 rounded text-[11px]">
+                        {m.courseTitle}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                        Bật (15:00)
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-sky-100 text-primary">
+                        Bật (12s random)
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-muted">{m.uploadDate}</td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => handleDeleteMaterial(m.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition"
+                        title="Xóa học liệu"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Upload Material Modal (#materialModal - Form 5 in Plan) */}
+      {/* Upload Material Modal (#materialModal) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-line p-6 space-y-5 animate-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-line pb-3">
-              <h3 className="text-base font-extrabold text-slate-900">
-                Tải Lên Học Liệu Số (#materialModal)
-              </h3>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Tải Lên Học Liệu Cho Khóa Học
+                </h3>
+                <p className="text-[11px] text-muted">
+                  Học liệu sẽ được mã hóa và chỉ học viên đăng ký khóa học này mới có thể truy cập.
+                </p>
+              </div>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
@@ -366,7 +426,7 @@ export default function AdminLibraryPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <CustomSelect
                   label="Định dạng tài liệu"
                   value={formData.fileType}
@@ -392,26 +452,27 @@ export default function AdminLibraryPage() {
                 />
 
                 <CustomSelect
-                  label="Khóa học áp dụng"
-                  value={formData.courseTitle}
-                  onChange={(val) => setFormData({ ...formData, courseTitle: val })}
-                  options={[
-                    {
-                      value: 'IELTS Masterclass 7.5+ Intensive',
-                      label: 'IELTS Masterclass 7.5+',
-                      sublabel: 'Writing & Speaking Intensive',
-                      icon: <GraduationCap className="w-4 h-4 text-primary" />,
-                      badge: 'Active',
-                    },
-                    {
-                      value: 'Business English VIP',
-                      label: 'Business English VIP',
-                      sublabel: 'Executive Communication',
-                      icon: <GraduationCap className="w-4 h-4 text-primary" />,
-                      badge: 'VIP',
-                      badgeColor: 'bg-purple-100 text-purple-700',
-                    },
-                  ]}
+                  label="Khóa học áp dụng *"
+                  value={formData.courseId}
+                  onChange={(val) => setFormData({ ...formData, courseId: val })}
+                  options={
+                    courses.length > 0
+                      ? courses.map((c) => ({
+                          value: c.id,
+                          label: c.title,
+                          sublabel: c.category ? `Danh mục: ${c.category}` : 'Khóa học',
+                          icon: <GraduationCap className="w-4 h-4 text-primary" />,
+                          badge: c.category || 'ACTIVE',
+                        }))
+                      : [
+                          {
+                            value: '',
+                            label: 'Chưa có khóa học nào',
+                            sublabel: 'Vui lòng tạo khóa học trước',
+                            icon: <GraduationCap className="w-4 h-4 text-slate-400" />,
+                          },
+                        ]
+                  }
                 />
               </div>
 
@@ -448,7 +509,7 @@ export default function AdminLibraryPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !formData.courseId}
                   className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold text-xs shadow-sm flex items-center space-x-2"
                 >
                   {isSubmitting ? (
@@ -457,7 +518,7 @@ export default function AdminLibraryPage() {
                       <span>Đang Tải Lên...</span>
                     </>
                   ) : (
-                    <span>Tải Lên & Mã Hóa</span>
+                    <span>Tải Lên Cho Khóa Học</span>
                   )}
                 </button>
               </div>
@@ -468,4 +529,3 @@ export default function AdminLibraryPage() {
     </div>
   );
 }
-
