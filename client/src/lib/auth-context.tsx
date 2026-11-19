@@ -15,6 +15,7 @@ interface AuthContextType {
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateUser: (data: Partial<User>) => void;
   dismissSessionTerminated: () => void;
 }
 
@@ -416,6 +417,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         refreshProfile: fetchProfile,
+        updateUser: (data: Partial<User>) => {
+          setUser((prev) => {
+            if (!prev) return null;
+            const updated = { ...prev, ...data };
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('user', JSON.stringify(updated));
+              } catch {}
+            }
+            return updated;
+          });
+        },
         dismissSessionTerminated: () => setSessionTerminated(false),
       }}
     >

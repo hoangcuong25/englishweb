@@ -12,8 +12,11 @@ import {
   HttpStatus,
   HttpCode,
   UnauthorizedException,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -22,6 +25,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateLanguageDto } from './dto/update-language.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Response, Request } from 'express';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
@@ -267,5 +271,42 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current authenticated user profile' })
   async getProfile(@CurrentUser() user: any) {
     return this.authService.getMe(user.id);
+  }
+
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cập nhật thông tin cá nhân (số điện thoại, họ tên)' })
+  @ApiResponse({ status: 200, description: 'Cập nhật thông tin thành công' })
+  async updateProfile(
+    @CurrentUser() user: any,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(user.id, dto);
+  }
+
+  @Post('avatar')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload và cập nhật ảnh đại diện avatar' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Cập nhật avatar thành công' })
+  async uploadAvatar(
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.authService.updateAvatar(user.id, file);
   }
 }

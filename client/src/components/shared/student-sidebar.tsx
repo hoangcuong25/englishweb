@@ -209,37 +209,37 @@ export default function StudentSidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex flex-col h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0 overflow-hidden bg-white text-slate-800 border-r border-line transition-[width] duration-300 ease-in-out ${
+      className={`hidden lg:flex flex-col h-full select-none shrink-0 overflow-hidden bg-white text-slate-800 border-r border-line transition-[width] duration-300 ease-in-out ${
         isOpen ? 'w-64' : 'w-20'
       }`}
       aria-label="Thanh điều hướng Học viên"
     >
       {/* Header with Title and Toggle Button on the Right */}
-      <div className={`p-4 border-b border-line/60 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
+      <div className={`h-10 px-3.5 border-b border-line/60 flex items-center shrink-0 ${isOpen ? 'justify-between' : 'justify-center'}`}>
         {isOpen ? (
           <>
-            <span className="text-[11px] font-extrabold text-muted uppercase tracking-wider truncate">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
               {t('role_student', 'Học viên')} (STUDENT)
             </span>
             <button
               type="button"
               onClick={toggleSidebar}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
+              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
               title="Thu gọn sidebar (Chế độ Icon)"
               aria-label="Thu gọn thanh bên"
             >
-              <PanelLeftClose className="w-4 h-4" />
+              <PanelLeftClose className="w-3.5 h-3.5" />
             </button>
           </>
         ) : (
           <button
             type="button"
             onClick={toggleSidebar}
-            className="p-2 rounded-xl text-primary hover:bg-sky-50 transition cursor-pointer"
+            className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
             title="Mở rộng sidebar (Chi tiết)"
             aria-label="Mở rộng thanh bên"
           >
-            <PanelLeftOpen className="w-5 h-5" />
+            <PanelLeftOpen className="w-4 h-4" />
           </button>
         )}
       </div>
@@ -302,7 +302,7 @@ export default function StudentSidebar() {
       {/* Target Personal Goal(s): Full card when open, Icon badge when collapsed */}
       {isOpen ? (
         activeGoals.length === 1 ? (
-          <div className="p-3 m-3 rounded-2xl bg-sky-50/80 border border-sky-100 text-xs space-y-1.5">
+          <div className="p-3 m-3 rounded-2xl bg-sky-50/80 border border-sky-100 text-xs space-y-1.5 shrink-0">
             <div className="flex items-center justify-between">
               <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-primary" />
@@ -317,7 +317,7 @@ export default function StudentSidebar() {
             </p>
           </div>
         ) : (
-          <div className="p-3 m-3 rounded-2xl bg-gradient-to-b from-sky-50/90 to-slate-50 border border-sky-100/90 text-xs space-y-2">
+          <div className="p-3 m-3 rounded-2xl bg-gradient-to-b from-sky-50/90 to-slate-50 border border-sky-100/90 text-xs space-y-2 shrink-0">
             <div className="flex items-center justify-between border-b border-sky-100/70 pb-1.5">
               <p className="font-extrabold text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-primary" />
@@ -343,7 +343,7 @@ export default function StudentSidebar() {
         )
       ) : (
         <div
-          className="p-2.5 my-3 mx-auto rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center cursor-pointer text-primary"
+          className="p-2.5 my-3 mx-auto rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center cursor-pointer text-primary shrink-0"
           title={`Mục tiêu cá nhân: ${activeGoals[0]?.value || 'IELTS 7.5+'}`}
         >
           <Target className="w-5 h-5 text-primary" />

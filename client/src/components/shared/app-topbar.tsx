@@ -250,7 +250,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
 
   return (
     <>
-      <header className="bg-white border-b border-line sticky top-0 z-30 h-16 px-4 sm:px-6 flex items-center justify-between shadow-sm">
+      <header className="bg-white border-b border-line sticky top-0 z-30 h-16 px-4 sm:px-6 flex items-center justify-between shadow-sm shrink-0">
         {/* Left: Brand or Page Title */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Mobile Navigation Drawer Toggle (Mobile ONLY) */}

@@ -65,37 +65,37 @@ export default function AdminSidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex flex-col h-[calc(100vh-4rem)] sticky top-16 select-none shrink-0 overflow-hidden bg-slate-900 text-slate-300 border-r border-slate-800 transition-[width] duration-300 ease-in-out ${
+      className={`hidden lg:flex flex-col h-full select-none shrink-0 overflow-hidden bg-slate-900 text-slate-300 border-r border-slate-800 transition-[width] duration-300 ease-in-out ${
         isOpen ? 'w-64' : 'w-20'
       }`}
       aria-label="Thanh điều hướng Quản trị"
     >
       {/* Header with Title and Toggle Button on the Right */}
-      <div className={`p-4 border-b border-slate-800 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
+      <div className={`h-10 px-3.5 border-b border-slate-800 flex items-center shrink-0 ${isOpen ? 'justify-between' : 'justify-center'}`}>
         {isOpen ? (
           <>
-            <span className="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider truncate">
-              {t('role_admin', 'Quản Trị Viên & Giảng Viên')}
+            <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider truncate">
+              {t('role_admin', 'Quản Trị Viên / Giảng Viên')}
             </span>
             <button
               type="button"
               onClick={toggleSidebar}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer shrink-0"
+              className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer shrink-0"
               title="Thu gọn sidebar (Chế độ Icon)"
               aria-label="Thu gọn thanh bên"
             >
-              <PanelLeftClose className="w-4 h-4" />
+              <PanelLeftClose className="w-3.5 h-3.5" />
             </button>
           </>
         ) : (
           <button
             type="button"
             onClick={toggleSidebar}
-            className="p-2 rounded-xl text-amber-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-1 rounded-md text-amber-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
             title="Mở rộng sidebar (Chi tiết)"
             aria-label="Mở rộng thanh bên"
           >
-            <PanelLeftOpen className="w-5 h-5" />
+            <PanelLeftOpen className="w-4 h-4" />
           </button>
         )}
       </div>
@@ -144,7 +144,7 @@ export default function AdminSidebar() {
 
       {/* SFU Status indicator */}
       {isOpen ? (
-        <div className="p-3 m-3 rounded-xl bg-slate-800 border border-slate-700 text-xs">
+        <div className="p-3 m-3 rounded-xl bg-slate-800 border border-slate-700 text-xs shrink-0">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
             <span className="font-bold text-white truncate">LiveKit SFU Online</span>
@@ -153,7 +153,7 @@ export default function AdminSidebar() {
         </div>
       ) : (
         <div
-          className="p-2 my-3 mx-auto rounded-xl bg-slate-800/60 border border-slate-700 flex items-center justify-center cursor-pointer"
+          className="p-2 my-3 mx-auto rounded-xl bg-slate-800/60 border border-slate-700 flex items-center justify-center cursor-pointer shrink-0"
           title="LiveKit SFU Online • Uptime 99.98% • Latency 42ms"
         >
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>

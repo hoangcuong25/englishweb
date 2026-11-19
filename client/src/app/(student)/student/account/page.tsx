@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { authService } from '@/services/auth.service';
 import SessionManagerDrawer from '@/components/modals/session-manager-drawer';
@@ -11,10 +11,16 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  Camera,
+  Edit2,
+  Check,
+  X,
+  Phone,
+  UploadCloud,
 } from 'lucide-react';
 
 export default function StudentAccountPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -23,6 +29,93 @@ export default function StudentAccountPage() {
   const [notice, setNotice] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Profile Edit State
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState(user?.phone || '');
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user?.phone) {
+      setPhoneInput(user.phone);
+    }
+  }, [user?.phone]);
+
+  const handleSavePhone = async () => {
+    const trimmed = phoneInput.trim();
+    if (!trimmed) {
+      setErrorMessage('Số điện thoại không được để trống!');
+      return;
+    }
+    // Basic phone validation (VN 10 digits or international)
+    if (!/^[0-9+]{9,15}$/.test(trimmed)) {
+      setErrorMessage('Số điện thoại không đúng định dạng (từ 9 đến 15 chữ số)!');
+      return;
+    }
+
+    setSavingPhone(true);
+    setErrorMessage('');
+    setNotice('');
+
+    try {
+      const updated = await authService.updateProfile({ phone: trimmed });
+      updateUser({ phone: updated.phone || trimmed });
+      setIsEditingPhone(false);
+      setNotice('Cập nhật số điện thoại thành công! Số điện thoại mới sẽ được dùng in Dynamic Watermark bảo mật.');
+      setTimeout(() => setNotice(''), 5000);
+    } catch (err: unknown) {
+      const errRes = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      const rawMsg = errRes?.message;
+      const friendlyMsg =
+        rawMsg?.includes('refresh token') || rawMsg?.includes('token')
+          ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!'
+          : (rawMsg || 'Không thể cập nhật số điện thoại. Vui lòng thử lại!');
+      setErrorMessage(friendlyMsg);
+    } finally {
+      setSavingPhone(false);
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Vui lòng chọn file hình ảnh hợp lệ (JPG, PNG, WebP)!');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('Kích thước ảnh không được vượt quá 5MB!');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setErrorMessage('');
+    setNotice('');
+
+    try {
+      const updated = await authService.uploadAvatar(file);
+      updateUser({ avatarUrl: updated.avatarUrl });
+      setNotice('Cập nhật ảnh đại diện thành công!');
+      setTimeout(() => setNotice(''), 5000);
+    } catch (err: unknown) {
+      const errRes = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      const rawMsg = errRes?.message;
+      const friendlyMsg =
+        rawMsg?.includes('refresh token') || rawMsg?.includes('token')
+          ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!'
+          : (rawMsg || 'Không thể upload ảnh đại diện. Vui lòng thử lại!');
+      setErrorMessage(friendlyMsg);
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Password strength calculation
   const getPasswordStrength = (pwd: string) => {
@@ -105,24 +198,163 @@ export default function StudentAccountPage() {
       )}
 
       {/* Profile Overview Card */}
-      <div className="bg-white rounded-2xl border border-line p-6 shadow-sm space-y-4">
-        <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-2">
-          <User className="w-4 h-4 text-primary" />
-          <span>Thông Tin Cá Nhân</span>
-        </h3>
+      <div className="bg-white rounded-2xl border border-line p-6 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
+          <div className="flex items-center space-x-4">
+            {/* Avatar Display & Camera Button */}
+            <div className="relative group shrink-0">
+              {user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.avatarUrl}
+                  alt={user.fullName || 'Avatar'}
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-primary/20 shadow-sm"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary-dark to-primary text-white font-black text-xl flex items-center justify-center shadow-sm">
+                  {user?.fullName
+                    ? user.fullName
+                        .split(' ')
+                        .filter(Boolean)
+                        .slice(-2)
+                        .map((w) => w[0])
+                        .join('')
+                        .toUpperCase()
+                    : 'HV'}
+                </div>
+              )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-          <div className="p-3 rounded-xl bg-slate-50 border border-line">
-            <span className="text-muted text-[11px]">Họ và tên học viên</span>
-            <p className="font-bold text-slate-800 mt-1">{user?.fullName || 'Trần Văn Nam'}</p>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 p-1.5 bg-primary hover:bg-primary-dark text-white rounded-lg shadow-md transition cursor-pointer"
+                title="Thay đổi ảnh hiển thị"
+              >
+                {uploadingAvatar ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Camera className="w-3.5 h-3.5" />
+                )}
+              </button>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleAvatarChange}
+                accept="image/*"
+                className="hidden"
+              />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900">
+                {user?.fullName || 'Học viên'}
+              </h3>
+              <p className="text-xs text-muted mt-0.5">{user?.email || 'student@englishweb.com'}</p>
+              <div className="flex items-center space-x-2 mt-1.5">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
+                  HỌC VIÊN CHÍNH THỨC
+                </span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="text-[11px] font-semibold text-primary hover:underline cursor-pointer flex items-center space-x-1"
+                >
+                  <UploadCloud className="w-3 h-3" />
+                  <span>{uploadingAvatar ? 'Đang cập nhật ảnh...' : 'Đổi ảnh đại diện'}</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="p-3 rounded-xl bg-slate-50 border border-line">
-            <span className="text-muted text-[11px]">Địa chỉ Email</span>
-            <p className="font-bold text-slate-800 mt-1">{user?.email || 'nam.tran@gmail.com'}</p>
-          </div>
-          <div className="p-3 rounded-xl bg-slate-50 border border-line">
-            <span className="text-muted text-[11px]">Số điện thoại (In Watermark)</span>
-            <p className="font-mono font-bold text-slate-800 mt-1">{user?.phone || '0912345678'}</p>
+        </div>
+
+        <div>
+          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-2 mb-3">
+            <User className="w-4 h-4 text-primary" />
+            <span>Chi Tiết Hồ Sơ Cá Nhân</span>
+          </h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-line">
+              <span className="text-muted text-[11px]">Họ và tên học viên</span>
+              <p className="font-bold text-slate-800 mt-1">{user?.fullName || 'Chưa cập nhật'}</p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-line">
+              <span className="text-muted text-[11px]">Địa chỉ Email (Định danh)</span>
+              <p className="font-bold text-slate-800 mt-1 truncate">{user?.email || 'nam.tran@gmail.com'}</p>
+            </div>
+
+            {/* Editable Phone Number Card */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-line flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-muted text-[11px] flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-primary" />
+                  <span>Số điện thoại (In Watermark)</span>
+                </span>
+                {!isEditingPhone && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPhone(true);
+                      setPhoneInput(user?.phone || '');
+                    }}
+                    className="text-primary hover:text-primary-dark font-bold text-[11px] flex items-center gap-1 transition cursor-pointer"
+                    title="Chỉnh sửa số điện thoại"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    <span>Sửa</span>
+                  </button>
+                )}
+              </div>
+
+              {isEditingPhone ? (
+                <div className="mt-2 space-y-2">
+                  <input
+                    type="tel"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="Nhập số điện thoại (VD: 0912345678)"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-primary bg-white text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-primary"
+                    autoFocus
+                  />
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      type="button"
+                      onClick={handleSavePhone}
+                      disabled={savingPhone}
+                      className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-dark text-white text-[11px] font-bold transition flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                    >
+                      {savingPhone ? (
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                      <span>Lưu</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingPhone(false)}
+                      disabled={savingPhone}
+                      className="px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-semibold transition cursor-pointer"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between mt-1">
+                  <p className="font-mono font-bold text-slate-800 text-sm">
+                    {user?.phone || 'Chưa cập nhật'}
+                  </p>
+                  <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">
+                    Bảo mật
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

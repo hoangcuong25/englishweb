@@ -20,12 +20,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col">
+    <div className="h-screen bg-bg flex flex-col overflow-hidden">
       <AppTopbar currentPortal="admin" pageTitle="Cổng Quản Trị & Giảng Viên" />
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <AdminSidebar />
-        <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
-          {children}
+        <main className="flex-1 min-h-0 h-full overflow-y-auto p-4 sm:p-6 w-full">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>
