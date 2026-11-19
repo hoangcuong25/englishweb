@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LivekitService } from './livekit.service';
 import { WhiteboardService } from './whiteboard.service';
 import { WhiteboardStrokeDto, SetWhiteboardPermissionDto } from './dto/whiteboard-stroke.dto';
+import { KickParticipantDto } from './dto/kick-participant.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -96,6 +97,17 @@ export class LivekitController {
     @Body('muted') muted: boolean,
   ) {
     return this.livekitService.muteParticipantTrack(roomName, identity, trackSid, muted);
+  }
+
+  @Post('kick-participant')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin Host buộc người tham gia rời khỏi phòng học' })
+  @ResponseMessage('Đã buộc người tham gia rời khỏi phòng học thành công')
+  async kickParticipant(@Body() body: KickParticipantDto) {
+    return this.livekitService.removeParticipant(body.roomName, body.identity);
   }
 
   @Get('admin/history')

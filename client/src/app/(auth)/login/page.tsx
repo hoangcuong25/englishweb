@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import GoogleSignInButton from '@/components/auth/google-sign-in-button';
 import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -92,17 +93,12 @@ export default function LoginPage() {
                 Quên mật khẩu?
               </Link>
             </div>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-line text-xs focus:outline-none focus:border-primary"
-              />
-            </div>
+            <PasswordInput
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
           </div>
 
           <button

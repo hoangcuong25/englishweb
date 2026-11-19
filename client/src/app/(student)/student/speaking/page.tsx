@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { speakingService } from '@/services/speaking.service';
+import { speakingService, SpeakingSubmission } from '@/services/speaking.service';
 import { toast } from '@/components/ui/toast';
 import {
   Square,
@@ -11,9 +11,18 @@ import {
   Headphones,
   Send,
   RefreshCw,
+  Mic,
+  FileAudio,
+  Award,
+  MessageSquare,
+  Play,
+  Calendar,
 } from 'lucide-react';
 
 export default function StudentSpeakingPage() {
+  const [activeView, setActiveView] = useState<'RECORD' | 'SUBMISSIONS'>('RECORD');
+  const [submissions, setSubmissions] = useState<SpeakingSubmission[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [part, setPart] = useState<'PART_1' | 'PART_2' | 'PART_3'>('PART_2');
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -33,6 +42,30 @@ export default function StudentSpeakingPage() {
     prepTimeSeconds?: number;
     recordTimeSeconds?: number;
   } | null>(null);
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, []);
+
+  const fetchSubmissions = async () => {
+    setIsLoadingSubmissions(true);
+    try {
+      const data = await speakingService.getMySubmissions();
+      setSubmissions(Array.isArray(data) ? data : []);
+    } catch {
+      // ignore
+    } finally {
+      setIsLoadingSubmissions(false);
+    }
+  };
+
+  const seekTo = (subId: string, seconds: number) => {
+    const el = document.getElementById(`audio-player-${subId}`) as HTMLAudioElement;
+    if (el) {
+      el.currentTime = seconds;
+      el.play().catch(() => {});
+    }
+  };
 
   useEffect(() => {
     const fetchPrompts = async () => {
@@ -187,6 +220,7 @@ export default function StudentSpeakingPage() {
     } finally {
       setIsSubmitting(false);
       setIsSubmitted(true);
+      fetchSubmissions();
     }
   };
 
@@ -213,26 +247,197 @@ export default function StudentSpeakingPage() {
           </p>
         </div>
 
-        {/* Part Tabs */}
+        {/* View Switcher Tabs */}
         <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
-          {(['PART_1', 'PART_2', 'PART_3'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => {
-                setPart(p);
-                handleRetake();
-              }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                part === p
-                  ? 'bg-white text-primary shadow-xs font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {p.replace('_', ' ')}
-            </button>
-          ))}
+          <button
+            onClick={() => setActiveView('RECORD')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              activeView === 'RECORD'
+                ? 'bg-white text-primary shadow-xs font-extrabold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Mic className="w-3.5 h-3.5" />
+            <span>Thu Âm</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveView('SUBMISSIONS');
+              fetchSubmissions();
+            }}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              activeView === 'SUBMISSIONS'
+                ? 'bg-white text-primary shadow-xs font-extrabold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FileAudio className="w-3.5 h-3.5" />
+            <span>Bài Đã Chấm {submissions.length > 0 ? `(${submissions.length})` : ''}</span>
+          </button>
         </div>
       </div>
+
+      {activeView === 'SUBMISSIONS' ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900">
+              Danh Sách Bài Nói Đã Nộp ({submissions.length})
+            </h2>
+            <button
+              onClick={fetchSubmissions}
+              disabled={isLoadingSubmissions}
+              className="text-xs font-bold text-primary hover:underline flex items-center space-x-1"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSubmissions ? 'animate-spin' : ''}`} />
+              <span>Làm mới</span>
+            </button>
+          </div>
+
+          {isLoadingSubmissions ? (
+            <div className="p-8 text-center text-xs text-muted bg-white rounded-3xl border border-line">
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-primary" />
+              Đang tải danh sách bài làm...
+            </div>
+          ) : submissions.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-line space-y-3">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                <FileAudio className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Chưa có bài nộp nào</h3>
+              <p className="text-xs text-muted max-w-sm mx-auto">
+                Bạn chưa nộp bài nói nào. Hãy chuyển sang tab Thu Âm để bắt đầu luyện tập và gửi bài cho Thầy Đông chấm điểm nhé!
+              </p>
+              <button
+                onClick={() => setActiveView('RECORD')}
+                className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-dark transition"
+              >
+                Vào Studio Thu Âm Ngay
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {submissions.map((sub) => (
+                <div key={sub.id} className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line pb-3">
+                    <div className="space-y-0.5">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full">
+                        {sub.prompt?.part ? `IELTS Speaking Part ${sub.prompt.part}` : 'IELTS Speaking'}
+                      </span>
+                      <h3 className="text-sm font-bold text-slate-900 mt-1">
+                        {sub.prompt?.title || 'Bài tập luyện nói'}
+                      </h3>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {sub.status === 'GRADED' ? (
+                        <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-extrabold text-xs border border-emerald-200">
+                          <Award className="w-3.5 h-3.5" />
+                          <span>BAND {sub.bandScore ? sub.bandScore.toFixed(1) : 'N/A'}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 font-bold text-xs border border-amber-200">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>ĐANG CHỜ CHẤM</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {sub.status === 'GRADED' && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-2xl border border-line text-center">
+                      <div className="p-2 bg-white rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-bold text-muted block uppercase">Fluency (FC)</span>
+                        <span className="text-sm font-extrabold text-primary">{sub.fluencyScore?.toFixed(1) || '-'}</span>
+                      </div>
+                      <div className="p-2 bg-white rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-bold text-muted block uppercase">Lexical (LR)</span>
+                        <span className="text-sm font-extrabold text-primary">{sub.lexicalScore?.toFixed(1) || '-'}</span>
+                      </div>
+                      <div className="p-2 bg-white rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-bold text-muted block uppercase">Grammar (GRA)</span>
+                        <span className="text-sm font-extrabold text-primary">{sub.grammarScore?.toFixed(1) || '-'}</span>
+                      </div>
+                      <div className="p-2 bg-white rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-bold text-muted block uppercase">Pronunciation (PR)</span>
+                        <span className="text-sm font-extrabold text-primary">{sub.pronunciationScore?.toFixed(1) || '-'}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {sub.feedback && (
+                    <div className="bg-sky-50/60 border border-sky-100 p-4 rounded-2xl space-y-1">
+                      <div className="flex items-center space-x-1.5 text-xs font-bold text-sky-900">
+                        <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                        <span>Nhận xét tổng thể từ Thầy Đông:</span>
+                      </div>
+                      <p className="text-xs text-slate-700 leading-relaxed pl-5 whitespace-pre-line">
+                        {sub.feedback}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-slate-700 block">Nghe lại file ghi âm:</span>
+                    <audio
+                      id={`audio-player-${sub.id}`}
+                      controls
+                      src={sub.audioUrl}
+                      className="w-full h-10 rounded-xl"
+                    />
+                  </div>
+
+                  {Array.isArray(sub.timestampComments) && sub.timestampComments.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-line">
+                      <span className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                        <Clock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Nhận xét tại từng giây (Click để nghe đoạn tương ứng):</span>
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {sub.timestampComments.map((tc, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => seekTo(sub.id, tc.timestampSeconds)}
+                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-primary/10 hover:text-primary text-slate-700 text-xs font-medium border border-line transition text-left"
+                            title="Click để tua audio đến giây này"
+                          >
+                            <Play className="w-3 h-3 text-primary shrink-0" />
+                            <span className="font-mono font-bold text-primary">
+                              {Math.floor(tc.timestampSeconds / 60)}:{(tc.timestampSeconds % 60).toString().padStart(2, '0')}
+                            </span>
+                            <span className="text-slate-600 truncate max-w-xs">{tc.comment}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Part Selection Header for Recording View */}
+          <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-line">
+            <span className="text-xs font-bold text-slate-700">Chọn phần thi IELTS Speaking:</span>
+            <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl">
+              {(['PART_1', 'PART_2', 'PART_3'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => {
+                    setPart(p);
+                    handleRetake();
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    part === p
+                      ? 'bg-white text-primary shadow-xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {p.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
 
       {/* Cue Card Prompt Box */}
       <div className="bg-white rounded-3xl border border-line p-6 sm:p-8 shadow-sm space-y-4">
@@ -366,6 +571,8 @@ export default function StudentSpeakingPage() {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

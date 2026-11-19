@@ -1242,25 +1242,42 @@ export class MockPrismaService {
   quiz = {
     findMany: async (args?: any) => {
       let result = [...this.quizzes];
-      if (args?.where?.lessonId) {
-        result = result.filter((q) => q.lessonId === args.where.lessonId);
-      }
-      if (args?.where?.skill) {
-        result = result.filter((q) => q.skill === args.where.skill);
-      }
-      if (args?.where?.testType) {
-        result = result.filter((q) => q.testType === args.where.testType);
-      }
-      if (args?.where?.OR) {
-        const query = args.where.OR[0]?.title?.contains || '';
-        if (query) {
-          result = result.filter(
-            (q) =>
-              (q.title && q.title.toLowerCase().includes(query.toLowerCase())) ||
-              (q.description && q.description.toLowerCase().includes(query.toLowerCase())),
-          );
+
+      const matchCondition = (q: any, cond: any): boolean => {
+        if (!cond) return true;
+        if (cond.lessonId && q.lessonId !== cond.lessonId) return false;
+        if (cond.skill && q.skill !== cond.skill) return false;
+        if (cond.category && q.category !== cond.category) return false;
+        if (cond.quizType && q.quizType !== cond.quizType) return false;
+        if (cond.testType && q.testType !== cond.testType) return false;
+        if (cond.OR && Array.isArray(cond.OR)) {
+          const matched = cond.OR.some((orClause: any) => {
+            if (orClause.testType && q.testType === orClause.testType) return true;
+            if (orClause.quizType && q.quizType === orClause.quizType) return true;
+            if (orClause.title?.contains) {
+              const query = orClause.title.contains.toLowerCase();
+              return q.title && q.title.toLowerCase().includes(query);
+            }
+            if (orClause.description?.contains) {
+              const query = orClause.description.contains.toLowerCase();
+              return q.description && q.description.toLowerCase().includes(query);
+            }
+            if (orClause.courseId && q.courseId === orClause.courseId) return true;
+            return false;
+          });
+          if (!matched) return false;
+        }
+        return true;
+      };
+
+      if (args?.where) {
+        if (Array.isArray(args.where.AND)) {
+          result = result.filter((q) => args.where.AND.every((cond: any) => matchCondition(q, cond)));
+        } else {
+          result = result.filter((q) => matchCondition(q, args.where));
         }
       }
+
       if (args?.skip !== undefined && args?.take !== undefined) {
         result = result.slice(args.skip, args.skip + args.take);
       }
@@ -1309,8 +1326,38 @@ export class MockPrismaService {
     },
     count: async (args?: any) => {
       let result = [...this.quizzes];
-      if (args?.where?.skill) result = result.filter((q) => q.skill === args.where.skill);
-      if (args?.where?.testType) result = result.filter((q) => q.testType === args.where.testType);
+      const matchCondition = (q: any, cond: any): boolean => {
+        if (!cond) return true;
+        if (cond.lessonId && q.lessonId !== cond.lessonId) return false;
+        if (cond.skill && q.skill !== cond.skill) return false;
+        if (cond.category && q.category !== cond.category) return false;
+        if (cond.quizType && q.quizType !== cond.quizType) return false;
+        if (cond.testType && q.testType !== cond.testType) return false;
+        if (cond.OR && Array.isArray(cond.OR)) {
+          return cond.OR.some((orClause: any) => {
+            if (orClause.testType && q.testType === orClause.testType) return true;
+            if (orClause.quizType && q.quizType === orClause.quizType) return true;
+            if (orClause.title?.contains) {
+              const query = orClause.title.contains.toLowerCase();
+              return q.title && q.title.toLowerCase().includes(query);
+            }
+            if (orClause.description?.contains) {
+              const query = orClause.description.contains.toLowerCase();
+              return q.description && q.description.toLowerCase().includes(query);
+            }
+            return false;
+          });
+        }
+        return true;
+      };
+
+      if (args?.where) {
+        if (Array.isArray(args.where.AND)) {
+          result = result.filter((q) => args.where.AND.every((cond: any) => matchCondition(q, cond)));
+        } else {
+          result = result.filter((q) => matchCondition(q, args.where));
+        }
+      }
       return result.length;
     },
     update: async (args: any) => {

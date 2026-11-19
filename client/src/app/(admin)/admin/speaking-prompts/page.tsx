@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { speakingService, SpeakingPrompt } from '@/services/speaking.service';
 import { useI18n } from '@/lib/i18n-context';
+import { extractErrorMessage } from '@/lib/api-error';
 import {
   Mic,
   Plus,
@@ -115,7 +116,7 @@ export default function AdminSpeakingPromptsPage() {
       setIsModalOpen(false);
       setTimeout(() => setFeedbackNotice(''), 4000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi lưu đề nói';
+      const msg = extractErrorMessage(err, 'Lỗi khi lưu đề nói');
       setFeedbackNotice(`Không thể lưu đề nói: ${msg}`);
       setTimeout(() => setFeedbackNotice(''), 5000);
     } finally {

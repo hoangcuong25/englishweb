@@ -76,32 +76,36 @@ export class QuizzesService {
     const limit = query.limit && query.limit > 0 ? Number(query.limit) : 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (query.skill) where.skill = query.skill;
-    if (query.category) where.category = query.category;
-    if (query.quizType) where.quizType = query.quizType;
+    const andConditions: any[] = [];
+    if (query.skill) andConditions.push({ skill: query.skill });
+    if (query.category) andConditions.push({ category: query.category });
+    if (query.quizType) andConditions.push({ quizType: query.quizType });
     if (query.testType) {
-      where.OR = [
-        { testType: query.testType },
-        { quizType: query.testType },
-      ];
+      andConditions.push({
+        OR: [
+          { testType: query.testType },
+          { quizType: query.testType },
+        ],
+      });
     }
     if (query.courseId) {
-      where.OR = [
-        { courseId: query.courseId },
-        { lesson: { module: { courseId: query.courseId } } },
-      ];
+      andConditions.push({
+        OR: [
+          { courseId: query.courseId },
+          { lesson: { module: { courseId: query.courseId } } },
+        ],
+      });
     }
     if (query.search) {
-      where.AND = [
-        {
-          OR: [
-            { title: { contains: query.search } },
-            { description: { contains: query.search } },
-          ],
-        },
-      ];
+      andConditions.push({
+        OR: [
+          { title: { contains: query.search } },
+          { description: { contains: query.search } },
+        ],
+      });
     }
+
+    const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const [items, total] = await Promise.all([
       this.prisma.quiz.findMany({
@@ -127,8 +131,13 @@ export class QuizzesService {
       this.prisma.quiz.count({ where }),
     ]);
 
+    const mappedItems = items.map((q) => ({
+      ...q,
+      testType: q.testType || q.quizType || 'LESSON_QUIZ',
+    }));
+
     return {
-      items,
+      items: mappedItems,
       total,
       page,
       limit,

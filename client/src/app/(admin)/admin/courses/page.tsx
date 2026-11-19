@@ -7,6 +7,7 @@ import { lessonsService } from '@/services/lessons.service';
 import { materialsService } from '@/services/materials.service';
 import { usersService, UserProfile } from '@/services/users.service';
 import CustomSelect from '@/components/ui/custom-select';
+import { extractErrorMessage } from '@/lib/api-error';
 import {
   Plus,
   Edit,
@@ -375,7 +376,7 @@ export default function AdminCoursesPage() {
         setTimeout(() => setNotice(''), 3000);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi tải ảnh bìa';
+      const msg = extractErrorMessage(err, 'Lỗi khi tải ảnh bìa');
       setNotice(`❌ Không thể tải ảnh bìa: ${msg}`);
       setTimeout(() => setNotice(''), 3000);
     } finally {
@@ -422,10 +423,7 @@ export default function AdminCoursesPage() {
       setIsCourseModalOpen(false);
       setEditingCourseId(null);
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message ||
-        (err instanceof Error ? err.message : 'Lỗi khi lưu khóa học');
-      const displayMsg = Array.isArray(errorMsg) ? errorMsg.join(', ') : errorMsg;
+      const displayMsg = extractErrorMessage(err, 'Lỗi khi lưu khóa học');
       setNotice(`❌ Không thể lưu khóa học: ${displayMsg}`);
     }
     setTimeout(() => setNotice(''), 4000);
@@ -441,7 +439,7 @@ export default function AdminCoursesPage() {
       }
       setNotice('✅ Đã xóa khóa học thành công.');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi xóa khóa học';
+      const msg = extractErrorMessage(err, 'Lỗi khi xóa khóa học');
       setNotice(`❌ Không thể xóa khóa học: ${msg}`);
     }
     setTimeout(() => setNotice(''), 3000);
@@ -478,7 +476,7 @@ export default function AdminCoursesPage() {
       setIsModuleModalOpen(false);
       setModuleTitleInput('');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi tạo chương học';
+      const msg = extractErrorMessage(err, 'Lỗi khi tạo chương học');
       setNotice(`❌ Không thể tạo chương: ${msg}`);
     } finally {
       setIsSubmittingModule(false);
@@ -494,7 +492,7 @@ export default function AdminCoursesPage() {
       await fetchCourses();
       setNotice('✅ Đã xóa chương học thành công!');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi xóa chương';
+      const msg = extractErrorMessage(err, 'Lỗi khi xóa chương');
       setNotice(`❌ Không thể xóa chương: ${msg}`);
     }
     setTimeout(() => setNotice(''), 3500);
@@ -513,6 +511,8 @@ export default function AdminCoursesPage() {
     durationMinutes: 45,
     isFreePreview: false,
   });
+  const [lessonVideoFile, setLessonVideoFile] = useState<File | null>(null);
+  const [lessonUploadProgress, setLessonUploadProgress] = useState<number | null>(null);
 
   const handleOpenAddLesson = (prefillModuleId?: string) => {
     const targetCourse = selectedCourseId || courses[0]?.id || '';
@@ -526,6 +526,8 @@ export default function AdminCoursesPage() {
       durationMinutes: 45,
       isFreePreview: false,
     });
+    setLessonVideoFile(null);
+    setLessonUploadProgress(null);
     setIsLessonModalOpen(true);
   };
 
@@ -558,19 +560,28 @@ export default function AdminCoursesPage() {
         throw new Error('Không thể xác định chương học');
       }
 
-      await lessonsService.createLesson({
+      const createdLessonRes = await lessonsService.createLesson({
         moduleId: targetModuleId,
         title: lessonFormData.lessonTitle.trim(),
         durationMinutes: Number(lessonFormData.durationMinutes) || 45,
         isFreePreview: Boolean(lessonFormData.isFreePreview),
       });
 
+      const createdLessonId = (createdLessonRes as any)?.data?.id || (createdLessonRes as any)?.id;
+
+      if (lessonVideoFile && createdLessonId) {
+        setLessonUploadProgress(0);
+        await coursesService.uploadLessonVideo(createdLessonId, lessonVideoFile, (percent) => {
+          setLessonUploadProgress(percent);
+        });
+      }
+
       await fetchCurriculum(selectedCourseId);
       await fetchCourses();
       setIsLessonModalOpen(false);
       setNotice(`✅ Đã thêm bài học "${lessonFormData.lessonTitle}" thành công!`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi thêm bài học';
+      const msg = extractErrorMessage(err, 'Lỗi khi thêm bài học');
       setNotice(`❌ Không thể thêm bài học: ${msg}`);
     }
     setTimeout(() => setNotice(''), 4000);
@@ -583,7 +594,7 @@ export default function AdminCoursesPage() {
       await fetchCurriculum(selectedCourseId);
       setNotice('✅ Đã xóa bài học thành công!');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi xóa bài học';
+      const msg = extractErrorMessage(err, 'Lỗi khi xóa bài học');
       setNotice(`❌ Không thể xóa bài học: ${msg}`);
     }
     setTimeout(() => setNotice(''), 3500);
@@ -650,7 +661,7 @@ export default function AdminCoursesPage() {
       setMaterialFile(null);
       setNotice(`✅ Đã tải lên học liệu "${materialFormData.title || materialFile.name}" bảo mật thành công!`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi tải lên học liệu';
+      const msg = extractErrorMessage(err, 'Lỗi khi tải lên học liệu');
       setNotice(`❌ Không thể tải lên học liệu: ${msg}`);
     } finally {
       setIsUploadingMaterial(false);
@@ -665,7 +676,7 @@ export default function AdminCoursesPage() {
       await fetchCurriculum(selectedCourseId);
       setNotice('✅ Đã xóa học liệu thành công!');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi xóa học liệu';
+      const msg = extractErrorMessage(err, 'Lỗi khi xóa học liệu');
       setNotice(`❌ Không thể xóa học liệu: ${msg}`);
     }
     setTimeout(() => setNotice(''), 3500);
@@ -733,7 +744,7 @@ export default function AdminCoursesPage() {
       );
       setNotice('✅ Đã xác nhận chuyển khoản thành công và kích hoạt khóa học cho học viên!');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi xác nhận';
+      const msg = extractErrorMessage(err, 'Lỗi khi xác nhận');
       setNotice(`❌ Không thể xác nhận: ${msg}`);
     } finally {
       setProcessingEnrollmentId(null);
@@ -750,7 +761,7 @@ export default function AdminCoursesPage() {
       );
       setNotice('Đã từ chối yêu cầu đăng ký khóa học.');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi từ chối';
+      const msg = extractErrorMessage(err, 'Lỗi khi từ chối');
       setNotice(`Không thể từ chối: ${msg}`);
     } finally {
       setProcessingEnrollmentId(null);
@@ -776,7 +787,7 @@ export default function AdminCoursesPage() {
       setIsManualEnrollOpen(false);
       setManualEnrollForm({ courseId: courses[0]?.id || '', userId: studentsList[0]?.id || '', note: '' });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi ghi danh';
+      const msg = extractErrorMessage(err, 'Lỗi khi ghi danh');
       setNotice(`Không thể ghi danh: ${msg}`);
     } finally {
       setIsSubmittingManual(false);
@@ -2318,6 +2329,40 @@ export default function AdminCoursesPage() {
                   />
                 </div>
               </div>
+
+              {/* Video File Upload with Progress Indicator */}
+              {lessonFormData.type === 'VIDEO' && (
+                <div className="space-y-2 p-3 bg-slate-50 rounded-2xl border border-line">
+                  <label className="block text-xs font-bold text-slate-700">
+                    File Video Bài Giảng (.mp4, .mov, Cloudinary)
+                  </label>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/*"
+                    onChange={(e) => setLessonVideoFile(e.target.files?.[0] || null)}
+                    className="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary file:text-white hover:file:bg-primary-dark cursor-pointer"
+                  />
+                  {lessonVideoFile && (
+                    <p className="text-[11px] text-slate-600 font-medium">
+                      Đã chọn: {lessonVideoFile.name} ({(lessonVideoFile.size / (1024 * 1024)).toFixed(1)} MB)
+                    </p>
+                  )}
+                  {lessonUploadProgress !== null && (
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between text-[10px] font-bold text-primary">
+                        <span>Đang tải video lên Cloudinary...</span>
+                        <span>{lessonUploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-primary h-full transition-all duration-200"
+                          style={{ width: `${lessonUploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <input

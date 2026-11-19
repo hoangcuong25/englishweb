@@ -10,6 +10,7 @@ import { PrismaService } from '../../core/prisma/prisma.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { Role, MaterialType } from '@prisma/client';
+import { RedisService } from '../../core/redis/redis.service';
 import { AppException } from '../../core/common/errors/app.exception';
 import { AppErrorCode } from '../../core/common/errors/error-codes.enum';
 import * as fs from 'fs';
@@ -24,6 +25,7 @@ export class MaterialsService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private redisService: RedisService,
   ) {
     const secret =
       this.configService.get<string>('JWT_SECRET') ||
@@ -219,6 +221,11 @@ export class MaterialsService {
     const material = await this.prisma.material.findUnique({ where: { id } });
     if (!material) {
       throw new NotFoundException(`Không tìm thấy tài liệu ID: ${id}`);
+    }
+
+    // Q-02: Revoke active 15m signed URLs instantly via Redis Blacklist
+    if (this.redisService) {
+      await this.redisService.set(`material_revoked:${id}`, 'revoked', 900).catch(() => {});
     }
 
     return this.prisma.material.delete({ where: { id } });
@@ -506,6 +513,18 @@ export class MaterialsService {
 
     if (payload.materialId !== materialId) {
       throw new ForbiddenException('Token ký số không khớp với tài liệu yêu cầu');
+    }
+
+    // Q-02: Check Redis Blacklist for revoked material or token
+    if (this.redisService) {
+      const isMaterialRevoked = await this.redisService.get(`material_revoked:${materialId}`);
+      if (isMaterialRevoked) {
+        throw new UnauthorizedException('Tài liệu bảo mật này đã bị thu hồi hoặc gỡ bỏ bởi quản trị viên.');
+      }
+      const isTokenRevoked = await this.redisService.get(`token_revoked:${token}`);
+      if (isTokenRevoked) {
+        throw new UnauthorizedException('Chữ ký truy cập (token) này đã bị thu hồi.');
+      }
     }
 
     const material = await this.prisma.material.findUnique({

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import CustomSelect from '@/components/ui/custom-select';
 import { usersService, UserProfile } from '@/services/users.service';
+import { extractErrorMessage } from '@/lib/api-error';
 import {
   UserPlus,
   Search,
@@ -138,7 +139,7 @@ export default function AdminUsersPage() {
         targetBand: '7.5',
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi tạo tài khoản học viên';
+      const msg = extractErrorMessage(err, 'Lỗi khi tạo tài khoản học viên');
       setNotice(`Không thể tạo học viên: ${msg}`);
     }
     setTimeout(() => setNotice(''), 4000);

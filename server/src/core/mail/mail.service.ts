@@ -322,6 +322,86 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * 3.2. Student Password Reset OTP Email
+   */
+  async sendPasswordResetOtpEmail(data: {
+    email: string;
+    fullName: string;
+    otpCode: string;
+    expiresInMinutes?: number;
+  }) {
+    const minutes = data.expiresInMinutes || 10;
+    const subject = `Mã OTP Đặt Lại Mật Khẩu - Teacher Dong Academy`;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 24px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 20px;">Mã Xác Thực Đặt Lại Mật Khẩu (OTP)</h2>
+        </div>
+        <div style="padding: 32px 24px;">
+          <p style="color: #0f172a; font-size: 16px;">Xin chào <strong>${data.fullName}</strong>,</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Hệ thống nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>${data.email}</strong> của bạn.
+          </p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Dưới đây là mã xác thực OTP của bạn (có hiệu lực trong vòng <strong>${minutes} phút</strong>):
+          </p>
+          <div style="text-align: center; margin: 24px 0;">
+            <div style="display: inline-block; background-color: #f0f9ff; border: 2px dashed #0284c7; padding: 14px 32px; border-radius: 12px; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0284c7;">
+              ${data.otpCode}
+            </div>
+          </div>
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-top: 20px;">
+            ⚠️ <strong>Lưu ý bảo mật:</strong> Không chia sẻ mã số này cho bất kỳ ai, kể cả nhân viên học viện. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail({ to: data.email, subject, html });
+  }
+
+  /**
+   * 3.3. Change Password OTP Email
+   */
+  async sendChangePasswordOtpEmail(data: {
+    email: string;
+    fullName: string;
+    otpCode: string;
+    expiresInMinutes?: number;
+  }) {
+    const minutes = data.expiresInMinutes || 10;
+    const subject = `Mã OTP Xác Thực Thay Đổi Mật Khẩu - Teacher Dong Academy`;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 24px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 20px;">Xác Thực Thay Đổi Mật Khẩu</h2>
+        </div>
+        <div style="padding: 32px 24px;">
+          <p style="color: #0f172a; font-size: 16px;">Xin chào <strong>${data.fullName}</strong>,</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Bạn đang yêu cầu thay đổi mật khẩu đăng nhập tại tài khoản <strong>${data.email}</strong>.
+          </p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Nhập mã OTP 6 chữ số dưới đây vào biểu mẫu để hoàn tất xác thực (có hiệu lực trong <strong>${minutes} phút</strong>):
+          </p>
+          <div style="text-align: center; margin: 24px 0;">
+            <div style="display: inline-block; background-color: #f0f9ff; border: 2px dashed #0284c7; padding: 14px 32px; border-radius: 12px; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0284c7;">
+              ${data.otpCode}
+            </div>
+          </div>
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-top: 20px;">
+            ⚠️ <strong>Lưu ý bảo mật:</strong> Nếu không phải bạn thực hiện yêu cầu này, hãy kiểm tra tài khoản hoặc liên hệ Quản trị viên để khóa phiên.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail({ to: data.email, subject, html });
+  }
+
+  /**
    * 4. IELTS Writing Assessment Approved & Ready (In English)
    */
   async sendWritingGradedEmail(data: {

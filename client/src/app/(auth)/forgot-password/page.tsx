@@ -61,17 +61,25 @@ export default function ForgotPasswordPage() {
             <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-emerald-900">Email Khôi Phục Đã Được Gửi!</h3>
+            <h3 className="text-sm font-bold text-emerald-900">Mã OTP Đã Được Gửi!</h3>
             <p className="text-xs text-emerald-700 leading-relaxed">
-              Chúng tôi đã gửi hướng dẫn tới <strong>{email}</strong>. Vui lòng kiểm tra hộp thư (kể cả mục Spam) và làm theo hướng dẫn.
+              Chúng tôi đã gửi mã xác thực 6 chữ số tới <strong>{email}</strong>. Vui lòng kiểm tra hộp thư (kể cả mục Spam) để lấy mã.
             </p>
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
               <Link
-                href="/login"
-                className="inline-flex items-center text-xs font-bold text-emerald-800 hover:text-emerald-900 underline"
+                href={`/reset-password?email=${encodeURIComponent(email)}`}
+                className="w-full py-2.5 px-4 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase tracking-wider transition shadow-md shadow-primary/20 flex items-center justify-center space-x-2"
               >
-                Quay lại đăng nhập
+                <span>Nhập Mã OTP & Đặt Mật Khẩu Mới →</span>
               </Link>
+              <div>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center text-xs text-slate-500 hover:text-primary transition underline"
+                >
+                  Quay lại đăng nhập
+                </Link>
+              </div>
             </div>
           </div>
         ) : (

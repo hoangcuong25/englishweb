@@ -8,6 +8,8 @@ export interface User {
   phone?: string;
   avatarUrl?: string;
   isActive?: boolean;
+  googleId?: string | null;
+  preferredLang?: string;
 }
 
 export interface LoginPayload {
@@ -45,6 +47,16 @@ export const authService = {
 
   async loginGoogle(payload: { idToken: string; email?: string; fullName?: string; avatarUrl?: string }) {
     const response = await api.post('/auth/google', payload);
+    return response.data;
+  },
+
+  async linkGoogle(payload: { idToken: string; email?: string; fullName?: string; avatarUrl?: string }) {
+    const response = await api.post('/auth/google/link', payload);
+    return response.data;
+  },
+
+  async unlinkGoogle() {
+    const response = await api.post('/auth/google/unlink');
     return response.data;
   },
 
@@ -94,7 +106,12 @@ export const authService = {
     return response.data;
   },
 
-  async changePassword(passwords: { oldPassword: string; newPassword: string }) {
+  async requestChangePasswordOtp() {
+    const response = await api.post('/auth/change-password/request-otp');
+    return response.data;
+  },
+
+  async changePassword(passwords: { oldPassword: string; newPassword: string; otp?: string }) {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('access_token');
       if (token && token.startsWith('demo_')) {
@@ -112,6 +129,11 @@ export const authService = {
 
   async resetPassword(token: string, newPassword: string) {
     const response = await api.post('/auth/reset-password', { token, newPassword });
+    return response.data;
+  },
+
+  async resetPasswordWithOtp(payload: { email: string; otp: string; newPassword: string }) {
+    const response = await api.post('/auth/reset-password', payload);
     return response.data;
   },
 

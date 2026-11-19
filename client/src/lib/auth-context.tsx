@@ -116,14 +116,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchProfile();
 
     const handleSessionTerminated = () => {
-      // Only set user to null if there was no active demo user
+      // Q-01: Trigger emergency auto-save before wiping session credentials
       if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('emergency_auto_save'));
+
         const token = localStorage.getItem('access_token');
         if (token && !token.startsWith('demo_')) {
-          localStorage.removeItem('access_token');
-          delete api.defaults.headers.common['Authorization'];
-          setUser(null);
-          setSessionTerminated(true);
+          // Allow short delay for in-flight emergency save to complete
+          setTimeout(() => {
+            localStorage.removeItem('access_token');
+            delete api.defaults.headers.common['Authorization'];
+            setUser(null);
+            setSessionTerminated(true);
+          }, 350);
         }
       }
     };

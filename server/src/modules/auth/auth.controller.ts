@@ -27,6 +27,8 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Response, Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { AppThrottlerGuard } from '../../core/common/guards/app-throttler.guard';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
 
@@ -79,6 +81,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AppThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Login with email and password (enforces Single Concurrent Session for students)' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid email or password' })
@@ -222,12 +226,33 @@ export class AuthController {
     return result;
   }
 
+  @Post('change-password/request-otp')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request OTP for password change' })
+  async requestChangePasswordOtp(@CurrentUser() user: any) {
+    return this.authService.requestChangePasswordOtp(user.id);
+  }
+
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change password and revoke other active sessions' })
   async changePassword(
+    @CurrentUser() user: any,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(user.id, dto);
+  }
+
+  @Put('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change password and revoke other active sessions (PUT)' })
+  async changePasswordPut(
     @CurrentUser() user: any,
     @Body() dto: ChangePasswordDto,
   ) {

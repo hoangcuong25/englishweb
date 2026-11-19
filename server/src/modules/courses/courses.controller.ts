@@ -197,8 +197,8 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Admin từ chối yêu cầu đăng ký khóa học' })
   @ApiParam({ name: 'id', description: 'UUID của enrollment' })
-  rejectEnrollment(@Param('id') id: string) {
-    return this.coursesService.rejectEnrollment(id);
+  rejectEnrollment(@Param('id') id: string, @Body('reason') reason?: string) {
+    return this.coursesService.rejectEnrollment(id, reason);
   }
 
   @Post('admin/manual-enroll')

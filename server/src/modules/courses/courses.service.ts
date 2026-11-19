@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { RedisService } from '../../core/redis/redis.service';
+import { MailService } from '../../core/mail/mail.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CourseCategory, Role } from '@prisma/client';
@@ -17,6 +18,7 @@ export class CoursesService {
     private prisma: PrismaService,
     private cloudinaryService: CloudinaryService,
     private redisService: RedisService,
+    private mailService: MailService,
   ) {}
 
   getCategories() {
@@ -594,11 +596,12 @@ export class CoursesService {
   }
 
   /**
-   * Admin từ chối yêu cầu đăng ký khóa học
+   * Admin từ chối yêu cầu đăng ký khóa học (Q-NEW-01: Gửi email giải thích & cho phép nộp lại)
    */
-  async rejectEnrollment(enrollmentId: string) {
+  async rejectEnrollment(enrollmentId: string, reason?: string) {
     const enrollment = await this.prisma.enrollment.findUnique({
       where: { id: enrollmentId },
+      include: { user: true, course: true },
     });
 
     if (!enrollment) {
@@ -615,8 +618,26 @@ export class CoursesService {
 
     await this.redisService.delPattern('cache:courses:*');
 
+    // Send email notification to student about rejection
+    if (updated.user?.email && this.mailService) {
+      const subject = `[Teacher Dong Academy] Thông báo kết quả đăng ký khóa học ${updated.course?.title || ''}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #e11d48; margin-bottom: 16px;">Thông Báo Yêu Cầu Ghi Danh Khóa Học</h2>
+          <p>Xin chào <strong>${updated.user.fullName || updated.user.email}</strong>,</p>
+          <p>Yêu cầu đăng ký khóa học <strong>${updated.course?.title}</strong> của bạn đã được quản trị viên xem xét nhưng chưa được chấp thuận.</p>
+          <div style="background-color: #fff1f2; border-left: 4px solid #e11d48; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #9f1239;"><strong>Lý do từ chối:</strong> ${reason || 'Thông tin thanh toán chuyển khoản chưa khớp với sao kê học phí.'}</p>
+          </div>
+          <p>Bạn hoàn toàn có thể kiểm tra lại thông tin biên lai và gửi lại yêu cầu đăng ký mới bất cứ lúc nào trên hệ thống.</p>
+          <p style="margin-top: 24px;">Trân trọng,<br/><strong>Ban Quản Trị Teacher Dong Academy</strong></p>
+        </div>
+      `;
+      this.mailService.sendMail({ to: updated.user.email, subject, html }).catch(() => {});
+    }
+
     return {
-      message: 'Đã từ chối yêu cầu đăng ký khóa học',
+      message: 'Đã từ chối yêu cầu đăng ký khóa học và gửi email thông báo cho học viên',
       enrollment: updated,
     };
   }
