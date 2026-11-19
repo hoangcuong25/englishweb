@@ -75,130 +75,232 @@ export default function BlogDetailPage() {
   };
 
   const estimateReadingTime = (text?: string) => {
-    if (!text) return '3 phút đọc';
-    const words = text.trim().split(/\s+/).length;
-    const minutes = Math.max(2, Math.ceil(words / 180));
+    if (!text) return '1 phút đọc';
+    // Lọc bỏ cú pháp ảnh markdown và đường dẫn URL dài để đếm từ chuẩn xác
+    const cleanText = text
+      .replace(/!\[([^\]]*)\]\s*\((https?:\/\/[^\s)]+)\)/g, '')
+      .replace(/https?:\/\/[^\s)]+/g, '')
+      .replace(/[#*`>_]/g, '')
+      .trim();
+    const words = cleanText ? cleanText.split(/\s+/).length : 0;
+    if (words === 0) return '1 phút đọc';
+    const minutes = Math.max(1, Math.ceil(words / 200));
     return `${minutes} phút đọc`;
   };
 
-  // Helper to format simple markdown-like content into clean HTML components
+  // Robust Markdown Parser for Blog Content: handles multi-line images, headings, lists, quotes, and paragraphs
   const renderFormattedContent = (content: string) => {
     if (!content) return null;
 
-    const sections = content.split('\n\n');
+    // 1. Pre-process text: normalize linebreaks & stitch broken/spaced markdown images
+    // Handles cases like `![alt]\n(https://res.cloudinary.com/...)`
+    const clean = content
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/!\[([^\]]*)\]\s*\((https?:\/\/[^\s)]+)\)/g, '\n\n![$1]($2)\n\n');
 
-    return sections.map((sec, idx) => {
-      const trimmed = sec.trim();
+    interface ContentBlock {
+      type: 'image' | 'h2' | 'h3' | 'h4' | 'blockquote' | 'bullet_list' | 'ordered_list' | 'paragraph';
+      content?: string;
+      alt?: string;
+      src?: string;
+    }
 
-      // Markdown Image ![alt](url)
-      const imgMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
+    const lines = clean.split('\n');
+    const blocks: ContentBlock[] = [];
+
+    let currentType: ContentBlock['type'] | null = null;
+    let currentLines: string[] = [];
+
+    const flush = () => {
+      if (currentLines.length > 0 && currentType) {
+        blocks.push({ type: currentType, content: currentLines.join('\n') });
+        currentLines = [];
+        currentType = null;
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        flush();
+        continue;
+      }
+
+      // Markdown Image: ![alt](url)
+      const imgMatch = trimmed.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
       if (imgMatch) {
-        const altText = imgMatch[1];
-        const imgUrl = imgMatch[2];
-        return (
-          <figure key={idx} className="my-6 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200/80 shadow-xs">
-            <img
-              src={imgUrl}
-              alt={altText || 'Ảnh minh họa bài viết'}
-              className="w-full max-h-[520px] object-cover rounded-t-xl"
-            />
-            {altText && (
-              <figcaption className="text-center text-xs text-slate-500 py-2.5 px-4 italic bg-white border-t border-slate-100">
-                {altText}
-              </figcaption>
-            )}
-          </figure>
-        );
+        flush();
+        blocks.push({ type: 'image', alt: imgMatch[1], src: imgMatch[2] });
+        continue;
       }
 
-      // Heading 2 (## ...)
+      // Heading 2: ## ...
       if (trimmed.startsWith('## ')) {
-        return (
-          <h2
-            key={idx}
-            className="text-xl sm:text-2xl font-black text-[#14263D] mt-8 mb-4 border-l-4 border-[#1B64B0] pl-3"
-          >
-            {trimmed.replace('## ', '')}
-          </h2>
-        );
+        flush();
+        blocks.push({ type: 'h2', content: trimmed.replace(/^##\s+/, '') });
+        continue;
       }
 
-      // Heading 3 (### ...)
+      // Heading 3: ### ...
       if (trimmed.startsWith('### ')) {
-        return (
-          <h3
-            key={idx}
-            className="text-lg sm:text-xl font-bold text-[#14263D] mt-6 mb-3 text-[#1B64B0]"
-          >
-            {trimmed.replace('### ', '')}
-          </h3>
-        );
+        flush();
+        blocks.push({ type: 'h3', content: trimmed.replace(/^###\s+/, '') });
+        continue;
       }
 
-      // Blockquote (> ...)
+      // Heading 4: #### ...
+      if (trimmed.startsWith('#### ')) {
+        flush();
+        blocks.push({ type: 'h4', content: trimmed.replace(/^####\s+/, '') });
+        continue;
+      }
+
+      // Blockquote: > ...
       if (trimmed.startsWith('> ')) {
-        return (
-          <blockquote
-            key={idx}
-            className="my-4 p-4 rounded-2xl bg-[#DDF3FC]/40 border-l-4 border-[#1B64B0] text-sm font-medium text-[#14263D] italic"
-          >
-            {trimmed.replace('> ', '')}
-          </blockquote>
-        );
+        if (currentType !== 'blockquote') {
+          flush();
+          currentType = 'blockquote';
+        }
+        currentLines.push(trimmed.replace(/^>\s*/, ''));
+        continue;
       }
 
-      // Bullet points
-      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        const items = trimmed.split('\n').filter((line) => line.trim().length > 0);
-        return (
-          <ul key={idx} className="my-4 space-y-2 list-none pl-1">
-            {items.map((item, itemIdx) => {
-              const text = item.replace(/^[-*]\s+/, '');
-              return (
+      // Bullet list: - or *
+      if (/^[-*]\s+/.test(trimmed)) {
+        if (currentType !== 'bullet_list') {
+          flush();
+          currentType = 'bullet_list';
+        }
+        currentLines.push(trimmed.replace(/^[-*]\s+/, ''));
+        continue;
+      }
+
+      // Numbered list: 1. 2.
+      if (/^\d+\.\s+/.test(trimmed)) {
+        if (currentType !== 'ordered_list') {
+          flush();
+          currentType = 'ordered_list';
+        }
+        currentLines.push(trimmed.replace(/^\d+\.\s+/, ''));
+        continue;
+      }
+
+      // Normal paragraph text
+      if (currentType !== 'paragraph') {
+        flush();
+        currentType = 'paragraph';
+      }
+      currentLines.push(trimmed);
+    }
+
+    flush();
+
+    return blocks.map((block, idx) => {
+      switch (block.type) {
+        case 'image':
+          return (
+            <figure key={idx} className="my-6 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200/80 shadow-xs">
+              <img
+                src={block.src}
+                alt={block.alt || 'Ảnh minh họa bài viết'}
+                className="w-full max-h-[560px] object-cover rounded-t-xl"
+                loading="lazy"
+              />
+              {block.alt && (
+                <figcaption className="text-center text-xs text-slate-500 py-2.5 px-4 italic bg-white border-t border-slate-100">
+                  {block.alt}
+                </figcaption>
+              )}
+            </figure>
+          );
+
+        case 'h2':
+          return (
+            <h2
+              key={idx}
+              className="text-xl sm:text-2xl font-black text-[#14263D] mt-8 mb-4 border-l-4 border-[#1B64B0] pl-3"
+            >
+              {parseInlineFormatting(block.content || '')}
+            </h2>
+          );
+
+        case 'h3':
+          return (
+            <h3
+              key={idx}
+              className="text-lg sm:text-xl font-bold text-[#14263D] mt-6 mb-3 text-[#1B64B0]"
+            >
+              {parseInlineFormatting(block.content || '')}
+            </h3>
+          );
+
+        case 'h4':
+          return (
+            <h4
+              key={idx}
+              className="text-base sm:text-lg font-bold text-[#14263D] mt-5 mb-2"
+            >
+              {parseInlineFormatting(block.content || '')}
+            </h4>
+          );
+
+        case 'blockquote':
+          return (
+            <blockquote
+              key={idx}
+              className="my-5 p-4 sm:p-5 rounded-2xl bg-[#DDF3FC]/40 border-l-4 border-[#1B64B0] text-sm sm:text-base font-medium text-[#14263D] italic shadow-xs"
+            >
+              {(block.content || '').split('\n').map((line, lIdx) => (
+                <p key={lIdx} className={lIdx > 0 ? 'mt-2' : ''}>
+                  {parseInlineFormatting(line)}
+                </p>
+              ))}
+            </blockquote>
+          );
+
+        case 'bullet_list':
+          return (
+            <ul key={idx} className="my-4 space-y-2 list-none pl-1">
+              {(block.content || '').split('\n').filter(Boolean).map((item, itemIdx) => (
                 <li key={itemIdx} className="flex items-start gap-2.5 text-sm sm:text-base text-[#334155] leading-relaxed">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1B64B0] mt-2.5 shrink-0" />
-                  <span>{parseInlineFormatting(text)}</span>
+                  <span>{parseInlineFormatting(item)}</span>
                 </li>
-              );
-            })}
-          </ul>
-        );
-      }
+              ))}
+            </ul>
+          );
 
-      // Numbered list
-      if (/^\d+\.\s+/.test(trimmed)) {
-        const items = trimmed.split('\n').filter((line) => line.trim().length > 0);
-        return (
-          <ol key={idx} className="my-4 space-y-2.5 list-none pl-1">
-            {items.map((item, itemIdx) => {
-              const match = item.match(/^(\d+)\.\s+(.*)$/);
-              const num = match ? match[1] : itemIdx + 1;
-              const text = match ? match[2] : item;
-              return (
+        case 'ordered_list':
+          return (
+            <ol key={idx} className="my-4 space-y-2.5 list-none pl-1">
+              {(block.content || '').split('\n').filter(Boolean).map((item, itemIdx) => (
                 <li key={itemIdx} className="flex items-start gap-3 text-sm sm:text-base text-[#334155] leading-relaxed">
                   <span className="w-6 h-6 rounded-full bg-[#DDF3FC] text-[#1B64B0] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                    {num}
+                    {itemIdx + 1}
                   </span>
-                  <span>{parseInlineFormatting(text)}</span>
+                  <span>{parseInlineFormatting(item)}</span>
                 </li>
-              );
-            })}
-          </ol>
-        );
-      }
+              ))}
+            </ol>
+          );
 
-      // Normal paragraph
-      return (
-        <p key={idx} className="my-4 text-sm sm:text-base text-[#334155] leading-relaxed">
-          {parseInlineFormatting(trimmed)}
-        </p>
-      );
+        case 'paragraph':
+        default:
+          return (
+            <p key={idx} className="my-4 text-sm sm:text-base text-[#334155] leading-relaxed whitespace-pre-line">
+              {parseInlineFormatting(block.content || '')}
+            </p>
+          );
+      }
     });
   };
 
-  // Helper for bold and italic inline
+  // Helper for bold, italic, and code inline
   const parseInlineFormatting = (text: string) => {
-    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return (
@@ -214,24 +316,31 @@ export default function BlogDetailPage() {
           </em>
         );
       }
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code key={i} className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-xs text-[#1B64B0]">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
       return part;
     });
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans overflow-x-hidden w-full max-w-full">
       {/* ================= 1. HEADER ================= */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-[#E1EBF5] sticky top-0 z-40 transition-all shadow-xs">
-        <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
-          <Link href="/blog" className="flex items-center gap-3 group shrink-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#1B64B0] to-[#55B8E8] flex items-center justify-center text-white font-black text-xl shadow-md shadow-[#1B64B0]/20 group-hover:scale-105 transition-transform">
+      <header className="bg-white/95 backdrop-blur-md border-b border-[#E1EBF5] sticky top-0 z-40 transition-all shadow-xs w-full overflow-hidden">
+        <div className="max-w-[1380px] mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-18 flex items-center justify-between gap-2 sm:gap-4 w-full">
+          <Link href="/blog" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 sm:flex-initial">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#1B64B0] to-[#55B8E8] flex items-center justify-center text-white font-black text-base sm:text-xl shadow-md shadow-[#1B64B0]/20 group-hover:scale-105 transition-transform shrink-0">
               Đ
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-[17px] text-[#14263D] tracking-tight group-hover:text-[#1B64B0] transition-colors leading-tight">
+            <div className="flex flex-col min-w-0">
+              <span className="font-extrabold text-[13.5px] sm:text-[17px] text-[#14263D] tracking-tight group-hover:text-[#1B64B0] transition-colors leading-tight truncate">
                 Teacher Dong Academy
               </span>
-              <span className="text-[11px] font-bold text-[#55687D] tracking-wider uppercase">
+              <span className="hidden sm:block text-[10px] sm:text-[11px] font-bold text-[#55687D] tracking-wider uppercase truncate">
                 Góc Chia Sẻ Chuyên Sâu
               </span>
             </div>
@@ -264,19 +373,20 @@ export default function BlogDetailPage() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             {user ? (
               <Link
                 href={user.role === 'ADMIN' ? '/admin' : '/student'}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#DDF3FC] text-[#1B64B0] text-xs sm:text-sm font-bold hover:bg-[#1B64B0] hover:text-white transition-all shadow-xs"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#DDF3FC] text-[#1B64B0] text-xs sm:text-sm font-bold hover:bg-[#1B64B0] hover:text-white transition-all shadow-xs shrink-0"
               >
-                <GraduationCap className="w-4 h-4" />
-                <span className="max-w-[120px] truncate">{user.fullName || user.email}</span>
+                <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="hidden sm:inline max-w-[120px] truncate">{user.fullName || user.email}</span>
+                <span className="sm:hidden font-extrabold text-[10.5px] uppercase">{user.role}</span>
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-2 px-5 py-2 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full transition-all shadow-sm whitespace-nowrap"
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full transition-all shadow-sm whitespace-nowrap shrink-0"
               >
                 <span>Đăng nhập</span>
               </Link>
@@ -286,20 +396,20 @@ export default function BlogDetailPage() {
       </header>
 
       {/* ================= 2. BREADCRUMBS ================= */}
-      <div className="bg-white border-b border-[#E1EBF5]">
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between text-xs text-[#64748B]">
-          <div className="flex items-center gap-2 truncate">
-            <Link href="/" className="hover:text-[#1B64B0] font-medium">
+      <div className="bg-white border-b border-[#E1EBF5] w-full overflow-hidden">
+        <div className="max-w-[1100px] mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 text-xs text-[#64748B] w-full min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 truncate">
+            <Link href="/" className="hover:text-[#1B64B0] font-medium shrink-0">
               Trang Chủ
             </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-[#CBD5E1]" />
-            <Link href="/blog" className="hover:text-[#1B64B0] font-medium">
+            <ChevronRight className="w-3.5 h-3.5 text-[#CBD5E1] shrink-0" />
+            <Link href="/blog" className="hover:text-[#1B64B0] font-medium shrink-0">
               Blog
             </Link>
             {post && (
               <>
-                <ChevronRight className="w-3.5 h-3.5 text-[#CBD5E1]" />
-                <span className="truncate text-[#14263D] font-bold max-w-[200px] sm:max-w-md">
+                <ChevronRight className="w-3.5 h-3.5 text-[#CBD5E1] shrink-0" />
+                <span className="truncate text-[#14263D] font-bold min-w-0">
                   {post.title}
                 </span>
               </>
@@ -308,16 +418,17 @@ export default function BlogDetailPage() {
 
           <Link
             href="/blog"
-            className="flex items-center gap-1.5 text-xs font-bold text-[#1B64B0] hover:underline shrink-0 ml-4"
+            className="flex items-center gap-1 text-xs font-bold text-[#1B64B0] hover:underline shrink-0"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Quay lại Blog</span>
+            <span className="hidden sm:inline">Quay lại Blog</span>
+            <span className="sm:hidden">Quay lại</span>
           </Link>
         </div>
       </div>
 
       {/* ================= 3. MAIN ARTICLE CONTAINER ================= */}
-      <main className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-10">
+      <main className="max-w-[1100px] mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 flex-1 w-full space-y-6 sm:space-y-10 min-w-0 overflow-x-hidden">
         {loading ? (
           <div className="bg-white rounded-3xl border border-[#E1EBF5] p-8 sm:p-12 animate-pulse space-y-6">
             <div className="h-6 bg-slate-200 rounded w-1/4"></div>
@@ -348,9 +459,9 @@ export default function BlogDetailPage() {
             </Link>
           </div>
         ) : (
-          <article className="bg-white rounded-3xl border border-[#E1EBF5] p-6 sm:p-10 lg:p-12 shadow-sm space-y-8">
+          <article className="bg-white rounded-2xl sm:rounded-3xl border border-[#E1EBF5] p-4 sm:p-10 lg:p-12 shadow-sm space-y-6 sm:space-y-8 w-full min-w-0 overflow-hidden">
             {/* Header: Category & Share */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
               <span className="px-3.5 py-1.5 rounded-full bg-[#DDF3FC] text-[#1B64B0] text-xs font-black uppercase tracking-wider">
                 {post.category || 'Học Thuật'}
               </span>
@@ -366,41 +477,41 @@ export default function BlogDetailPage() {
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl sm:text-4xl font-black text-[#14263D] leading-tight tracking-tight">
+            <h1 className="text-xl sm:text-4xl font-black text-[#14263D] leading-tight tracking-tight break-words">
               {post.title}
             </h1>
 
             {/* Meta Info & Author */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-[#E1EBF5]">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#1B64B0] to-[#55B8E8] text-white font-black text-base flex items-center justify-center shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 pb-4 sm:pb-6 border-b border-[#E1EBF5]">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-[#1B64B0] to-[#55B8E8] text-white font-black text-sm sm:text-base flex items-center justify-center shadow-sm shrink-0">
                   {post.author?.fullName ? post.author.fullName.charAt(0) : 'T'}
                 </div>
-                <div>
-                  <p className="text-sm font-black text-[#14263D]">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm font-black text-[#14263D] truncate">
                     {post.author?.fullName || 'Thầy Đông (IELTS 8.5)'}
                   </p>
-                  <p className="text-xs text-[#64748B]">
+                  <p className="text-[11px] sm:text-xs text-[#64748B] truncate">
                     Giám đốc học thuật Teacher Dong Academy
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-xs text-[#64748B]">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-[#1B64B0]" />
+              <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-xs text-[#64748B]">
+                <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1B64B0]" />
                   <span>
                     {new Date(post.publishedAt || post.createdAt).toLocaleDateString('vi-VN')}
                   </span>
                 </span>
-                <span>•</span>
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-[#1B64B0]" />
+                <span className="text-slate-300">•</span>
+                <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1B64B0]" />
                   <span>{estimateReadingTime(post.content)}</span>
                 </span>
-                <span>•</span>
-                <span className="flex items-center gap-1.5">
-                  <Eye className="w-4 h-4 text-[#1B64B0]" />
+                <span className="text-slate-300">•</span>
+                <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                  <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1B64B0]" />
                   <span>{post.viewCount || 0} lượt đọc</span>
                 </span>
               </div>
@@ -528,12 +639,12 @@ export default function BlogDetailPage() {
         )}
 
         {/* ================= 5. CTA CONSULTATION BANNER ================= */}
-        <section className="rounded-3xl bg-gradient-to-r from-[#14263D] to-[#1B64B0] p-8 sm:p-10 text-white shadow-xl relative overflow-hidden">
+        <section className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#14263D] to-[#1B64B0] p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
           <div className="max-w-2xl space-y-3 relative z-10">
             <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider">
               Khởi Đầu Lộ Trình Của Bạn
             </span>
-            <h3 className="text-xl sm:text-2xl font-black leading-tight">
+            <h3 className="text-lg sm:text-2xl font-black leading-tight">
               Muốn Nhận Đánh Giá Kỹ Năng & Lộ Trình Học Chi Tiết Cùng Thầy Đông?
             </h3>
             <p className="text-xs sm:text-sm text-sky-100 leading-relaxed">
@@ -542,10 +653,10 @@ export default function BlogDetailPage() {
             <div className="pt-2">
               <Link
                 href="/#consultation-section"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#FFB547] hover:bg-[#FFA726] text-[#14263D] font-extrabold text-sm shadow-md transition-all hover:scale-105 active:scale-100"
+                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#FFB547] hover:bg-[#FFA726] text-[#14263D] font-extrabold text-xs sm:text-sm shadow-md transition-all hover:scale-105 active:scale-100 text-center w-full sm:w-auto"
               >
                 <span>Đăng Ký Tư Vấn & Kiểm Tra Trình Độ</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 shrink-0" />
               </Link>
             </div>
           </div>
@@ -553,10 +664,10 @@ export default function BlogDetailPage() {
       </main>
 
       {/* ================= 6. FOOTER ================= */}
-      <footer className="bg-white border-t border-[#E1EBF5] py-8 text-center text-xs text-[#64748B]">
-        <div className="max-w-[1380px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="bg-white border-t border-[#E1EBF5] py-6 sm:py-8 text-center text-xs text-[#64748B] w-full overflow-hidden">
+        <div className="max-w-[1380px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           <p>© {new Date().getFullYear()} Teacher Dong Academy. All rights reserved.</p>
-          <div className="flex items-center gap-6 font-semibold">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-semibold">
             <Link href="/" className="hover:text-[#1B64B0]">Trang Chủ</Link>
             <Link href="/blog" className="hover:text-[#1B64B0]">Blog</Link>
             <Link href="/#about-teacher-dong" className="hover:text-[#1B64B0]">Về Thầy Đông</Link>

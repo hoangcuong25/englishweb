@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
@@ -8,6 +8,11 @@ import { ToastProvider } from '@/components/ui/toast';
 export const metadata: Metadata = {
   title: 'Teacher Dong Academy — Nền Tảng Đào Tạo Anh Ngữ & WebRTC In-House',
   description: 'Nền tảng đào tạo trực tuyến chuẩn EdTech hiện đại: IELTS, Business English, LiveKit WebRTC, AI Writing Assessment, Speaking Studio và Điểm danh tự động.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({

@@ -336,38 +336,161 @@ export default function AdminBlogsPage() {
     }
   };
 
-  // Simple Markdown Parser for Live Preview tab
+  // Robust Markdown Parser for Live Preview tab: handles multi-line images, headings, lists, quotes, and paragraphs
   const renderPreviewContent = (text: string) => {
-    const sections = text.split('\n\n');
-    return sections.map((sec, idx) => {
-      const trimmed = sec.trim();
-      const imgMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
+    if (!text) return null;
+
+    const clean = text
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/!\[([^\]]*)\]\s*\((https?:\/\/[^\s)]+)\)/g, '\n\n![$1]($2)\n\n');
+
+    interface PreviewBlock {
+      type: 'image' | 'h2' | 'h3' | 'h4' | 'blockquote' | 'bullet_list' | 'ordered_list' | 'paragraph';
+      content?: string;
+      alt?: string;
+      src?: string;
+    }
+
+    const lines = clean.split('\n');
+    const blocks: PreviewBlock[] = [];
+
+    let currentType: PreviewBlock['type'] | null = null;
+    let currentLines: string[] = [];
+
+    const flush = () => {
+      if (currentLines.length > 0 && currentType) {
+        blocks.push({ type: currentType, content: currentLines.join('\n') });
+        currentLines = [];
+        currentType = null;
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        flush();
+        continue;
+      }
+
+      const imgMatch = trimmed.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
       if (imgMatch) {
-        return (
-          <figure key={idx} className="my-4 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-            <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-[420px] object-cover" />
-            {imgMatch[1] && <figcaption className="text-center text-xs text-slate-500 py-2">{imgMatch[1]}</figcaption>}
-          </figure>
-        );
+        flush();
+        blocks.push({ type: 'image', alt: imgMatch[1], src: imgMatch[2] });
+        continue;
       }
+
       if (trimmed.startsWith('## ')) {
-        return <h2 key={idx} className="text-lg font-bold text-slate-800 mt-4 mb-2 border-l-4 border-sky-600 pl-3">{trimmed.replace('## ', '')}</h2>;
+        flush();
+        blocks.push({ type: 'h2', content: trimmed.replace(/^##\s+/, '') });
+        continue;
       }
+
       if (trimmed.startsWith('### ')) {
-        return <h3 key={idx} className="text-base font-semibold text-sky-700 mt-3 mb-1.5">{trimmed.replace('### ', '')}</h3>;
+        flush();
+        blocks.push({ type: 'h3', content: trimmed.replace(/^###\s+/, '') });
+        continue;
       }
+
+      if (trimmed.startsWith('#### ')) {
+        flush();
+        blocks.push({ type: 'h4', content: trimmed.replace(/^####\s+/, '') });
+        continue;
+      }
+
       if (trimmed.startsWith('> ')) {
-        return <blockquote key={idx} className="my-3 p-3 rounded-lg bg-sky-50 border-l-4 border-sky-500 text-sm italic text-slate-700">{trimmed.replace('> ', '')}</blockquote>;
+        if (currentType !== 'blockquote') {
+          flush();
+          currentType = 'blockquote';
+        }
+        currentLines.push(trimmed.replace(/^>\s*/, ''));
+        continue;
       }
-      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        const items = trimmed.split('\n').filter((l) => l.trim().length > 0);
-        return (
-          <ul key={idx} className="my-2 space-y-1 list-disc pl-5 text-sm text-slate-700">
-            {items.map((it, i) => <li key={i}>{it.replace(/^[-*]\s+/, '')}</li>)}
-          </ul>
-        );
+
+      if (/^[-*]\s+/.test(trimmed)) {
+        if (currentType !== 'bullet_list') {
+          flush();
+          currentType = 'bullet_list';
+        }
+        currentLines.push(trimmed.replace(/^[-*]\s+/, ''));
+        continue;
       }
-      return <p key={idx} className="my-2.5 text-sm text-slate-700 leading-relaxed">{trimmed}</p>;
+
+      if (/^\d+\.\s+/.test(trimmed)) {
+        if (currentType !== 'ordered_list') {
+          flush();
+          currentType = 'ordered_list';
+        }
+        currentLines.push(trimmed.replace(/^\d+\.\s+/, ''));
+        continue;
+      }
+
+      if (currentType !== 'paragraph') {
+        flush();
+        currentType = 'paragraph';
+      }
+      currentLines.push(trimmed);
+    }
+
+    flush();
+
+    const parseInline = (rawStr: string) => {
+      const parts = rawStr.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
+      return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i} className="font-bold text-slate-900">{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+          return <em key={i} className="italic text-sky-700">{part.slice(1, -1)}</em>;
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+          return <code key={i} className="px-1 py-0.5 rounded bg-slate-100 font-mono text-xs text-sky-700">{part.slice(1, -1)}</code>;
+        }
+        return part;
+      });
+    };
+
+    return blocks.map((block, idx) => {
+      switch (block.type) {
+        case 'image':
+          return (
+            <figure key={idx} className="my-4 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+              <img src={block.src} alt={block.alt || 'Ảnh minh họa'} className="w-full max-h-[460px] object-cover" />
+              {block.alt && <figcaption className="text-center text-xs text-slate-500 py-2 bg-white border-t border-slate-100">{block.alt}</figcaption>}
+            </figure>
+          );
+        case 'h2':
+          return <h2 key={idx} className="text-lg font-bold text-slate-800 mt-5 mb-2 border-l-4 border-sky-600 pl-3">{parseInline(block.content || '')}</h2>;
+        case 'h3':
+          return <h3 key={idx} className="text-base font-semibold text-sky-700 mt-4 mb-1.5">{parseInline(block.content || '')}</h3>;
+        case 'h4':
+          return <h4 key={idx} className="text-sm font-semibold text-slate-800 mt-3 mb-1">{parseInline(block.content || '')}</h4>;
+        case 'blockquote':
+          return (
+            <blockquote key={idx} className="my-3 p-3.5 rounded-lg bg-sky-50 border-l-4 border-sky-500 text-sm italic text-slate-700">
+              {(block.content || '').split('\n').map((l, li) => (
+                <p key={li} className={li > 0 ? 'mt-1' : ''}>{parseInline(l)}</p>
+              ))}
+            </blockquote>
+          );
+        case 'bullet_list':
+          return (
+            <ul key={idx} className="my-2 space-y-1 list-disc pl-5 text-sm text-slate-700">
+              {(block.content || '').split('\n').filter(Boolean).map((it, i) => <li key={i}>{parseInline(it)}</li>)}
+            </ul>
+          );
+        case 'ordered_list':
+          return (
+            <ol key={idx} className="my-2 space-y-1 list-decimal pl-5 text-sm text-slate-700">
+              {(block.content || '').split('\n').filter(Boolean).map((it, i) => <li key={i}>{parseInline(it)}</li>)}
+            </ol>
+          );
+        case 'paragraph':
+        default:
+          return <p key={idx} className="my-2.5 text-sm text-slate-700 leading-relaxed whitespace-pre-line">{parseInline(block.content || '')}</p>;
+      }
     });
   };
 
@@ -898,8 +1021,8 @@ export default function AdminBlogsPage() {
                       className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-mono text-slate-800 leading-relaxed focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                     />
 
-                    <p className="text-[11px] text-slate-400 flex items-center justify-between">
-                      <span>Cú pháp ảnh: <code>![Mô tả ảnh](https://res.cloudinary.com/...)</code></span>
+                    <p className="text-[11px] text-slate-400 flex items-center justify-between flex-wrap gap-1">
+                      <span>Cú pháp ảnh: <code>![Mô tả ảnh](https://res.cloudinary.com/...)</code> hoặc bấm nút <strong>+ Chèn ảnh</strong> để tải tự động</span>
                       <span>{formData.content.length} ký tự</span>
                     </p>
                   </div>
