@@ -7,7 +7,7 @@ import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
-import { Role, SkillType, QuestionType, NotificationType } from '@prisma/client';
+import { Role, SkillType, QuestionType, NotificationType, CourseCategory } from '@prisma/client';
 
 @Injectable()
 export class QuizzesService {
@@ -18,23 +18,42 @@ export class QuizzesService {
   // ==========================================
 
   async createQuiz(dto: CreateQuizDto) {
+    let finalCategory = dto.category;
+    let finalCourseId = dto.courseId || null;
+
     if (dto.lessonId) {
       const lesson = await this.prisma.lesson.findUnique({
         where: { id: dto.lessonId },
+        include: { module: { include: { course: true } } },
       });
 
       if (!lesson) {
         throw new NotFoundException(`Không tìm thấy bài học ID: ${dto.lessonId}`);
       }
+      if (!finalCourseId && lesson.module?.courseId) {
+        finalCourseId = lesson.module.courseId;
+      }
+      if (!finalCategory && lesson.module?.course?.category) {
+        finalCategory = lesson.module.course.category;
+      }
+    } else if (finalCourseId && !finalCategory) {
+      const course = await this.prisma.course.findUnique({ where: { id: finalCourseId } });
+      if (course) finalCategory = course.category;
     }
+
+    const testType = dto.testType || dto.quizType || (dto.lessonId ? 'LESSON_QUIZ' : 'PRACTICE_TEST');
+    const quizType = dto.quizType || dto.testType || testType;
 
     return this.prisma.quiz.create({
       data: {
+        courseId: finalCourseId,
         lessonId: dto.lessonId || null,
         title: dto.title,
         description: dto.description,
+        category: finalCategory || CourseCategory.IELTS,
+        quizType,
         skill: dto.skill || SkillType.READING,
-        testType: dto.testType || (dto.lessonId ? 'LESSON_QUIZ' : 'PRACTICE_TEST'),
+        testType,
         passage: dto.passage,
         audioUrl: dto.audioUrl,
         timeLimitMinutes: dto.timeLimitMinutes ?? 15,
@@ -45,6 +64,9 @@ export class QuizzesService {
 
   async findAllQuizzes(query: {
     skill?: SkillType;
+    category?: CourseCategory;
+    quizType?: string;
+    courseId?: string;
     testType?: string;
     search?: string;
     page?: number;
@@ -56,11 +78,28 @@ export class QuizzesService {
 
     const where: any = {};
     if (query.skill) where.skill = query.skill;
-    if (query.testType) where.testType = query.testType;
-    if (query.search) {
+    if (query.category) where.category = query.category;
+    if (query.quizType) where.quizType = query.quizType;
+    if (query.testType) {
       where.OR = [
-        { title: { contains: query.search } },
-        { description: { contains: query.search } },
+        { testType: query.testType },
+        { quizType: query.testType },
+      ];
+    }
+    if (query.courseId) {
+      where.OR = [
+        { courseId: query.courseId },
+        { lesson: { module: { courseId: query.courseId } } },
+      ];
+    }
+    if (query.search) {
+      where.AND = [
+        {
+          OR: [
+            { title: { contains: query.search } },
+            { description: { contains: query.search } },
+          ],
+        },
       ];
     }
 
@@ -68,6 +107,9 @@ export class QuizzesService {
       this.prisma.quiz.findMany({
         where,
         include: {
+          course: {
+            select: { id: true, title: true, category: true, isEnglishCourse: true },
+          },
           lesson: {
             select: { id: true, title: true },
           },
@@ -92,6 +134,28 @@ export class QuizzesService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async getQuizzesByCourse(courseId: string, role?: Role) {
+    const quizzes = await this.prisma.quiz.findMany({
+      where: {
+        OR: [
+          { courseId },
+          { lesson: { module: { courseId } } },
+        ],
+      },
+      include: {
+        lesson: { select: { id: true, title: true } },
+        questions: {
+          orderBy: { orderIndex: 'asc' },
+          include: { options: true },
+        },
+        _count: { select: { questions: true, submissions: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return quizzes.map((q) => this.sanitizeQuizForRole(q, role));
   }
 
   async updateQuiz(id: string, dto: UpdateQuizDto) {
@@ -423,14 +487,34 @@ export class QuizzesService {
   // 3. 4-SKILLS PRACTICE & DIAGNOSTIC ANALYTICS
   // ==========================================
 
-  async findSkillsTests(skill?: SkillType, role?: Role) {
+  async findSkillsTests(
+    skill?: SkillType,
+    role?: Role,
+    category?: CourseCategory,
+    quizType?: string,
+    courseId?: string,
+  ) {
     const where: any = {};
     if (skill) where.skill = skill;
+    if (category) where.category = category;
+    if (quizType) where.quizType = quizType;
+    if (courseId) {
+      where.OR = [
+        { courseId },
+        { lesson: { module: { courseId } } },
+      ];
+    }
 
     const tests = await this.prisma.quiz.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: {
+        course: {
+          select: { id: true, title: true, category: true, isEnglishCourse: true },
+        },
+        lesson: {
+          select: { id: true, title: true },
+        },
         questions: {
           orderBy: { orderIndex: 'asc' },
           include: { options: true },

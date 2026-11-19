@@ -207,6 +207,8 @@ model Course {
   modules     CourseModule[]
   enrollments Enrollment[]
   classrooms  Classroom[]
+  materials   Material[]
+  quizzes     Quiz[]
 
   @@map("courses")
 }
@@ -252,8 +254,10 @@ model Lesson {
 
 model Material {
   id              String       @id @default(uuid())
-  lessonId        String
-  lesson          Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  courseId        String?
+  course          Course?      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId        String?
+  lesson          Lesson?      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   title           String
   type            MaterialType @default(PDF)
   fileKey         String
@@ -263,6 +267,7 @@ model Material {
   isWatermarked   Boolean      @default(true)
   createdAt       DateTime     @default(now())
 
+  @@index([courseId])
   @@index([lessonId])
   @@map("materials")
 }
@@ -430,24 +435,31 @@ model SpeakingSubmission {
 // ==========================================
 
 model Quiz {
-  id               String      @id @default(uuid())
+  id               String          @id @default(uuid())
+  courseId         String?
+  course           Course?         @relation(fields: [courseId], references: [id], onDelete: SetNull)
   lessonId         String?
-  lesson           Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson           Lesson?         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   title            String
-  description      String?     @db.Text
-  skill            SkillType?  @default(READING)
-  testType         String?     // 'FULL_MOCK_TEST', 'PRACTICE_TEST', 'LESSON_QUIZ'
-  passage          String?     @db.LongText
+  description      String?         @db.Text
+  category         CourseCategory? @default(IELTS)
+  quizType         String?         @default("LESSON_QUIZ") // 'LESSON_QUIZ', 'SITUATION_QUIZ', 'PRACTICE_TEST', 'FULL_MOCK_TEST', 'DIAGNOSTIC_TEST'
+  skill            SkillType?      @default(READING)
+  testType         String?         // 'FULL_MOCK_TEST', 'PRACTICE_TEST', 'LESSON_QUIZ', 'SITUATION_QUIZ'
+  passage          String?         @db.LongText
   audioUrl         String?
-  timeLimitMinutes Int         @default(15)
-  passScore        Float       @default(80)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  timeLimitMinutes Int             @default(15)
+  passScore        Float           @default(80)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   questions   Question[]
   submissions QuizSubmission[]
 
+  @@index([courseId])
   @@index([lessonId])
+  @@index([category])
+  @@index([quizType])
   @@index([skill])
   @@map("quizzes")
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import AppTopbar from '@/components/shared/app-topbar';
 import StudentSidebar from '@/components/shared/student-sidebar';
@@ -23,7 +23,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     <div className="min-h-screen bg-bg flex flex-col">
       <AppTopbar currentPortal="student" pageTitle="Cổng Học Viên" />
       <div className="flex flex-1">
-        <StudentSidebar />
+        <Suspense fallback={<aside className="hidden lg:flex w-64 bg-white border-r border-line flex-col h-[calc(100vh-4rem)] sticky top-16 shrink-0" />}>
+          <StudentSidebar />
+        </Suspense>
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
           {children}
         </main>

@@ -1531,29 +1531,66 @@ SRS quy định.
 ## 3.12. Quản lý Blog & Media Cloudinary (BLOG & MEDIA)
 
 ### BLOG-SCR-001 -- Danh sách & Chi tiết bài viết Blog (STUDENT, GUEST, ADMIN)
-- **Mục tiêu:** Cung cấp kho bài viết kiến thức, phương pháp học IELTS, bí quyết luyện thi, tin tức học viện kèm hình ảnh và video minh họa.
-- **Trường dữ liệu:** Tiêu đề, slug URL thân thiện, tóm tắt, nội dung chi tiết (Markdown/HTML), ảnh bìa Cloudinary (coverImage), video Cloudinary (videoUrl), chuyên mục (category), từ khóa (tags), tác giả, ngày xuất bản, số lượt xem (viewCount), đánh dấu nổi bật (isFeatured).
-- **Phân quyền:**
-  - Khách và Học viên (`STUDENT`): Tra cứu các bài viết có trạng thái `PUBLISHED`.
-  - Quản trị viên (`ADMIN`): Tra cứu tất cả bài viết bao gồm `DRAFT`, `PUBLISHED`, `ARCHIVED`.
-- **Hành động:** Tìm kiếm bài viết theo từ khóa; lọc theo chuyên mục; xem chi tiết bài viết; tự động tăng lượt xem viewCount.
+- **Mục tiêu:** Cung cấp cổng thông tin kiến thức, phương pháp học IELTS, bí quyết luyện thi, tin tức học viện kèm hình ảnh và video minh họa.
+- **Trường dữ liệu chi tiết (Data Dictionary):**
+  | Tên trường | Kiểu dữ liệu | Bắt buộc | Ràng buộc & Mô tả nghiệp vụ |
+  |---|---|---|---|
+  | `id` | String (UUID) | Có | Khóa chính tự sinh ngẫu nhiên UUID v4 |
+  | `title` | String | Có | Độ dài từ 3 đến 255 ký tự, tiêu đề bài viết |
+  | `slug` | String | Có | Unique, chuẩn URL-friendly lowercase-kebab (tự sinh từ title nếu để trống) |
+  | `summary` | String/Text | Không | Đoạn tóm tắt mở đầu, tối đa 1000 ký tự |
+  | `content` | LongText | Có | Toàn văn bài viết định dạng Markdown/Rich-text, tối thiểu 10 ký tự |
+  | `coverImage` | String | Không | Đường dẫn URL ảnh bìa bảo mật trên Cloudinary |
+  | `coverImagePublicId` | String | Không | Mã định danh quản lý ảnh trên Cloudinary để xóa khi thay thế |
+  | `videoUrl` | String | Không | Đường dẫn URL video phân tích bài học trên Cloudinary |
+  | `videoPublicId` | String | Không | Mã định danh video trên Cloudinary |
+  | `category` | String | Không | Chuyên mục (`IELTS Writing`, `IELTS Speaking`, `Reading & Listening`, `Phương pháp học`, `Văn hóa & Đời sống`) |
+  | `tags` | String | Không | Danh sách từ khóa phân cách bởi dấu phẩy, dùng tìm kiếm và gợi ý |
+  | `status` | Enum | Có | Trạng thái bài viết: `DRAFT` (Bản nháp), `PUBLISHED` (Công khai), `ARCHIVED` (Lưu trữ). Mặc định `DRAFT` |
+  | `isFeatured` | Boolean | Có | Đánh dấu bài viết nổi bật (Hero post / Banner chính). Mặc định `false` |
+  | `viewCount` | Int | Có | Số lượt xem thực tế, mặc định 0, tự động tăng +1 mỗi lần xem chi tiết |
+  | `authorId` | String (UUID) | Có | Khóa ngoại tham chiếu `User.id` (Giảng viên/Admin soạn thảo) |
+  | `publishedAt` | DateTime | Không | Thời điểm công bố công khai, tự động gán `now()` khi chuyển sang `PUBLISHED` |
+
+- **Phân quyền & Ranh giới truy cập (RBAC):**
+  - Khách vãng lai và Học viên (`STUDENT`): Chỉ xem các bài viết có `status = PUBLISHED`.
+  - Quản trị viên (`ADMIN`): Xem toàn bộ bài viết bao gồm `DRAFT`, `PUBLISHED`, `ARCHIVED`.
+
+- **Hành động & Quy tắc nghiệp vụ:**
+  - **BR-BLOG-001 (Bộ đếm lượt xem)**: Khi người dùng xem chi tiết bài viết qua `GET /api/blogs/:slugOrId`, hệ thống tự động tăng `viewCount = viewCount + 1`.
+  - **BR-BLOG-002 (Thời gian đọc ước tính)**: Áp dụng công thức chuẩn 200 WPM: `Math.max(1, Math.ceil(words / 200))` phút sau khi đã lọc bỏ cú pháp markdown ảnh và URL.
+  - **BR-BLOG-003 (Bộ phân tích Markdown AST trực quan)**: Tự động phục hồi cú pháp ảnh ngắt dòng `![alt]\n(url)`, tách thành `<figure>` kèm `<figcaption>`, chuyển đổi Heading (H2, H3, H4), Blockquote, Bullet list, Ordered list, Bold, Italic, Code.
 
 ### BLOG-SCR-002 -- Soạn thảo & Quản trị bài viết Blog (ADMIN)
-- **Mục tiêu:** Quản trị viên tạo mới, chỉnh sửa, xuất bản và xóa bài viết.
-- **Hành động:**
-  - Đăng bài viết mới kèm file ảnh bìa (multipart `coverImage`) và file video (multipart `video`).
-  - Cập nhật nội dung bài viết, thay đổi trạng thái (DRAFT -> PUBLISHED -> ARCHIVED).
-  - Tải lên ảnh bìa riêng (`POST /api/blogs/:id/cover`) hoặc video riêng (`POST /api/blogs/:id/video`).
-  - Xóa bài viết và tự động dọn dẹp tài nguyên tương ứng trên Cloudinary.
+- **Mục tiêu:** Quản trị viên tạo mới, chỉnh sửa, xuất bản và xóa bài viết, xem trước nội dung trực tiếp (Live Preview).
+- **Hành động & Đặc tả nút:**
+  - **Nút "Đăng bài viết" / "Lưu bản nháp"**: Kiểm tra tính hợp lệ của tiêu đề và nội dung; chống bấm đúp (`isSubmitting = true`), vô hiệu hóa nút và hiển thị spinner; xuất thông báo Toast thành công.
+  - **Nút "Xem trước bài viết" (Live Preview)**: Hiển thị giao diện xem trước bài viết mô phỏng 100% trang đọc thực tế trên Client trước khi quyết định đăng tải.
+  - **Nút "Xóa bài viết"**: Yêu cầu xác nhận qua modal/dialog, gọi `DELETE /api/blogs/:id`, tự động dọn dẹp tài nguyên ảnh bìa và video liên quan trên Cloudinary.
+  - **Nút "Chia sẻ bài viết" (Copy Link)**: Sao chép URL bài viết vào clipboard, hiển thị icon xác nhận trong 2.5 giây.
 
 ### MEDIA-SVC-001 -- Hạ tầng Lưu trữ & Phân phối Media Cloudinary
 - **Mục tiêu:** Tập trung hóa việc xử lý và lưu trữ toàn bộ ảnh và video trên hệ thống qua dịch vụ đám mây Cloudinary.
+- **Ràng buộc tải lên (Upload Constraints):**
+  - Ảnh bìa (`coverImage`): Định dạng PNG, JPG, JPEG, WEBP; dung lượng tối đa 5MB.
+  - Video (`video`): Định dạng MP4, WEBM, MOV; dung lượng tối đa 50MB.
 - **Phạm vi áp dụng:**
   1. **Blog:** Lưu trữ ảnh bìa (`coverImage`) và video phân tích bài học (`videoUrl`).
   2. **Người dùng:** Upload và cập nhật ảnh đại diện học viên & giảng viên (`avatarUrl` qua `POST /api/users/:id/avatar`).
   3. **Khóa học:** Upload và quản lý ảnh thumbnail khóa học (`thumbnail` qua `POST /api/courses/:id/thumbnail`).
   4. **Bài học:** Upload và stream video bài giảng chất lượng cao (`videoUrl` qua `POST /api/lessons/:id/video`).
   5. **Media API chung:** Endpoint upload độc lập `POST /api/media/upload/image` và `POST /api/media/upload/video`.
+
+### Danh mục Mã Lỗi & Thông Báo Chuẩn (Error Codes & Messages)
+| Mã Lỗi | HTTP Code | Thông Báo Nghiệp Vụ Hiển Thị |
+|---|---|---|
+| `BLOG_400_TITLE_REQUIRED` | 400 | Tiêu đề bài viết không được để trống (tối thiểu 3 ký tự) |
+| `BLOG_400_CONTENT_REQUIRED` | 400 | Nội dung bài viết không được để trống (tối thiểu 10 ký tự) |
+| `BLOG_400_SLUG_DUPLICATE` | 400 | Đường dẫn định danh (Slug) đã tồn tại, vui lòng chọn tiêu đề khác |
+| `BLOG_404_NOT_FOUND` | 404 | Bài viết không tồn tại hoặc chưa được xuất bản công khai |
+| `BLOG_403_FORBIDDEN` | 403 | Bạn không có quyền quản trị hoặc thao tác trên bài viết này |
+| `MEDIA_400_FILE_TOO_LARGE` | 400 | Tệp tin tải lên vượt quá dung lượng cho phép (Ảnh $\le$ 5MB, Video $\le$ 50MB) |
+| `MEDIA_400_INVALID_FORMAT` | 400 | Định dạng tệp tin không được hỗ trợ |
 
 ------------------------------------------------------------------------
 

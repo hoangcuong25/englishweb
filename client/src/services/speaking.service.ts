@@ -35,6 +35,12 @@ export interface SpeakingSubmission {
     fullName: string;
     email: string;
   };
+  user?: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  submittedAt?: string;
   createdAt: string;
 }
 
@@ -81,6 +87,7 @@ export const speakingService = {
       grammarScore: number;
       pronunciationScore: number;
       bandScore?: number;
+      overallBand?: number;
       feedback?: string;
       timestampFeedback?: TimestampComment[] | Record<string, unknown>[];
       timestampComments?: TimestampComment[];
@@ -88,6 +95,7 @@ export const speakingService = {
   ) {
     const payload = {
       ...data,
+      bandScore: data.bandScore ?? data.overallBand,
       timestampFeedback: data.timestampFeedback || data.timestampComments,
     };
     const response = await api.post(`/speaking/admin/submissions/${id}/grade`, payload);

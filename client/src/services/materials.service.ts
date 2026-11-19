@@ -3,9 +3,32 @@ import { api } from '../lib/api';
 export interface Material {
   id: string;
   title: string;
-  fileType: 'PDF' | 'AUDIO_MP3' | 'DOCUMENT';
+  type?: 'PDF' | 'AUDIO';
+  fileType?: 'PDF' | 'AUDIO_MP3' | 'DOCUMENT';
   fileSize?: number;
+  courseId?: string;
+  course?: {
+    id: string;
+    title: string;
+    slug?: string;
+    category?: string;
+  };
   lessonId?: string;
+  lesson?: {
+    id: string;
+    title: string;
+    module?: {
+      id: string;
+      title: string;
+      course?: {
+        id: string;
+        title: string;
+        slug?: string;
+      };
+    };
+  };
+  isWatermarked?: boolean;
+  isPrivate?: boolean;
   createdAt: string;
 }
 

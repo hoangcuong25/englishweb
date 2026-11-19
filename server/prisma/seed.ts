@@ -295,6 +295,72 @@ async function main() {
     },
   });
 
+  // --- ADDITIONAL COURSES FOR DUAL-TRACK ARCHITECTURE ---
+  console.log('📚 Seeding Non-IELTS Courses (Pedagogy, Life Skills, Business)...');
+
+  const coursePedagogy = await prisma.course.upsert({
+    where: { slug: 'nang-luc-su-pham-edtech-mastery' },
+    update: {
+      title: 'Năng Lực Sư Phạm 4.0 & Kỹ Năng Thiết Kế Lớp Học Trực Tuyến EdTech',
+      description: 'Chương trình chuẩn hóa năng lực giảng dạy trực tuyến, làm chủ công nghệ tương tác, quản lý lớp học WebRTC và tâm lý học lứa tuổi.',
+      category: CourseCategory.PEDAGOGY,
+      isEnglishCourse: false,
+      isPublished: true,
+      thumbnail: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop',
+    },
+    create: {
+      title: 'Năng Lực Sư Phạm 4.0 & Kỹ Năng Thiết Kế Lớp Học Trực Tuyến EdTech',
+      slug: 'nang-luc-su-pham-edtech-mastery',
+      description: 'Chương trình chuẩn hóa năng lực giảng dạy trực tuyến, làm chủ công nghệ tương tác, quản lý lớp học WebRTC và tâm lý học lứa tuổi.',
+      category: CourseCategory.PEDAGOGY,
+      isEnglishCourse: false,
+      isPublished: true,
+      thumbnail: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop',
+    },
+  });
+
+  const courseLifeSkills = await prisma.course.upsert({
+    where: { slug: 'nghe-thuat-thuyet-trinh-phan-xa' },
+    update: {
+      title: 'Nghệ Thuật Thuyết Trình, Làm Chủ Sân Khấu & Phản Biện Tình Huống',
+      description: 'Luyện phản xạ tư duy phản biện, kiểm soát nỗi sợ nói trước đám đông, kỹ thuật điều tiết giọng nói và làm chủ các cuộc tranh luận.',
+      category: CourseCategory.LIFE_SKILLS,
+      isEnglishCourse: false,
+      isPublished: true,
+      thumbnail: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800&auto=format&fit=crop',
+    },
+    create: {
+      title: 'Nghệ Thuật Thuyết Trình, Làm Chủ Sân Khấu & Phản Biện Tình Huống',
+      slug: 'nghe-thuat-thuyet-trinh-phan-xa',
+      description: 'Luyện phản xạ tư duy phản biện, kiểm soát nỗi sợ nói trước đám đông, kỹ thuật điều tiết giọng nói và làm chủ các cuộc tranh luận.',
+      category: CourseCategory.LIFE_SKILLS,
+      isEnglishCourse: false,
+      isPublished: true,
+      thumbnail: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800&auto=format&fit=crop',
+    },
+  });
+
+  const courseBusiness = await prisma.course.upsert({
+    where: { slug: 'business-english-executives' },
+    update: {
+      title: 'Business English Intensive: Đàm Phán Hợp Đồng & Thư Tín Thương Mại',
+      description: 'Tiếng Anh thương mại cao cấp cho quản lý và chuyên viên: Văn phong email chuẩn mực, thuật ngữ hợp đồng và kỹ năng đàm phán quốc tế.',
+      category: CourseCategory.BUSINESS,
+      isEnglishCourse: true,
+      isPublished: true,
+      thumbnail: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&auto=format&fit=crop',
+    },
+    create: {
+      title: 'Business English Intensive: Đàm Phán Hợp Đồng & Thư Tín Thương Mại',
+      slug: 'business-english-executives',
+      description: 'Tiếng Anh thương mại cao cấp cho quản lý và chuyên viên: Văn phong email chuẩn mực, thuật ngữ hợp đồng và kỹ năng đàm phán quốc tế.',
+      category: CourseCategory.BUSINESS,
+      isEnglishCourse: true,
+      isPublished: true,
+      thumbnail: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&auto=format&fit=crop',
+    },
+  });
+
   // ==========================================
   // 3. SEED SECURED DIGITAL LIBRARY (Materials)
   // ==========================================
@@ -354,6 +420,7 @@ async function main() {
 
     await prisma.material.create({
       data: {
+        courseId: course.id,
         lessonId: m.lessonId,
         title: m.title,
         type: m.type,
@@ -367,16 +434,26 @@ async function main() {
   }
 
   // ==========================================
-  // 4. SEED CAMBRIDGE QUIZZES & FULL MOCK TESTS
+  // 4. SEED CAMBRIDGE QUIZZES & MULTI-TRACK TESTS
   // ==========================================
-  console.log('📝 Seeding Cambridge Quizzes & Full Mock Tests...');
+  console.log('📝 Seeding Multi-Track Quizzes & Situation Tests...');
+
+  // Clean old quizzes for fresh reproducible seed
+  await prisma.quizAnswer.deleteMany({});
+  await prisma.quizSubmission.deleteMany({});
+  await prisma.questionOption.deleteMany({});
+  await prisma.question.deleteMany({});
+  await prisma.quiz.deleteMany({});
 
   // Quiz 1: Cambridge 18 Reading Passage 1 (Smart Cities)
   const quizReading1 = await prisma.quiz.create({
     data: {
+      courseId: course.id,
       lessonId: lesson1_2.id,
       title: 'Cambridge 18 Academic Reading Test 1: The Architecture of Sustainable Smart Cities',
       description: 'Mô phỏng đề thi Cambridge Reading chính thức chia đôi màn hình với công cụ Highlight và bài đọc 3 Passage.',
+      category: CourseCategory.IELTS,
+      quizType: 'FULL_MOCK_TEST',
       skill: SkillType.READING,
       testType: 'FULL_MOCK_TEST',
       timeLimitMinutes: 20,
@@ -470,9 +547,12 @@ async function main() {
   // Quiz 2: Cambridge 18 Listening Section 1 (Campus Registration)
   const quizListening1 = await prisma.quiz.create({
     data: {
+      courseId: course.id,
       lessonId: lesson1_1.id,
       title: 'Cambridge 18 Listening Test 1: University Campus Accommodation & Facilities Registration',
       description: 'Mô phỏng đề thi Cambridge Listening Section 1 với trình phát Audio trực quan và biểu mẫu Note Completion.',
+      category: CourseCategory.IELTS,
+      quizType: 'FULL_MOCK_TEST',
       skill: SkillType.LISTENING,
       testType: 'FULL_MOCK_TEST',
       timeLimitMinutes: 15,
@@ -521,9 +601,12 @@ async function main() {
   // Quiz 3: Academic Grammar Checkpoint
   const quizGrammar = await prisma.quiz.create({
     data: {
+      courseId: course.id,
       lessonId: lesson2_2.id,
       title: 'Academic Grammar Checkpoint: Inversion & Cleft Sentences (GRA Band 7.5+)',
       description: 'Kiểm tra độ thành thục cấu trúc đảo ngữ và câu chẻ phục vụ tiêu chí Grammatical Range trong Writing & Speaking.',
+      category: CourseCategory.ENGLISH,
+      quizType: 'LESSON_QUIZ',
       skill: SkillType.WRITING,
       testType: 'LESSON_QUIZ',
       timeLimitMinutes: 10,
@@ -548,6 +631,198 @@ async function main() {
       { questionId: qG1.id, content: 'Not only students acquire practical skills, but they also develop empathy.', isCorrect: false },
       { questionId: qG1.id, content: 'Not only do students acquire practical skills, but they also develop empathy.', isCorrect: true },
       { questionId: qG1.id, content: 'Not only students do acquire practical skills, but also they develop empathy.', isCorrect: false },
+    ],
+  });
+
+  // Quiz 4: PEDAGOGY - Situation Case Study Quiz
+  const quizPedagogy = await prisma.quiz.create({
+    data: {
+      courseId: coursePedagogy.id,
+      title: 'Case Study Sư Phạm EdTech 01: Quản Trị Tương Tác & Giải Quyết Xung Đột Nhóm Trong Lớp Trực Tuyến',
+      description: 'Trắc nghiệm xử lý tình huống thực tế dành cho giáo viên và giảng viên: Phân tích bối cảnh, đánh giá tâm lý người học và đưa ra can thiệp sư phạm chuẩn xác.',
+      category: CourseCategory.PEDAGOGY,
+      quizType: 'SITUATION_QUIZ',
+      skill: SkillType.READING,
+      testType: 'SITUATION_QUIZ',
+      timeLimitMinutes: 20,
+      passScore: 80,
+      passage: `TÌNH HUỐNG THỰC TẾ (PEDAGOGICAL CASE STUDY):\n\nBối cảnh: Trong một buổi học trực tuyến qua WebRTC kéo dài 90 phút với 8 học viên người lớn (khóa đào tạo kỹ năng doanh nghiệp), giáo viên giao bài tập thảo luận nhóm (Breakout Room) 4 người để xây dựng kế hoạch dự án.\n\nDiễn biến 1: Tại Phòng 1, học viên A (giữ vị trí trưởng phòng ngoài đời) lập tức áp đặt quan điểm, liên tục ngắt lời và phủ nhận ý kiến của học viên B (một sinh viên mới ra trường). Học viên B sau đó tắt hoàn toàn camera và micro, không tham gia thêm bất kỳ hoạt động nào.\n\nDiễn biến 2: Giáo viên ghé thăm Phòng 1 và nhận thấy không khí căng thẳng cực độ, chỉ có học viên A nói một mình trong khi 3 thành viên còn lại đều im lặng. Thời gian thảo luận nhóm chỉ còn lại 7 phút trước khi quay trở lại phòng chính.\n\nYêu cầu: Người học trong vai trò Giáo viên điều phối cần phân tích động lực tâm lý nhóm và lựa chọn phương án can thiệp tức thời và hậu kỳ sư phạm tối ưu.`,
+    },
+  });
+
+  const qPed1 = await prisma.question.create({
+    data: {
+      quizId: quizPedagogy.id,
+      content: 'Khi bước vào phòng breakout và thấy học viên B tắt cam/mic còn học viên A độc thoại, hành động can thiệp tức thời (Immediate Action) nào của giáo viên là sư phạm và chuyên nghiệp nhất?',
+      type: QuestionType.SINGLE_CHOICE,
+      skill: SkillType.READING,
+      subCategory: 'Tình Huống Sư Phạm',
+      points: 3.5,
+      explanation: 'Không nên chỉ trích công khai học viên A làm mất thể diện. Giáo viên cần tái cấu trúc hoạt động bằng cách phân bổ mỗi thành viên 90 giây trình bày một khía cạnh cụ thể theo vòng tròn, tạo không gian an toàn cho học viên B cất tiếng nói.',
+      orderIndex: 1,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: qPed1.id, content: 'Ngắt lời học viên A ngay lập tức và phê bình trước nhóm vì hành vi lấn át người khác.', isCorrect: false },
+      { questionId: qPed1.id, content: 'Tái cấu trúc vòng thảo luận (Round-robin): Đặt câu hỏi mở và mời lần lượt từng thành viên có 90 giây nêu góc nhìn riêng theo vai trò.', isCorrect: true },
+      { questionId: qPed1.id, content: 'Bỏ qua và chờ hết giờ thảo luận để gọi học viên B phát biểu trước toàn lớp lớn.', isCorrect: false },
+      { questionId: qPed1.id, content: 'Đưa ngay học viên B sang một nhóm breakout khác để tránh xung đột.', isCorrect: false },
+    ],
+  });
+
+  const qPed2 = await prisma.question.create({
+    data: {
+      quizId: quizPedagogy.id,
+      content: 'Để tái kết nối với học viên B sau buổi học nhằm giữ chân và duy trì động lực học tập, giáo viên nên thực hiện bước nào?',
+      type: QuestionType.SINGLE_CHOICE,
+      skill: SkillType.READING,
+      subCategory: 'Tâm Lý Học Viên',
+      points: 3.5,
+      explanation: 'Nhắn tin riêng 1-on-1 bày tỏ sự đồng cảm, lắng nghe khó khăn của học viên và khích lệ họ là nguyên tắc then chốt trong sư phạm hiện đại.',
+      orderIndex: 2,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: qPed2.id, content: 'Gửi tin nhắn riêng thăm hỏi, ghi nhận sự đóng góp ở các buổi trước và lắng nghe cảm nhận mà không đổ lỗi.', isCorrect: true },
+      { questionId: qPed2.id, content: 'Yêu cầu học viên B phải tự tin hơn nếu muốn tiếp tục theo học khóa học.', isCorrect: false },
+      { questionId: qPed2.id, content: 'Yêu cầu học viên A gửi lời xin lỗi học viên B trong nhóm chat chung.', isCorrect: false },
+      { questionId: qPed2.id, content: 'Đánh giá điểm chuyên cần thấp cho học viên B vì tắt camera giữa chừng.', isCorrect: false },
+    ],
+  });
+
+  const qPed3 = await prisma.question.create({
+    data: {
+      quizId: quizPedagogy.id,
+      content: 'Nguyên tắc thiết lập luật chơi (Class Norms) nào giúp ngăn ngừa hoàn toàn tình trạng một người áp đặt trong các buổi học tiếp theo?',
+      type: QuestionType.SINGLE_CHOICE,
+      skill: SkillType.READING,
+      subCategory: 'Quy Chuẩn Lớp Học',
+      points: 3.0,
+      explanation: 'Thiết lập quy tắc phân vai rõ ràng (Facilitator, Timekeeper, Note-taker, Spokesperson) luân phiên trong mỗi buổi thảo luận.',
+      orderIndex: 3,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: qPed3.id, content: 'Phân vai trò cố định: Điều phối viên (Facilitator), Thư ký (Timekeeper) và Đại diện phát ngôn luân phiên.', isCorrect: true },
+      { questionId: qPed3.id, content: 'Cấm các học viên có chức vụ cao phát biểu trước trong nhóm.', isCorrect: false },
+      { questionId: qPed3.id, content: 'Hủy bỏ hoàn toàn hoạt động thảo luận nhóm và chuyển sang giảng bài 1 chiều.', isCorrect: false },
+    ],
+  });
+
+  // Quiz 5: LIFE_SKILLS - Situation Quiz
+  const quizLifeSkills = await prisma.quiz.create({
+    data: {
+      courseId: courseLifeSkills.id,
+      title: 'Trắc Nghiệm Tình Huống Kỹ Năng Sống: Thuyết Trình Trước Hội Đồng & Vượt Qua Nỗi Sợ Phản Biện',
+      description: 'Đánh giá năng lực xử lý tình huống bất ngờ khi diễn thuyết trước đám đông, kỹ thuật làm chủ cảm xúc và nghệ thuật trả lời câu hỏi hóc búa.',
+      category: CourseCategory.LIFE_SKILLS,
+      quizType: 'SITUATION_QUIZ',
+      skill: SkillType.READING,
+      testType: 'SITUATION_QUIZ',
+      timeLimitMinutes: 15,
+      passScore: 80,
+      passage: `BỐI CẢNH TÌNH HUỐNG THUYẾT TRÌNH (PRESENTATION DILEMMA):\n\nBạn đang trình bày dự án chiến lược trước Hội đồng thẩm định gồm 5 thành viên ban giám đốc và các chuyên gia cấp cao. Bài thuyết trình đã chuẩn bị kỹ lưỡng kéo dài 15 phút.\n\nKhi bạn đang ở slide thứ 3 trình bày về dự toán ngân sách, một thành viên hội đồng có tầm ảnh hưởng lớn đột ngột cắt ngang bằng giọng điệu gay gắt: "Số liệu chi phí này hoàn toàn phi thực tế và thiếu căn cứ thị trường, bạn lấy nguồn khảo sát này từ đâu mà dám đưa vào đây?"\n\nCả hội trường im lặng hướng mắt về phía bạn. Bạn cảm thấy tim đập nhanh, cổ họng nghẹn lại và nhận ra số liệu đó do một đồng nghiệp phụ trách tài chính cung cấp chưa kịp đối chiếu bảng gốc sáng nay.`,
+    },
+  });
+
+  const qLife1 = await prisma.question.create({
+    data: {
+      quizId: quizLifeSkills.id,
+      content: 'Trong 5 giây đầu tiên sau khi bị ngắt lời gay gắt, phản ứng tâm lý và hành vi chuẩn mực của diễn giả chuyên nghiệp là gì?',
+      type: QuestionType.SINGLE_CHOICE,
+      skill: SkillType.READING,
+      subCategory: 'Làm Chủ Cảm Xúc',
+      points: 5.0,
+      explanation: 'Dừng lại 2-3 giây hít thở sâu, duy trì giao tiếp ánh mắt điềm tĩnh, mỉm cười nhẹ và ghi nhận câu hỏi thay vì phản xạ cãi lại hoặc tỏ ra bối rối.',
+      orderIndex: 1,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: qLife1.id, content: 'Lập tức thanh minh rằng số liệu do đồng nghiệp làm sai chứ không phải lỗi của mình.', isCorrect: false },
+      { questionId: qLife1.id, content: 'Hít sâu 3 giây, giữ ánh mắt bình thản, ghi nhận sự chú ý sắc sảo của giám khảo và cảm ơn câu hỏi phản biện.', isCorrect: true },
+      { questionId: qLife1.id, content: 'Im lặng lướt nhanh qua slide tiếp theo để tránh tranh cãi.', isCorrect: false },
+      { questionId: qLife1.id, content: 'Bật lại giám khảo rằng số liệu đã được nghiên cứu kỹ và không thể vô lý.', isCorrect: false },
+    ],
+  });
+
+  const qLife2 = await prisma.question.create({
+    data: {
+      quizId: quizLifeSkills.id,
+      content: 'Kỹ thuật trả lời "Bridge & Reframe" nào dưới đây giúp biến câu hỏi chất vấn thành cơ hội thể hiện năng lực giải quyết vấn đề?',
+      type: QuestionType.SINGLE_CHOICE,
+      skill: SkillType.READING,
+      subCategory: 'Phản Biện Sắc Bén',
+      points: 5.0,
+      explanation: 'Tách biệt giữa giá trị cốt lõi của giải pháp và việc kiểm chứng số liệu chi tiết, cam kết gửi bảng đối chiếu kèm nguồn khảo sát ngay sau cuộc họp.',
+      orderIndex: 2,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: qLife2.id, content: 'Cảm ơn góc nhìn thận trọng của anh/chị. Mô hình ngân sách này dựa trên kịch bản thị trường thận trọng, và tôi xin phép gửi bảng chi tiết nguồn khảo sát ngay sau buổi họp, đồng thời xin trình bày cơ chế tối ưu chi phí ở slide tiếp theo.', isCorrect: true },
+      { questionId: qLife2.id, content: 'Tôi nghĩ anh chưa đọc kỹ tài liệu đính kèm nên mới hỏi câu này.', isCorrect: false },
+      { questionId: qLife2.id, content: 'Dạ số liệu này em xin nhận khuyết điểm và xin dừng bài thuyết trình tại đây.', isCorrect: false },
+    ],
+  });
+
+  // Quiz 6: BUSINESS - Practice Test
+  const quizBusiness = await prisma.quiz.create({
+    data: {
+      courseId: courseBusiness.id,
+      title: 'Business English Diagnostic: Professional Email Tone & Contract Negotiation Nuances',
+      description: 'Kiểm tra năng lực sử dụng ngôn ngữ thương mại quốc tế, phong cách ngoại giao lịch thiệp và từ vựng đàm phán hợp đồng chuyên nghiệp.',
+      category: CourseCategory.BUSINESS,
+      quizType: 'PRACTICE_TEST',
+      skill: SkillType.READING,
+      testType: 'PRACTICE_TEST',
+      timeLimitMinutes: 15,
+      passScore: 80,
+      passage: `CASE STUDY: INTERNATIONAL SUPPLY CONTRACT DISPUTE\n\nTo: Senior Procurement Officer (You)\nFrom: Global Logistics Director, Apex Corporation\nSubject: Critical Delay in Shipment #4092 - Component Delivery Milestone\n\n"Dear Team,\nWe are writing to express our acute disappointment regarding the delivery schedule for Batch #4092. As per Clause 8.2 of the Master Supply Agreement, the agreed dispatch date was November 10th. Our assembly plant in Yokohama will face complete operational shutdown if these components fail to arrive by Friday.\nWe hereby request an immediate teleconference to discuss contractual liquidated damages and freight reimbursement."`,
+    },
+  });
+
+  const qBiz1 = await prisma.question.create({
+    data: {
+      quizId: quizBusiness.id,
+      content: 'Which opening sentence establishes the highest level of diplomatic professionalism in your email reply?',
+      type: QuestionType.SINGLE_CHOICE,
+      skill: SkillType.READING,
+      subCategory: 'Business Correspondence',
+      points: 5.0,
+      explanation: 'Thừa nhận quan ngại của đối tác một cách trang trọng, thể hiện sự thấu hiểu tác động kinh doanh mà không vội vàng thừa nhận sai phạm pháp lý.',
+      orderIndex: 1,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: qBiz1.id, content: 'We fully appreciate the critical urgency regarding Shipment #4092 and sincerely regret the unforeseen logistical friction your assembly line is experiencing.', isCorrect: true },
+      { questionId: qBiz1.id, content: 'It is not our fault because the typhoon delayed all flights from Singapore.', isCorrect: false },
+      { questionId: qBiz1.id, content: 'Sorry for the delay, we will send the goods soon.', isCorrect: false },
+      { questionId: qBiz1.id, content: 'You should calm down because Clause 8.2 also mentions force majeure.', isCorrect: false },
+    ],
+  });
+
+  const qBiz2 = await prisma.question.create({
+    data: {
+      quizId: quizBusiness.id,
+      content: 'In business contract negotiations, what does the term "liquidated damages" specifically signify?',
+      type: QuestionType.SINGLE_CHOICE,
+      skill: SkillType.READING,
+      subCategory: 'Contract Terminology',
+      points: 5.0,
+      explanation: '"Liquidated damages" là khoản tiền bồi thường thiệt hại được các bên thỏa thuận trước trong hợp đồng khi xảy ra vi phạm (như chậm tiến độ).',
+      orderIndex: 2,
+    },
+  });
+  await prisma.questionOption.createMany({
+    data: [
+      { questionId: qBiz2.id, content: 'A pre-estimated compensation amount predetermined in the contract to be paid in event of a specific breach.', isCorrect: true },
+      { questionId: qBiz2.id, content: 'The total value of liquid inventory in the warehouse.', isCorrect: false },
+      { questionId: qBiz2.id, content: 'Bankruptcy costs when a company dissolves its assets.', isCorrect: false },
     ],
   });
 
@@ -858,6 +1133,38 @@ async function main() {
       paymentNote: 'TD 0912345678 IELTS18 - CK MBBank Nguyen Thi Mai',
       enrolledAt: new Date(Date.now() - 3600000 * 24 * 30),
       approvedAt: new Date(Date.now() - 3600000 * 24 * 30),
+    },
+  });
+
+  // Student 1: Active Enrollment in Pedagogy Course
+  await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId: primaryStudent.id, courseId: coursePedagogy.id } },
+    update: { progressPercent: 40, status: 'ACTIVE' },
+    create: {
+      userId: primaryStudent.id,
+      courseId: coursePedagogy.id,
+      progressPercent: 40,
+      status: 'ACTIVE',
+      paymentAmount: 3200000,
+      paymentNote: 'TD 0912345678 PEDAGOGY - CK MBBank Nguyen Thi Mai',
+      enrolledAt: new Date(Date.now() - 3600000 * 24 * 10),
+      approvedAt: new Date(Date.now() - 3600000 * 24 * 10),
+    },
+  });
+
+  // Student 1: Active Enrollment in Life Skills Course
+  await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId: primaryStudent.id, courseId: courseLifeSkills.id } },
+    update: { progressPercent: 20, status: 'ACTIVE' },
+    create: {
+      userId: primaryStudent.id,
+      courseId: courseLifeSkills.id,
+      progressPercent: 20,
+      status: 'ACTIVE',
+      paymentAmount: 2800000,
+      paymentNote: 'TD 0912345678 LIFESKILLS - CK MBBank Nguyen Thi Mai',
+      enrolledAt: new Date(Date.now() - 3600000 * 24 * 5),
+      approvedAt: new Date(Date.now() - 3600000 * 24 * 5),
     },
   });
 

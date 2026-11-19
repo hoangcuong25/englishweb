@@ -31,7 +31,7 @@
 | **FR-09** | **Điểm Danh Tự Động & Chuyên Cần** | Webhook LiveKit ghi nhận phút học thực tế. Phân loại: `PRESENT` (vào 15p đầu & $\ge 80\%$ thời lượng), `LATE` (vào sau 15p), `ABSENT` (< 30%). Admin điểm danh cưỡng bức (`mark`), can thiệp thủ công có ghi chú lý do (`override` + `note`), xuất báo cáo Excel (.xlsx) theo buổi học hoặc theo khoảng ngày. |
 | **FR-10** | **Dashboard & IELTS Master Hub** | Dashboard Học viên (tiến độ, lịch học sắp tới, bài tập cần nộp, điểm số); Cổng tổng quan luyện thi IELTS Hub cá nhân hóa (Target Band, dự đoán Band điểm, lối tắt 4 kỹ năng); Dashboard Admin (tổng quan học viên, bài viết/nói chờ chấm, tỷ lệ chuyên cần, tự động quét đóng phòng học cũ). |
 | **FR-11** | **Nhắn Tin Thời Gian Thực** | Trao đổi trực tiếp 1-1 giữa Admin và Học viên qua Socket.IO, lưu trữ lịch sử trong cơ sở dữ liệu (`Conversation`, `Message`), hiển thị trạng thái đang soạn tin nhắn (`typing indicator`) và trạng thái đã xem (`read receipts` tick xanh + timestamp). |
-| **FR-12** | **Quản Trị Blog & Truyền Thông** | Quản lý bài viết chia sẻ kiến thức, tin tức du học, văn hóa quốc tế. Hỗ trợ tạo slug SEO, upload ảnh bìa và video review lên Cloudinary, gắn thẻ chuyên mục, tự động đếm lượt xem (`viewCount`), quản lý trạng thái (`DRAFT`, `PUBLISHED`, `ARCHIVED`). |
+| **FR-12** | **Quản Trị Blog & Media Cloudinary** | Cung cấp cổng thông tin kiến thức, tin tức học thuật, phương pháp học tập và chia sẻ (Khách và Học viên xem bài `PUBLISHED`; Admin quản trị toàn quyền `DRAFT`, `PUBLISHED`, `ARCHIVED`). Tích hợp lưu trữ và phân phối Media Cloudinary (ảnh bìa, video review), bộ phân tích Markdown AST hiển thị bài viết trực quan, tính năng ước lượng thời gian đọc chuẩn 200 WPM, phân loại chuyên mục và tự động tăng lượt xem (`viewCount`). |
 | **FR-13** | **Tiếp Nhận Tư Vấn Tuyển Sinh (Leads)** | Form thu thập thông tin học viên tiềm năng tại Landing Page công khai (`fullName`, `email`, `phone`, `interestedProgram`, `message`), endpoint `/api/notifications/consultation` tự động chuyển tiếp thông báo tức thì cho Admin qua Email và Socket. |
 | **FR-14** | **Trung Tâm Thông Báo & Broadcast** | Quản lý thông báo in-app cho học viên (bài viết được duyệt, bài nói đã chấm, lớp học sắp diễn ra, thông báo hệ thống), đếm số chưa đọc, đánh dấu đã đọc; Admin phát thông báo loa phóng thanh tức thì toàn trường qua WebSocket (`POST /api/notifications/broadcast`). |
 
@@ -39,13 +39,13 @@
 
 ## 3. KIẾN TRÚC MÃ NGUỒN CHUẨN MONOREPO
 - Phía Server NestJS chia thành 2 phân vùng:
-  - `server/src/core/`: Hạ tầng nền tảng dùng chung (`core/common`, `core/livekit`, `core/prisma`, `core/mail`, `core/cloudinary`, `core/gemini`).
+  - `server/src/core/`: Hạ tầng nền tảng dùng chung (`core/common`, `core/livekit`, `core/prisma`, `core/mail`, `core/cloudinary`, `core/redis`, `core/gemini`).
   - `server/src/modules/`: Toàn bộ các phân hệ nghiệp vụ (`modules/auth`, `modules/courses`, `modules/lessons`, `modules/materials`, `modules/quizzes`, `modules/speaking`, `modules/writing`, `modules/attendance`, `modules/dashboard`, `modules/chat`, `modules/blogs`, `modules/notifications`, `modules/users`).
 - Phía Client Next.js 14 App Router:
   - `client/src/app/(auth)/`: Tuyến đường đăng nhập, đăng ký, quên mật khẩu.
   - `client/src/app/(student)/student/`: Toàn bộ màn hình học viên (Dashboard, IELTS Hub, Courses, Materials, WebRTC, Studio).
-  - `client/src/app/(admin)/admin/`: Toàn bộ màn hình quản trị viên (Courses, Quizzes, Grading, Blogs, Attendance, Users).
-  - `client/src/app/blog/`: Cổng đọc tin tức Blog công khai.
+  - `client/src/app/(admin)/admin/`: Toàn bộ màn hình quản trị viên (Courses, Quizzes, Grading, Blogs, Attendance, Users, Assessments).
+  - `client/src/app/blog/`: Cổng đọc tin tức & bài viết công khai (danh sách và chi tiết `[slug]`).
 
 ---
 
@@ -65,5 +65,5 @@
 13. Admin có thể điểm danh cưỡng bức, can thiệp thủ công có ghi chú lý do và xuất báo cáo Excel (.xlsx) theo buổi học hoặc theo khoảng ngày.
 14. Dashboard hiển thị chính xác các số liệu học tập theo phân quyền STUDENT và ADMIN; Student IELTS Master Hub cá nhân hóa lộ trình.
 15. Nhắn tin thời gian thực giữa Admin và học viên qua Socket.IO hiển thị trạng thái đang soạn thảo và đã xem tin nhắn.
-16. Phân hệ Quản trị Blog hỗ trợ biên tập bài viết, tải ảnh bìa/video lên Cloudinary, tự động tăng lượt xem và hiển thị bài viết công khai.
+16. Quản lý, xuất bản bài viết Blog, tích hợp Cloudinary tải lên ảnh/video và tự động đếm lượt xem (`viewCount`) hoạt động chuẩn xác theo phân quyền STUDENT và ADMIN.
 17. Form tiếp nhận tư vấn tuyển sinh tại Landing Page tiếp nhận lead và gửi cảnh báo tức thì cho Admin qua Email và Socket.

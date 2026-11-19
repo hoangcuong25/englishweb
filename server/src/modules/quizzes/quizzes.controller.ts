@@ -29,7 +29,7 @@ import { OptionalJwtAuthGuard } from '../../core/common/guards/optional-jwt-auth
 import { RolesGuard } from '../../core/common/guards/roles.guard';
 import { Roles } from '../../core/common/decorators/roles.decorator';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
-import { Role, SkillType } from '@prisma/client';
+import { Role, SkillType, CourseCategory } from '@prisma/client';
 import { Request } from 'express';
 
 @ApiTags('Quiz Engine & Instant Assessment')
@@ -53,12 +53,18 @@ export class QuizzesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Admin lấy danh sách tất cả các bài Quiz / Test trong hệ thống' })
   @ApiQuery({ name: 'skill', required: false, enum: SkillType })
+  @ApiQuery({ name: 'category', required: false, enum: CourseCategory })
+  @ApiQuery({ name: 'quizType', required: false, type: String })
+  @ApiQuery({ name: 'courseId', required: false, type: String })
   @ApiQuery({ name: 'testType', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   findAllQuizzes(
     @Query('skill') skill?: SkillType,
+    @Query('category') category?: CourseCategory,
+    @Query('quizType') quizType?: string,
+    @Query('courseId') courseId?: string,
     @Query('testType') testType?: string,
     @Query('search') search?: string,
     @Query('page') page?: number,
@@ -66,11 +72,23 @@ export class QuizzesController {
   ) {
     return this.quizzesService.findAllQuizzes({
       skill,
+      category,
+      quizType,
+      courseId,
       testType,
       search,
       page,
       limit,
     });
+  }
+
+  @Get('course/:courseId')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Lấy danh sách các bài Quiz của một khóa học (theo phân hệ hoặc bài học)' })
+  @ApiParam({ name: 'courseId', description: 'UUID của khóa học' })
+  getQuizzesByCourse(@Param('courseId') courseId: string, @Req() req: Request) {
+    const user = (req as any)?.user;
+    return this.quizzesService.getQuizzesByCourse(courseId, user?.role);
   }
 
   @Put(':id')
@@ -118,11 +136,20 @@ export class QuizzesController {
 
   @Get('skills/tests')
   @UseGuards(OptionalJwtAuthGuard)
-  @ApiOperation({ summary: 'Lấy danh sách đề thi phân loại theo 4 kỹ năng (Reading, Listening, Writing, Speaking)' })
+  @ApiOperation({ summary: 'Lấy danh sách đề thi phân loại theo 4 kỹ năng hoặc theo phân hệ / loại quiz' })
   @ApiQuery({ name: 'skill', required: false, enum: SkillType })
-  findSkillsTests(@Query('skill') skill?: SkillType, @Req() req?: Request) {
+  @ApiQuery({ name: 'category', required: false, enum: CourseCategory })
+  @ApiQuery({ name: 'quizType', required: false, type: String })
+  @ApiQuery({ name: 'courseId', required: false, type: String })
+  findSkillsTests(
+    @Query('skill') skill?: SkillType,
+    @Query('category') category?: CourseCategory,
+    @Query('quizType') quizType?: string,
+    @Query('courseId') courseId?: string,
+    @Req() req?: Request,
+  ) {
     const user = (req as any)?.user;
-    return this.quizzesService.findSkillsTests(skill, user?.role);
+    return this.quizzesService.findSkillsTests(skill, user?.role, category, quizType, courseId);
   }
 
   @Get('diagnostic/me')
