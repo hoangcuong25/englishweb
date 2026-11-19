@@ -26,6 +26,7 @@ import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
 import { QueryBlogsDto } from './dto/query-blogs.dto';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../core/common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../core/common/guards/roles.guard';
 import { Roles } from '../../core/common/decorators/roles.decorator';
 import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
@@ -93,6 +94,7 @@ export class BlogsController {
   }
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Lấy danh sách bài viết Blog (công khai / học viên / admin)' })
   @ResponseMessage('Lấy danh sách bài viết Blog thành công')
   async findAll(@Query() query: QueryBlogsDto, @Req() req: Request) {
@@ -101,6 +103,7 @@ export class BlogsController {
   }
 
   @Get(':slugOrId')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Xem chi tiết bài viết Blog qua Slug hoặc ID (tự động tăng viewCount)' })
   @ResponseMessage('Lấy chi tiết bài viết Blog thành công')
   async findOne(@Param('slugOrId') slugOrId: string, @Req() req: Request) {

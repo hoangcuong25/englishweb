@@ -53,7 +53,8 @@ server/src/
 │   ├── writing/                         # Studio luyện viết IELTS, tích hợp AI, Admin duyệt
 │   ├── attendance/                      # Đồng bộ chuyên cần, tính phút, xuất Excel
 │   ├── dashboard/                       # Tổng quan học tập cho Student & Admin
-│   └── chat/                            # Nhắn tin Socket.IO thời gian thực
+│   ├── chat/                            # Nhắn tin Socket.IO thời gian thực
+│   └── blogs/                           # Quản lý bài viết Blog, tin tức, Media Cloudinary
 │
 ├── app.controller.ts
 ├── app.module.ts                        # Nạp core modules & business modules
@@ -110,7 +111,7 @@ Nhận yêu cầu
 
 ---
 
-## 5. Ma Trận 11 Phân Hệ Chức Năng (Tra Cứu Chi Tiết)
+## 5. Ma Trận 12 Phân Hệ Chức Năng (Tra Cứu Chi Tiết)
 
 1. **Authentication & Session**: Email/Pass, Google OAuth 2.0, Single Concurrent Session học viên, JWT HttpOnly Cookies, Bcrypt (`server/src/modules/auth`).
 2. **Internationalization (i18n)**: 4 ngôn ngữ (VI, EN, ZH, JA), nhớ cookie, đồng bộ user profile.
@@ -123,6 +124,7 @@ Nhận yêu cầu
 9. **Automated Attendance**: Webhook LiveKit ghi nhận phút học, phân loại chuyên cần, export Excel (`server/src/modules/attendance`).
 10. **Dashboard & Analytics**: Thống kê học tập học viên & Báo cáo tổng thể hệ thống cho Admin (`server/src/modules/dashboard`).
 11. **Realtime Chat & Messaging**: Trao đổi trực tiếp Admin - Học viên qua Socket.IO thời gian thực (`server/src/modules/chat`).
+12. **Blog & Media Content Management**: Cổng tin tức, chia sẻ tri thức IELTS & đời sống, lưu trữ Media Cloudinary, bộ phân tích Markdown AST, phân quyền bài viết và tự động tăng view (`server/src/modules/blogs`, `client/src/app/blog`, `client/src/app/(admin)/admin/blogs`).
 
 ---
 

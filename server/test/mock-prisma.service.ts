@@ -1747,6 +1747,26 @@ export class MockPrismaService {
         author: author ? { id: author.id, fullName: author.fullName, avatarUrl: author.avatarUrl, role: author.role } : null,
       };
     },
+    findFirst: async (args: any) => {
+      const post = this.blogPosts.find((p) => {
+        if (args.where?.id) return p.id === args.where.id;
+        if (args.where?.slug) return p.slug === args.where.slug;
+        if (args.where?.OR) {
+          return args.where.OR.some((cond: any) => {
+            if (cond.id && p.id === cond.id) return true;
+            if (cond.slug && p.slug === cond.slug) return true;
+            return false;
+          });
+        }
+        return false;
+      });
+      if (!post) return null;
+      const author = this.users.find((u) => u.id === post.authorId);
+      return {
+        ...post,
+        author: author ? { id: author.id, fullName: author.fullName, avatarUrl: author.avatarUrl, role: author.role } : null,
+      };
+    },
     findMany: async (args?: any) => {
       let list = [...this.blogPosts];
       if (args?.where?.status) {

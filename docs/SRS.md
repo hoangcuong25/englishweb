@@ -16,7 +16,7 @@
 
 ---
 
-## 2. MA TRẬN 11 PHÂN HỆ CHỨC NĂNG (FUNCTIONAL REQUIREMENTS)
+## 2. MA TRẬN 12 PHÂN HỆ CHỨC NĂNG (FUNCTIONAL REQUIREMENTS)
 
 | Mã Phân Hệ | Tên Phân Hệ | Phạm Vi Nghiệp Vụ Cốt Lõi |
 |---|---|---|
@@ -31,21 +31,23 @@
 | **FR-09** | **Điểm Danh Tự Động** | Webhook LiveKit ghi nhận phút học thực tế. Phân loại: `PRESENT` (vào 15p đầu & $\ge 80\%$ thời lượng), `LATE` (vào sau 15p), `ABSENT` (< 30%). Admin điều chỉnh thủ công và xuất báo cáo Excel (.xlsx). |
 | **FR-10** | **Dashboard & Thống Kê** | Dashboard Học viên (tiến độ, lịch học sắp tới, bài tập cần nộp, điểm số) & Dashboard Admin (tổng quan học viên, bài viết/nói chờ chấm, tỷ lệ chuyên cần). |
 | **FR-11** | **Nhắn Tin Thời Gian Thực** | Trao đổi trực tiếp 1-1 giữa Admin và Học viên qua Socket.IO, lưu trữ lịch sử tin nhắn trong cơ sở dữ liệu (`Conversation`, `Message`). |
+| **FR-12** | **Quản Lý Blog & Media Cloudinary** | Cung cấp cổng thông tin kiến thức, tin tức học thuật, phương pháp học tập và chia sẻ (Khách và Học viên xem bài `PUBLISHED`; Admin quản trị toàn quyền `DRAFT`, `PUBLISHED`, `ARCHIVED`). Tích hợp lưu trữ và phân phối Media Cloudinary (ảnh bìa, video), bộ phân tích Markdown AST hiển thị bài viết trực quan, tính năng ước lượng thời gian đọc chuẩn 200 WPM và tự động tăng lượt xem (`viewCount`). |
 
 ---
 
 ## 3. KIẾN TRÚC MÃ NGUỒN CHUẨN MONOREPO
 - Phía Server NestJS chia thành 2 phân vùng:
-  - `server/src/core/`: Hạ tầng nền tảng dùng chung (`core/common`, `core/livekit`, `core/prisma`).
-  - `server/src/modules/`: Toàn bộ các phân hệ nghiệp vụ (`modules/auth`, `modules/courses`, `modules/quizzes`, `modules/speaking`, `modules/writing`, `modules/attendance`...).
+  - `server/src/core/`: Hạ tầng nền tảng dùng chung (`core/common`, `core/livekit`, `core/prisma`, `core/cloudinary`, `core/redis`).
+  - `server/src/modules/`: Toàn bộ các phân hệ nghiệp vụ (`modules/auth`, `modules/courses`, `modules/quizzes`, `modules/speaking`, `modules/writing`, `modules/attendance`, `modules/blogs`...).
 - Phía Client Next.js 14 App Router:
   - `client/src/app/(auth)/`: Tuyến đường đăng nhập/đăng ký.
   - `client/src/app/(student)/student/`: Toàn bộ màn hình học viên.
-  - `client/src/app/(admin)/admin/`: Toàn bộ màn hình quản trị viên.
+  - `client/src/app/(admin)/admin/`: Toàn bộ màn hình quản trị viên (quản lý khóa học, bài học, học liệu, chấm bài, điểm danh, blog).
+  - `client/src/app/blog/`: Cổng đọc tin tức & bài viết công khai (danh sách và chi tiết `[slug]`).
 
 ---
 
-## 4. 14 TIÊU CHÍ NGHIỆM THU CHỨC NĂNG CHUẨN
+## 4. 15 TIÊU CHÍ NGHIỆM THU CHỨC NĂNG CHUẨN
 1. Đăng ký, đăng nhập email/mật khẩu, đăng nhập Google và liên kết tài khoản Google hoạt động đúng.
 2. Giới hạn một phiên đăng nhập đối với học viên (Single Concurrent Session) hoạt động ổn định.
 3. Chuyển đổi mượt mà giữa 4 ngôn ngữ (VI, EN, JA, ZH) không gây lỗi giao diện.
@@ -60,3 +62,4 @@
 12. Admin có thể xem log chi tiết và xuất báo cáo điểm danh dưới định dạng Excel (.xlsx).
 13. Dashboard hiển thị chính xác các số liệu học tập theo phân quyền STUDENT và ADMIN.
 14. Nhắn tin thời gian thực giữa Admin và học viên qua Socket.IO gửi nhận ổn định và bảo mật.
+15. Quản lý, xuất bản bài viết Blog, tích hợp Cloudinary tải lên ảnh/video và tự động đếm lượt xem (viewCount) hoạt động chuẩn xác theo phân quyền STUDENT và ADMIN.
