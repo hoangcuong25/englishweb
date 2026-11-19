@@ -199,7 +199,11 @@ export class ChatService {
       }),
     ]);
 
-    return message;
+    return {
+      ...message,
+      studentId: conv.studentId,
+      adminId: conv.adminId,
+    };
   }
 
   async markAsRead(conversationId: string, userId: string, role: string) {

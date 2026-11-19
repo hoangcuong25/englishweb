@@ -39,7 +39,10 @@ export interface ConversationItem {
 export const chatService = {
   async getConversations(): Promise<ConversationItem[]> {
     const response = await api.get('/chat/conversations');
-    return response.data?.data || response.data || [];
+    const resData = response.data?.data ?? response.data;
+    if (Array.isArray(resData)) return resData;
+    if (Array.isArray(resData?.conversations)) return resData.conversations;
+    return [];
   },
 
   async getMessages(
@@ -50,7 +53,10 @@ export const chatService = {
     const response = await api.get(`/chat/conversations/${conversationId}/messages`, {
       params: { take, skip },
     });
-    return response.data?.data || response.data || [];
+    const resData = response.data?.data ?? response.data;
+    if (Array.isArray(resData)) return resData;
+    if (Array.isArray(resData?.messages)) return resData.messages;
+    return [];
   },
 
   async sendMessage(conversationId: string, content: string): Promise<ChatMessageItem> {
@@ -68,6 +74,11 @@ export const chatService = {
   // ==========================================
   // REAL-TIME SOCKET.IO CLIENT METHODS
   // ==========================================
+
+  joinUser(userId: string) {
+    const socket = getChatSocket();
+    socket.emit('joinUser', { userId });
+  },
 
   joinConversation(conversationId: string) {
     const socket = getChatSocket();

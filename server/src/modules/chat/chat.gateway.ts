@@ -97,8 +97,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         payload.content,
       );
 
-      // Broadcast new message to anyone in this conversation room
-      this.server.to(`conv_${payload.conversationId}`).emit('newMessage', message);
+      // Broadcast new message to anyone in this conversation room & participant user rooms
+      this.broadcastNewMessage(
+        payload.conversationId,
+        message,
+        (message as any).studentId,
+        (message as any).adminId,
+      );
 
       return { status: 'success', message };
     } catch (err: any) {
@@ -137,9 +142,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /**
    * Helper to broadcast message from REST controller if sent via HTTP
    */
-  broadcastNewMessage(conversationId: string, message: any) {
+  broadcastNewMessage(conversationId: string, message: any, studentId?: string, adminId?: string) {
     if (this.server) {
       this.server.to(`conv_${conversationId}`).emit('newMessage', message);
+      if (studentId) {
+        this.server.to(`user_${studentId}`).emit('newMessage', message);
+      }
+      if (adminId) {
+        this.server.to(`user_${adminId}`).emit('newMessage', message);
+      }
     }
   }
 }
