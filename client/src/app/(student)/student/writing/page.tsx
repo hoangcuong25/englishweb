@@ -18,6 +18,7 @@ import {
   AlertCircle,
   X,
   BookOpen,
+  PenTool,
 } from 'lucide-react';
 
 export default function StudentWritingPage() {
@@ -285,8 +286,8 @@ export default function StudentWritingPage() {
       {/* Studio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-100 text-primary text-xs font-bold mb-1">
-            <Sparkles className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 text-xs font-bold mb-1">
+            <PenTool className="w-3.5 h-3.5 text-[#1B64B0]" />
             <span>AI Writing Studio (Google Gemini API / Heuristic Fallback)</span>
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">

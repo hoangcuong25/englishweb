@@ -30,6 +30,8 @@ import {
   Star,
   GraduationCap,
   CheckCheck,
+  LogIn,
+  LayoutDashboard,
 } from 'lucide-react';
 import HeroOpenBook from '@/components/shared/hero-open-book';
 
@@ -861,18 +863,20 @@ export default function HomePage() {
             <Link
               href="/login"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full text-center py-3 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full shadow-sm block transition-all"
+              className="w-full text-center py-3 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full shadow-sm flex items-center justify-center gap-2 transition-all"
             >
-              🔑 {t('nav.loginAccount')}
+              <LogIn className="w-4 h-4 shrink-0" />
+              <span>{t('nav.loginAccount')}</span>
             </Link>
           ) : (
             <div className="space-y-2">
               <Link
                 href={user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-center py-3 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full shadow-sm block transition-all"
+                className="w-full text-center py-3 text-[14px] font-extrabold text-white bg-[#1B64B0] hover:bg-[#154f8d] rounded-full shadow-sm flex items-center justify-center gap-2 transition-all"
               >
-                🚀 {user.role === 'ADMIN' ? 'Admin Portal' : 'Student Dashboard'}
+                <LayoutDashboard className="w-4 h-4 shrink-0" />
+                <span>{user.role === 'ADMIN' ? 'Admin Portal' : 'Student Dashboard'}</span>
               </Link>
               <button
                 type="button"
@@ -950,20 +954,20 @@ export default function HomePage() {
               </div>
 
               {/* Pillar Hashtag Tags */}
-              <div className="flex flex-wrap gap-2 pt-2 text-xs font-bold text-[#55687D]">
-                <span className="bg-[#F7FAFD] border border-[#E1EBF5] px-3.5 py-1.5 rounded-full text-[#1B64B0]">
+              <div className="flex flex-wrap gap-2 pt-2 text-xs font-bold text-slate-600">
+                <span className="bg-white border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-700 shadow-2xs hover:border-[#1B64B0] hover:text-[#1B64B0] transition-colors">
                   # English Proficiency
                 </span>
-                <span className="bg-[#F7FAFD] border border-[#E1EBF5] px-3.5 py-1.5 rounded-full text-[#1B83B6]">
+                <span className="bg-white border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-700 shadow-2xs hover:border-[#1B64B0] hover:text-[#1B64B0] transition-colors">
                   # Professional Development
                 </span>
-                <span className="bg-[#F7FAFD] border border-[#E1EBF5] px-3.5 py-1.5 rounded-full text-[#B26A00]">
+                <span className="bg-white border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-700 shadow-2xs hover:border-[#1B64B0] hover:text-[#1B64B0] transition-colors">
                   # Life Skills
                 </span>
-                <span className="bg-[#F7FAFD] border border-[#E1EBF5] px-3.5 py-1.5 rounded-full text-[#E11D48]">
+                <span className="bg-white border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-700 shadow-2xs hover:border-[#1B64B0] hover:text-[#1B64B0] transition-colors">
                   # Inspiration
                 </span>
-                <span className="bg-[#F7FAFD] border border-[#E1EBF5] px-3.5 py-1.5 rounded-full text-[#059669]">
+                <span className="bg-white border border-slate-200 px-3.5 py-1.5 rounded-full text-slate-700 shadow-2xs hover:border-[#1B64B0] hover:text-[#1B64B0] transition-colors">
                   # Travel & Culture
                 </span>
               </div>
@@ -978,43 +982,35 @@ export default function HomePage() {
 
         {/* ================= 4. BỐN GIÁ TRỊ CỐT LÕI ================= */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B64B0] hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center shrink-0">
-              <BookOpen className="w-6 h-6" />
-            </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B64B0] hover:shadow-md transition-all group cursor-default">
+            <BookOpen className="w-8 h-8 text-slate-400 group-hover:text-[#1B64B0] shrink-0 transition-colors" />
             <div>
-              <strong className="text-base font-black text-[#14263D] block">{t('values.learn.title')}</strong>
-              <span className="text-xs text-[#55687D] leading-tight block">{t('values.learn.desc')}</span>
+              <strong className="text-base font-black text-slate-900 group-hover:text-[#1B64B0] transition-colors block">{t('values.learn.title')}</strong>
+              <span className="text-xs text-slate-500 leading-tight block">{t('values.learn.desc')}</span>
             </div>
           </div>
 
-          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B83B6] hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-sky-100 text-[#1B83B6] flex items-center justify-center shrink-0">
-              <Sparkles className="w-6 h-6" />
-            </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B64B0] hover:shadow-md transition-all group cursor-default">
+            <Sparkles className="w-8 h-8 text-slate-400 group-hover:text-[#1B64B0] shrink-0 transition-colors" />
             <div>
-              <strong className="text-base font-black text-[#14263D] block">{t('values.grow.title')}</strong>
-              <span className="text-xs text-[#55687D] leading-tight block">{t('values.grow.desc')}</span>
+              <strong className="text-base font-black text-slate-900 group-hover:text-[#1B64B0] transition-colors block">{t('values.grow.title')}</strong>
+              <span className="text-xs text-slate-500 leading-tight block">{t('values.grow.desc')}</span>
             </div>
           </div>
 
-          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#FFB547] hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-              <Users className="w-6 h-6" />
-            </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B64B0] hover:shadow-md transition-all group cursor-default">
+            <Users className="w-8 h-8 text-slate-400 group-hover:text-[#1B64B0] shrink-0 transition-colors" />
             <div>
-              <strong className="text-base font-black text-[#14263D] block">{t('values.share.title')}</strong>
-              <span className="text-xs text-[#55687D] leading-tight block">{t('values.share.desc')}</span>
+              <strong className="text-base font-black text-slate-900 group-hover:text-[#1B64B0] transition-colors block">{t('values.share.title')}</strong>
+              <span className="text-xs text-slate-500 leading-tight block">{t('values.share.desc')}</span>
             </div>
           </div>
 
-          <div className="bg-white border border-[#E1EBF5] rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-rose-400 hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-rose-100 text-[#E11D48] flex items-center justify-center shrink-0">
-              <Star className="w-6 h-6" />
-            </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B64B0] hover:shadow-md transition-all group cursor-default">
+            <Star className="w-8 h-8 text-slate-400 group-hover:text-[#1B64B0] shrink-0 transition-colors" />
             <div>
-              <strong className="text-base font-black text-[#14263D] block">{t('values.inspire.title')}</strong>
-              <span className="text-xs text-[#55687D] leading-tight block">{t('values.inspire.desc')}</span>
+              <strong className="text-base font-black text-slate-900 group-hover:text-[#1B64B0] transition-colors block">{t('values.inspire.title')}</strong>
+              <span className="text-xs text-slate-500 leading-tight block">{t('values.inspire.desc')}</span>
             </div>
           </div>
         </section>
@@ -1037,66 +1033,30 @@ export default function HomePage() {
 
           {/* Filter Bar with Horizontal Scroll for Mobile */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 sm:justify-center">
-            <button
-              type="button"
-              onClick={() => setActivePillarFilter('all')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'all'
-                ? 'bg-[#1B64B0] text-white shadow-md'
-                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-                }`}
-            >
-              {t('pillars.filter.all')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActivePillarFilter('p1')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p1'
-                ? 'bg-[#1B64B0] text-white shadow-md'
-                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-                }`}
-            >
-              {t('pillars.filter.p1')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActivePillarFilter('p2')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p2'
-                ? 'bg-[#1B83B6] text-white shadow-md'
-                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-                }`}
-            >
-              {t('pillars.filter.p2')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActivePillarFilter('p3')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p3'
-                ? 'bg-[#FFB547] text-[#14263D] shadow-md'
-                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-                }`}
-            >
-              {t('pillars.filter.p3')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActivePillarFilter('p4')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p4'
-                ? 'bg-[#E11D48] text-white shadow-md'
-                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-                }`}
-            >
-              {t('pillars.filter.p4')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActivePillarFilter('p5')}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activePillarFilter === 'p5'
-                ? 'bg-[#10B981] text-white shadow-md'
-                : 'bg-white border border-[#E1EBF5] text-[#55687D] hover:bg-[#F7FAFD]'
-                }`}
-            >
-              {t('pillars.filter.p5')}
-            </button>
+            {[
+              { id: 'all', label: t('pillars.filter.all') },
+              { id: 'p1', label: t('pillars.filter.p1') },
+              { id: 'p2', label: t('pillars.filter.p2') },
+              { id: 'p3', label: t('pillars.filter.p3') },
+              { id: 'p4', label: t('pillars.filter.p4') },
+              { id: 'p5', label: t('pillars.filter.p5') },
+            ].map((tab) => {
+              const isSelected = activePillarFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActivePillarFilter(tab.id as 'all' | 'p1' | 'p2' | 'p3' | 'p4' | 'p5')}
+                  className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    isSelected
+                      ? 'bg-[#1B64B0] text-white shadow-md'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Pillars Cards Grid */}
@@ -1104,24 +1064,24 @@ export default function HomePage() {
             {filteredPillars.map((pillar) => (
               <div
                 key={pillar.id}
-                className={`bg-white rounded-3xl border border-[#E1EBF5] border-t-5 ${pillar.borderColor} p-5 sm:p-7 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between`}
+                className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-xs hover:shadow-xl hover:border-[#1B64B0] hover:-translate-y-1 transition-all flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <span className={`text-[11px] font-black tracking-wider uppercase ${pillar.tagColor}`}>
+                      <span className="text-[11px] font-black tracking-wider uppercase text-[#1B64B0]">
                         {pillar.code}
                       </span>
-                      <h3 className="text-base sm:text-lg font-black text-[#14263D] mt-0.5">
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 mt-0.5 group-hover:text-[#1B64B0] transition-colors">
                         {pillar.title}
                       </h3>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-[10.5px] sm:text-[11px] font-black bg-[#DDF3FC] text-[#1B64B0] shrink-0">
+                    <span className="px-3 py-1 rounded-full text-[10.5px] sm:text-[11px] font-black bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
                       {pillar.badge}
                     </span>
                   </div>
 
-                  <p className="text-xs text-[#55687D] leading-relaxed mb-5 font-normal">
+                  <p className="text-xs text-slate-500 leading-relaxed mb-5 font-normal">
                     {pillar.desc}
                   </p>
 
@@ -1133,17 +1093,15 @@ export default function HomePage() {
                         <div
                           key={idx}
                           onClick={() => openProgramModalFromPillar(item)}
-                          className="flex items-center justify-between p-3 rounded-2xl border border-[#E1EBF5] hover:border-[#1B64B0] hover:bg-[#F7FAFD] transition-all cursor-pointer group shadow-2xs"
+                          className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 hover:border-[#1B64B0] hover:bg-slate-50 transition-all cursor-pointer group/item shadow-2xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-8 h-8 rounded-xl bg-[#F7FAFD] text-[#1B64B0] group-hover:bg-[#DDF3FC] flex items-center justify-center shrink-0 transition-colors">
-                              <IconComp className="w-4 h-4" />
-                            </span>
-                            <span className="text-xs font-bold text-[#14263D] group-hover:text-[#1B64B0] truncate">
+                            <IconComp className="w-4 h-4 text-slate-400 group-hover/item:text-[#1B64B0] shrink-0 transition-colors" />
+                            <span className="text-xs font-bold text-slate-800 group-hover/item:text-[#1B64B0] truncate">
                               {item.title}
                             </span>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ml-2 ${item.badgeColor}`}>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ml-2 bg-slate-100 text-slate-700 group-hover/item:bg-sky-50 group-hover/item:text-[#1B64B0] transition-colors">
                             {item.badge}
                           </span>
                         </div>
@@ -1159,7 +1117,7 @@ export default function HomePage() {
                     setFormData((prev) => ({ ...prev, interestedProgram: pillar.id }));
                     scrollToSection('consultation-section');
                   }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-[#E1EBF5] text-xs font-extrabold text-[#1B64B0] hover:bg-[#DDF3FC]/40 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-slate-200 text-xs font-extrabold text-[#1B64B0] hover:bg-[#1B64B0] hover:text-white transition-all cursor-pointer"
                 >
                   <span>{t('pillars.detailBtn')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1185,13 +1143,11 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {/* LiveKit SFU */}
-            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:shadow-lg transition-all">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:border-[#1B64B0] hover:shadow-lg transition-all group">
               <div className="flex flex-col items-center space-y-3">
-                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-[#DDF3FC] text-[#1B64B0] flex items-center justify-center">
-                  <Video className="w-6 h-6 sm:w-7 sm:h-7" />
-                </div>
-                <h4 className="font-extrabold text-sm text-[#14263D]">{t('tech.livekit.title')}</h4>
-                <p className="text-xs text-[#55687D] leading-relaxed">{t('tech.livekit.desc')}</p>
+                <Video className="w-10 h-10 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-[#1B64B0] transition-colors">{t('tech.livekit.title')}</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">{t('tech.livekit.desc')}</p>
               </div>
               <Link
                 href="/student/classroom"
@@ -1202,30 +1158,26 @@ export default function HomePage() {
             </div>
 
             {/* AI Writing */}
-            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:shadow-lg transition-all">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:border-[#1B64B0] hover:shadow-lg transition-all group">
               <div className="flex flex-col items-center space-y-3">
-                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
-                  <PenTool className="w-6 h-6 sm:w-7 sm:h-7" />
-                </div>
-                <h4 className="font-extrabold text-sm text-[#14263D]">{t('tech.writing.title')}</h4>
-                <p className="text-xs text-[#55687D] leading-relaxed">{t('tech.writing.desc')}</p>
+                <PenTool className="w-10 h-10 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-[#1B64B0] transition-colors">{t('tech.writing.title')}</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">{t('tech.writing.desc')}</p>
               </div>
               <Link
                 href="/student/writing"
-                className="mt-6 w-full py-2.5 rounded-full bg-[#FFB547] text-[#14263D] text-xs font-extrabold hover:bg-[#FFA726] transition-colors shadow-sm"
+                className="mt-6 w-full py-2.5 rounded-full bg-[#1B64B0] text-white text-xs font-extrabold hover:bg-[#154E8A] transition-colors shadow-sm"
               >
                 {t('tech.writing.btn')}
               </Link>
             </div>
 
             {/* Speaking Studio */}
-            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:shadow-lg transition-all">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:border-[#1B64B0] hover:shadow-lg transition-all group">
               <div className="flex flex-col items-center space-y-3">
-                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-rose-100 text-[#E11D48] flex items-center justify-center">
-                  <Mic className="w-6 h-6 sm:w-7 sm:h-7" />
-                </div>
-                <h4 className="font-extrabold text-sm text-[#14263D]">{t('tech.speaking.title')}</h4>
-                <p className="text-xs text-[#55687D] leading-relaxed">{t('tech.speaking.desc')}</p>
+                <Mic className="w-10 h-10 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-[#1B64B0] transition-colors">{t('tech.speaking.title')}</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">{t('tech.speaking.desc')}</p>
               </div>
               <Link
                 href="/student/speaking"
@@ -1236,17 +1188,15 @@ export default function HomePage() {
             </div>
 
             {/* Watermark Security */}
-            <div className="bg-white rounded-2xl border border-[#E1EBF5] p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:shadow-lg transition-all">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:border-[#1B64B0] hover:shadow-lg transition-all group">
               <div className="flex flex-col items-center space-y-3">
-                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-sky-100 text-[#1B83B6] flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7" />
-                </div>
-                <h4 className="font-extrabold text-sm text-[#14263D]">{t('tech.library.title')}</h4>
-                <p className="text-xs text-[#55687D] leading-relaxed">{t('tech.library.desc')}</p>
+                <ShieldCheck className="w-10 h-10 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-[#1B64B0] transition-colors">{t('tech.library.title')}</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">{t('tech.library.desc')}</p>
               </div>
               <Link
                 href="/student/library"
-                className="mt-6 w-full py-2.5 rounded-full border border-[#E1EBF5] text-[#1B64B0] text-xs font-extrabold hover:bg-[#DDF3FC]/50 transition-colors"
+                className="mt-6 w-full py-2.5 rounded-full bg-[#1B64B0] text-white text-xs font-extrabold hover:bg-[#154E8A] transition-colors shadow-sm"
               >
                 {t('tech.library.btn')}
               </Link>

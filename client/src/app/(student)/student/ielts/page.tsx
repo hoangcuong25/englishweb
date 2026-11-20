@@ -616,15 +616,15 @@ export default function StudentIeltsHubPage() {
           </div>
 
           {/* Overall Band Tracker Card */}
-          <div className="flex items-center gap-4 bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-100 rounded-2xl p-4 shrink-0">
-            <div className="w-12 h-12 rounded-xl bg-sky-600 text-white flex flex-col items-center justify-center shadow-md shadow-sky-600/20">
+          <div className="flex items-center gap-4 bg-white border border-slate-200 rounded-2xl p-4 shrink-0 shadow-2xs">
+            <div className="w-12 h-12 rounded-xl bg-[#1B64B0] text-white flex flex-col items-center justify-center shadow-md shadow-[#1B64B0]/20">
               <span className="text-[10px] font-bold uppercase leading-none">Overall</span>
               <span className="text-lg font-black leading-tight">{overallBand.toFixed(1)}</span>
             </div>
             <div>
               <div className="text-[11px] font-bold text-slate-500">Mục tiêu band điểm</div>
               <div className="text-sm font-extrabold text-slate-900">Target Band 7.5+</div>
-              <div className="text-[11px] text-sky-600 font-semibold mt-0.5">
+              <div className="text-[11px] text-[#1B64B0] font-semibold mt-0.5">
                 L: {scores.listening} • R: {scores.reading} • W: {scores.writing} • S: {scores.speaking}
               </div>
             </div>
@@ -636,10 +636,10 @@ export default function StudentIeltsHubPage() {
           <div className="flex items-center gap-2 mt-6 pt-5 border-t border-line overflow-x-auto">
             <button
               onClick={() => setActiveSkill('overview')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap cursor-pointer ${
                 activeSkill === 'overview'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                  ? 'bg-[#1B64B0] text-white shadow-md shadow-[#1B64B0]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
               <BarChart3 className="w-4 h-4" />
@@ -648,10 +648,10 @@ export default function StudentIeltsHubPage() {
 
             <button
               onClick={() => setActiveSkill('listening')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap cursor-pointer ${
                 activeSkill === 'listening'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                  ? 'bg-[#1B64B0] text-white shadow-md shadow-[#1B64B0]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
               <Headphones className="w-4 h-4" />
@@ -660,10 +660,10 @@ export default function StudentIeltsHubPage() {
 
             <button
               onClick={() => setActiveSkill('reading')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap cursor-pointer ${
                 activeSkill === 'reading'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                  ? 'bg-[#1B64B0] text-white shadow-md shadow-[#1B64B0]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
               <BookOpen className="w-4 h-4" />
@@ -672,10 +672,10 @@ export default function StudentIeltsHubPage() {
 
             <button
               onClick={() => setActiveSkill('writing')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap cursor-pointer ${
                 activeSkill === 'writing'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                  ? 'bg-[#1B64B0] text-white shadow-md shadow-[#1B64B0]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
               <PenTool className="w-4 h-4" />
@@ -684,10 +684,10 @@ export default function StudentIeltsHubPage() {
 
             <button
               onClick={() => setActiveSkill('speaking')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap cursor-pointer ${
                 activeSkill === 'speaking'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                  ? 'bg-[#1B64B0] text-white shadow-md shadow-[#1B64B0]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
               <Mic className="w-4 h-4" />
@@ -765,23 +765,21 @@ export default function StudentIeltsHubPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div
                   onClick={() => setActiveSkill('listening')}
-                  className="bg-white p-5 rounded-3xl border border-line shadow-xs hover:border-sky-500 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                  className="bg-white p-5 rounded-3xl border border-line shadow-xs hover:border-[#1B64B0] cursor-pointer transition-all hover:-translate-y-0.5 group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-11 h-11 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-colors">
-                      <Headphones className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-black text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
+                    <Headphones className="w-7 h-7 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                    <span className="text-xs font-black text-slate-700 bg-slate-100 group-hover:bg-sky-50 group-hover:text-[#1B64B0] px-2.5 py-0.5 rounded-full transition-colors">
                       Band {scores.listening}
                     </span>
                   </div>
-                  <h3 className="font-extrabold text-base text-slate-900 mt-3 group-hover:text-sky-600 transition-colors">
+                  <h3 className="font-extrabold text-base text-slate-900 mt-3 group-hover:text-[#1B64B0] transition-colors">
                     1. Listening (Luyện Nghe)
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                     Audio Player nghe chuẩn Cambridge, dạng bài Note & Form Completion.
                   </p>
-                  <div className="flex items-center gap-1 text-xs font-bold text-sky-600 mt-3">
+                  <div className="flex items-center gap-1 text-xs font-bold text-[#1B64B0] mt-3">
                     <span>Luyện tập ngay</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -789,23 +787,21 @@ export default function StudentIeltsHubPage() {
 
                 <div
                   onClick={() => setActiveSkill('reading')}
-                  className="bg-white p-5 rounded-3xl border border-line shadow-xs hover:border-sky-500 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                  className="bg-white p-5 rounded-3xl border border-line shadow-xs hover:border-[#1B64B0] cursor-pointer transition-all hover:-translate-y-0.5 group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    <BookOpen className="w-7 h-7 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                    <span className="text-xs font-black text-slate-700 bg-slate-100 group-hover:bg-sky-50 group-hover:text-[#1B64B0] px-2.5 py-0.5 rounded-full transition-colors">
                       Band {scores.reading}
                     </span>
                   </div>
-                  <h3 className="font-extrabold text-base text-slate-900 mt-3 group-hover:text-blue-600 transition-colors">
+                  <h3 className="font-extrabold text-base text-slate-900 mt-3 group-hover:text-[#1B64B0] transition-colors">
                     2. Reading (Luyện Đọc)
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                     Đọc đoạn văn Academic Passage, True/False/Not Given, hẹn giờ 60 phút.
                   </p>
-                  <div className="flex items-center gap-1 text-xs font-bold text-blue-600 mt-3">
+                  <div className="flex items-center gap-1 text-xs font-bold text-[#1B64B0] mt-3">
                     <span>Luyện tập ngay</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -813,23 +809,21 @@ export default function StudentIeltsHubPage() {
 
                 <div
                   onClick={() => setActiveSkill('writing')}
-                  className="bg-white p-5 rounded-3xl border border-line shadow-xs hover:border-sky-500 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                  className="bg-white p-5 rounded-3xl border border-line shadow-xs hover:border-[#1B64B0] cursor-pointer transition-all hover:-translate-y-0.5 group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                      <PenTool className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                    <PenTool className="w-7 h-7 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                    <span className="text-xs font-black text-slate-700 bg-slate-100 group-hover:bg-sky-50 group-hover:text-[#1B64B0] px-2.5 py-0.5 rounded-full transition-colors">
                       Band {scores.writing}
                     </span>
                   </div>
-                  <h3 className="font-extrabold text-base text-slate-900 mt-3 group-hover:text-purple-600 transition-colors">
+                  <h3 className="font-extrabold text-base text-slate-900 mt-3 group-hover:text-[#1B64B0] transition-colors">
                     3. Writing (Luyện Viết AI)
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                     Đếm từ thời gian thực, AI chấm 4 tiêu chí TR, CC, LR, GRA và sửa lỗi.
                   </p>
-                  <div className="flex items-center gap-1 text-xs font-bold text-purple-600 mt-3">
+                  <div className="flex items-center gap-1 text-xs font-bold text-[#1B64B0] mt-3">
                     <span>Luyện tập ngay</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -837,23 +831,21 @@ export default function StudentIeltsHubPage() {
 
                 <div
                   onClick={() => setActiveSkill('speaking')}
-                  className="bg-white p-5 rounded-3xl border border-line shadow-xs hover:border-sky-500 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                  className="bg-white p-5 rounded-3xl border border-line shadow-xs hover:border-[#1B64B0] cursor-pointer transition-all hover:-translate-y-0.5 group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                      <Mic className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    <Mic className="w-7 h-7 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                    <span className="text-xs font-black text-slate-700 bg-slate-100 group-hover:bg-sky-50 group-hover:text-[#1B64B0] px-2.5 py-0.5 rounded-full transition-colors">
                       Band {scores.speaking}
                     </span>
                   </div>
-                  <h3 className="font-extrabold text-base text-slate-900 mt-3 group-hover:text-emerald-600 transition-colors">
+                  <h3 className="font-extrabold text-base text-slate-900 mt-3 group-hover:text-[#1B64B0] transition-colors">
                     4. Speaking (Studio Luyện Nói)
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                     Thu âm sóng âm Web Audio API, nộp bài Thầy Đông chấm 4 tiêu chí.
                   </p>
-                  <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 mt-3">
+                  <div className="flex items-center gap-1 text-xs font-bold text-[#1B64B0] mt-3">
                     <span>Luyện tập ngay</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -886,8 +878,9 @@ export default function StudentIeltsHubPage() {
                   </div>
 
                   <div className="pt-2">
-                    <p className="text-xs text-slate-500 italic">
-                      💡 <strong>Lời khuyên từ Thầy Đông:</strong> Hãy tập trung bổ sung các mẫu câu phức hợp (Inversion & Cleft sentences) trong Writing Task 2 để nâng tiêu chí GRA từ 6.5 lên 7.5+.
+                    <p className="text-xs text-slate-500 italic flex items-start gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                      <span><strong>Lời khuyên từ Thầy Đông:</strong> Hãy tập trung bổ sung các mẫu câu phức hợp (Inversion & Cleft sentences) trong Writing Task 2 để nâng tiêu chí GRA từ 6.5 lên 7.5+.</span>
                     </p>
                   </div>
                 </div>
@@ -950,11 +943,11 @@ export default function StudentIeltsHubPage() {
                       {/* Skill Pills */}
                       <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
                         {[
-                          { key: 'listening', label: '🎧 Listening' },
-                          { key: 'reading', label: '📖 Reading' },
-                          { key: 'writing', label: '✍️ Writing' },
-                          { key: 'speaking', label: '🎙️ Speaking' },
-                          { key: 'all', label: 'Tất cả 4 Kỹ năng' },
+                          { key: 'listening', label: 'Listening', icon: Headphones },
+                          { key: 'reading', label: 'Reading', icon: BookOpen },
+                          { key: 'writing', label: 'Writing', icon: PenTool },
+                          { key: 'speaking', label: 'Speaking', icon: Mic },
+                          { key: 'all', label: 'Tất cả 4 Kỹ năng', icon: null },
                         ].map((tab) => (
                           <button
                             key={tab.key}
@@ -963,13 +956,14 @@ export default function StudentIeltsHubPage() {
                                 tab.key as 'all' | 'listening' | 'reading' | 'writing' | 'speaking',
                               )
                             }
-                            className={`px-2.5 py-1 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
+                            className={`px-2.5 py-1 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                               diagSkillFilter === tab.key
-                                ? 'bg-sky-600 text-white shadow-xs'
+                                ? 'bg-[#1B64B0] text-white shadow-xs'
                                 : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/60'
                             }`}
                           >
-                            {tab.label}
+                            {tab.icon && <tab.icon className="w-3.5 h-3.5 shrink-0" />}
+                            <span>{tab.label}</span>
                           </button>
                         ))}
                       </div>

@@ -34,6 +34,10 @@ import {
   Target,
   Sparkles,
   BarChart3,
+  Globe,
+  Compass,
+  Trophy,
+  FileEdit,
 } from 'lucide-react';
 
 export type QuestionType =
@@ -822,7 +826,8 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>🇬🇧 Tiếng Anh & IELTS</span>
+            <Globe className="w-3.5 h-3.5 shrink-0" />
+            <span>Tiếng Anh & IELTS</span>
             {hasEnglishAccess && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
           </button>
           <button
@@ -838,7 +843,8 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>🌟 Kỹ Năng & Sư Phạm</span>
+            <Compass className="w-3.5 h-3.5 shrink-0" />
+            <span>Kỹ Năng & Sư Phạm</span>
             {hasPersonalDevAccess && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
           </button>
         </div>
@@ -846,11 +852,11 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
         {/* Quick Quiz Type Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
           {[
-            { id: 'ALL', label: 'Tất cả loại bài' },
-            { id: 'SITUATION_QUIZ', label: '🎯 Tình Huống / Case Study' },
-            { id: 'FULL_MOCK_TEST', label: '🏆 Đề Thi Thử (Mock)' },
-            { id: 'PRACTICE_TEST', label: '📝 Luyện Tập Chuyên Đề' },
-            { id: 'LESSON_QUIZ', label: '📖 Củng Cố Bài Học' },
+            { id: 'ALL', label: 'Tất cả loại bài', icon: null },
+            { id: 'SITUATION_QUIZ', label: 'Tình Huống / Case Study', icon: Target },
+            { id: 'FULL_MOCK_TEST', label: 'Đề Thi Thử (Mock)', icon: Trophy },
+            { id: 'PRACTICE_TEST', label: 'Luyện Tập Chuyên Đề', icon: FileEdit },
+            { id: 'LESSON_QUIZ', label: 'Củng Cố Bài Học', icon: BookOpen },
           ].map((type) => (
             <button
               key={type.id}
@@ -858,13 +864,14 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
                 setFilterQuizType(type.id);
                 setSelectedQuizIndex(0);
               }}
-              className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition ${
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
                 filterQuizType === type.id
                   ? 'bg-slate-900 text-white shadow-2xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
               }`}
             >
-              {type.label}
+              {type.icon && <type.icon className="w-3 h-3 shrink-0" />}
+              <span>{type.label}</span>
             </button>
           ))}
         </div>

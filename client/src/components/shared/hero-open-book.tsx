@@ -9,6 +9,7 @@ import {
   PenTool,
   Zap,
   Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 
 export type IELTSSkillType = 'listening' | 'speaking' | 'reading' | 'writing';
@@ -34,11 +35,11 @@ const IELTS_SKILLS: SkillInfo[] = [
     shortTitle: 'Listening',
     tagline: 'Acoustic SFU & Accents',
     bandTarget: 'Band 8.5+',
-    accentColor: '#0284C7', // Sky Blue 600
+    accentColor: '#1B64B0',
     ringColor: 'ring-sky-500',
-    badgeBg: 'bg-sky-50 text-sky-700 border-sky-200',
+    badgeBg: 'bg-sky-50 text-[#1B64B0] border-sky-200',
     icon: Headphones,
-    description: 'Master British, American & Australian accents with live audio playback and speed control.',
+    description: 'Luyện nghe chuẩn Cambridge với đa dạng ngữ điệu Anh - Mỹ - Úc, kiểm soát tốc độ phát thanh linh hoạt.',
     criteria: ['Section 1-4 Mastery', 'Distractor Trap Defense', 'Speed Audio 1.25x'],
   },
   {
@@ -47,11 +48,11 @@ const IELTS_SKILLS: SkillInfo[] = [
     shortTitle: 'Speaking',
     tagline: 'Realtime Waveform & Fluency',
     bandTarget: 'Band 8.0+',
-    accentColor: '#D97706', // Amber 600
-    ringColor: 'ring-amber-500',
-    badgeBg: 'bg-amber-50 text-amber-700 border-amber-200',
+    accentColor: '#1B64B0',
+    ringColor: 'ring-sky-500',
+    badgeBg: 'bg-sky-50 text-[#1B64B0] border-sky-200',
     icon: Mic,
-    description: 'Live studio recording with Web Audio API waveform and timestamped coaching comments.',
+    description: 'Studio thu âm trực tuyến hiển thị trực quan dạng sóng âm qua Web Audio API kèm nhận xét timestamp chi tiết.',
     criteria: ['Fluency & Coherence', 'Lexical Resource', 'Pronunciation & Pitch'],
   },
   {
@@ -60,11 +61,11 @@ const IELTS_SKILLS: SkillInfo[] = [
     shortTitle: 'Reading',
     tagline: 'Academic Scanning & Speed',
     bandTarget: 'Band 9.0',
-    accentColor: '#059669', // Emerald 600
-    ringColor: 'ring-emerald-500',
-    badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    accentColor: '#1B64B0',
+    ringColor: 'ring-sky-500',
+    badgeBg: 'bg-sky-50 text-[#1B64B0] border-sky-200',
     icon: BookOpen,
-    description: 'High-speed analytical reading across academic research papers and historical texts.',
+    description: 'Luyện kỹ năng đọc lướt, quét thông tin và chiến lược xử lý các dạng bài Academic khó nhất trong 60 phút.',
     criteria: ['Skimming & Scanning', 'True / False / Not Given', 'Matching Headings'],
   },
   {
@@ -73,11 +74,11 @@ const IELTS_SKILLS: SkillInfo[] = [
     shortTitle: 'Writing AI',
     tagline: 'Instant 4-Criteria Rubric',
     bandTarget: 'Band 8.0+',
-    accentColor: '#7C3AED', // Violet 600
-    ringColor: 'ring-violet-500',
-    badgeBg: 'bg-violet-50 text-violet-700 border-violet-200',
+    accentColor: '#1B64B0',
+    ringColor: 'ring-sky-500',
+    badgeBg: 'bg-sky-50 text-[#1B64B0] border-sky-200',
     icon: PenTool,
-    description: 'Automated evaluation for IELTS Task 1 & 2 with detailed lexical and grammar suggestions.',
+    description: 'Hệ thống AI chấm IELTS Writing Task 1 & 2 tức thì theo 4 tiêu chí chuẩn quốc tế TR, CC, LR và GRA.',
     criteria: ['Task Achievement', 'Coherence & Cohesion', 'Grammatical Accuracy'],
   },
 ];
@@ -97,16 +98,7 @@ export default function HeroOpenBook() {
         <div
           className="absolute inset-0 rounded-full blur-3xl opacity-60 transition-all duration-700 pointer-events-none"
           style={{
-            background:
-              currentSelection === 'listening'
-                ? 'radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.22) 0%, transparent 70%)'
-                : currentSelection === 'speaking'
-                ? 'radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.2) 0%, transparent 70%)'
-                : currentSelection === 'reading'
-                ? 'radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.2) 0%, transparent 70%)'
-                : currentSelection === 'writing'
-                ? 'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.2) 0%, transparent 70%)'
-                : 'radial-gradient(circle at 50% 50%, rgba(27, 100, 176, 0.18) 0%, rgba(56, 189, 248, 0.12) 40%, transparent 75%)',
+            background: 'radial-gradient(circle at 50% 50%, rgba(27, 100, 176, 0.22) 0%, rgba(56, 189, 248, 0.12) 40%, transparent 75%)',
           }}
         />
 
@@ -142,7 +134,7 @@ export default function HeroOpenBook() {
           </div>
 
           {/* Interactive Target Reticles & Self-Contained HUD Badges ON the Diorama */}
-          
+
           {/* 1. Listening Pavilion (Back-Left) */}
           <div className="absolute top-[34%] left-[28%] z-20 -translate-x-1/2 -translate-y-1/2 flex items-center">
             <button
@@ -153,12 +145,12 @@ export default function HeroOpenBook() {
               className="relative w-7 h-7 sm:w-8 sm:h-8 group/pin cursor-pointer focus:outline-none"
               aria-label="Listening Pavilion"
             >
-              <span className="absolute inset-0 rounded-full bg-sky-500/30 animate-ping" />
+              <span className="absolute inset-0 rounded-full bg-[#1B64B0]/25 animate-ping" />
               <span
                 className={`relative flex items-center justify-center w-full h-full rounded-full border-2 transition-all duration-300 shadow-md ${
                   currentSelection === 'listening'
-                    ? 'bg-sky-600 text-white border-white scale-115 shadow-sky-400/50'
-                    : 'bg-white text-sky-600 border-sky-400 hover:scale-110'
+                    ? 'bg-[#1B64B0] text-white border-white scale-115 shadow-[#1B64B0]/40'
+                    : 'bg-white text-[#1B64B0] border-[#BBDDF5] hover:scale-110'
                 }`}
               >
                 <Headphones className="w-3.5 h-3.5" />
@@ -167,15 +159,15 @@ export default function HeroOpenBook() {
             {/* Self-contained Inward Label (towards center) */}
             <div
               onClick={() => setActiveSkill('listening')}
-              className={`hidden sm:flex items-center gap-1 ml-2 px-2 py-0.5 rounded-lg border transition-all cursor-pointer backdrop-blur-md shadow-xs ${
+              className={`hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-xl border transition-all cursor-pointer backdrop-blur-md shadow-xs ${
                 currentSelection === 'listening'
-                  ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
-                  : 'bg-white/90 text-slate-800 border-slate-200 hover:border-sky-300'
+                  ? 'bg-[#1B64B0] text-white border-[#1B64B0] shadow-sm'
+                  : 'bg-white/95 text-slate-800 border-slate-200 hover:border-[#1B64B0]'
               }`}
             >
-              <span className="font-extrabold text-[10px] whitespace-nowrap">Listening</span>
-              <span className={`text-[8.5px] font-mono font-bold px-1 rounded ${
-                currentSelection === 'listening' ? 'bg-sky-800 text-white' : 'bg-sky-50 text-sky-700'
+              <span className="font-extrabold text-[10.5px] whitespace-nowrap">Listening</span>
+              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md ${
+                currentSelection === 'listening' ? 'bg-sky-950/40 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 8.5+
               </span>
@@ -192,12 +184,12 @@ export default function HeroOpenBook() {
               className="relative w-7 h-7 sm:w-8 sm:h-8 group/pin cursor-pointer focus:outline-none"
               aria-label="Speaking Dome"
             >
-              <span className="absolute inset-0 rounded-full bg-amber-500/30 animate-ping" />
+              <span className="absolute inset-0 rounded-full bg-[#1B64B0]/25 animate-ping" />
               <span
                 className={`relative flex items-center justify-center w-full h-full rounded-full border-2 transition-all duration-300 shadow-md ${
                   currentSelection === 'speaking'
-                    ? 'bg-amber-500 text-white border-white scale-115 shadow-amber-400/50'
-                    : 'bg-white text-amber-600 border-amber-400 hover:scale-110'
+                    ? 'bg-[#1B64B0] text-white border-white scale-115 shadow-[#1B64B0]/40'
+                    : 'bg-white text-[#1B64B0] border-[#BBDDF5] hover:scale-110'
                 }`}
               >
                 <Mic className="w-3.5 h-3.5" />
@@ -206,15 +198,15 @@ export default function HeroOpenBook() {
             {/* Self-contained Inward Label */}
             <div
               onClick={() => setActiveSkill('speaking')}
-              className={`hidden sm:flex items-center gap-1 mr-2 px-2 py-0.5 rounded-lg border transition-all cursor-pointer backdrop-blur-md shadow-xs ${
+              className={`hidden sm:flex items-center gap-1.5 mr-2 px-2.5 py-1 rounded-xl border transition-all cursor-pointer backdrop-blur-md shadow-xs ${
                 currentSelection === 'speaking'
-                  ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                  : 'bg-white/90 text-slate-800 border-slate-200 hover:border-amber-300'
+                  ? 'bg-[#1B64B0] text-white border-[#1B64B0] shadow-sm'
+                  : 'bg-white/95 text-slate-800 border-slate-200 hover:border-[#1B64B0]'
               }`}
             >
-              <span className="font-extrabold text-[10px] whitespace-nowrap">Speaking</span>
-              <span className={`text-[8.5px] font-mono font-bold px-1 rounded ${
-                currentSelection === 'speaking' ? 'bg-amber-700 text-white' : 'bg-amber-50 text-amber-800'
+              <span className="font-extrabold text-[10.5px] whitespace-nowrap">Speaking</span>
+              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md ${
+                currentSelection === 'speaking' ? 'bg-sky-950/40 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 8.0+
               </span>
@@ -231,12 +223,12 @@ export default function HeroOpenBook() {
               className="relative w-7 h-7 sm:w-8 sm:h-8 group/pin cursor-pointer focus:outline-none"
               aria-label="Reading Pavilion"
             >
-              <span className="absolute inset-0 rounded-full bg-emerald-500/30 animate-ping" />
+              <span className="absolute inset-0 rounded-full bg-[#1B64B0]/25 animate-ping" />
               <span
                 className={`relative flex items-center justify-center w-full h-full rounded-full border-2 transition-all duration-300 shadow-md ${
                   currentSelection === 'reading'
-                    ? 'bg-emerald-600 text-white border-white scale-115 shadow-emerald-400/50'
-                    : 'bg-white text-emerald-600 border-emerald-400 hover:scale-110'
+                    ? 'bg-[#1B64B0] text-white border-white scale-115 shadow-[#1B64B0]/40'
+                    : 'bg-white text-[#1B64B0] border-[#BBDDF5] hover:scale-110'
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -245,15 +237,15 @@ export default function HeroOpenBook() {
             {/* Self-contained Inward Label */}
             <div
               onClick={() => setActiveSkill('reading')}
-              className={`hidden sm:flex items-center gap-1 ml-2 px-2 py-0.5 rounded-lg border transition-all cursor-pointer backdrop-blur-md shadow-xs ${
+              className={`hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-xl border transition-all cursor-pointer backdrop-blur-md shadow-xs ${
                 currentSelection === 'reading'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                  : 'bg-white/90 text-slate-800 border-slate-200 hover:border-emerald-300'
+                  ? 'bg-[#1B64B0] text-white border-[#1B64B0] shadow-sm'
+                  : 'bg-white/95 text-slate-800 border-slate-200 hover:border-[#1B64B0]'
               }`}
             >
-              <span className="font-extrabold text-[10px] whitespace-nowrap">Reading</span>
-              <span className={`text-[8.5px] font-mono font-bold px-1 rounded ${
-                currentSelection === 'reading' ? 'bg-emerald-800 text-white' : 'bg-emerald-50 text-emerald-800'
+              <span className="font-extrabold text-[10.5px] whitespace-nowrap">Reading</span>
+              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md ${
+                currentSelection === 'reading' ? 'bg-sky-950/40 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 9.0
               </span>
@@ -270,12 +262,12 @@ export default function HeroOpenBook() {
               className="relative w-7 h-7 sm:w-8 sm:h-8 group/pin cursor-pointer focus:outline-none"
               aria-label="Writing AI Pavilion"
             >
-              <span className="absolute inset-0 rounded-full bg-violet-500/30 animate-ping" />
+              <span className="absolute inset-0 rounded-full bg-[#1B64B0]/25 animate-ping" />
               <span
                 className={`relative flex items-center justify-center w-full h-full rounded-full border-2 transition-all duration-300 shadow-md ${
                   currentSelection === 'writing'
-                    ? 'bg-violet-600 text-white border-white scale-115 shadow-violet-400/50'
-                    : 'bg-white text-violet-600 border-violet-400 hover:scale-110'
+                    ? 'bg-[#1B64B0] text-white border-white scale-115 shadow-[#1B64B0]/40'
+                    : 'bg-white text-[#1B64B0] border-[#BBDDF5] hover:scale-110'
                 }`}
               >
                 <PenTool className="w-3.5 h-3.5" />
@@ -284,15 +276,15 @@ export default function HeroOpenBook() {
             {/* Self-contained Inward Label */}
             <div
               onClick={() => setActiveSkill('writing')}
-              className={`hidden sm:flex items-center gap-1 mr-2 px-2 py-0.5 rounded-lg border transition-all cursor-pointer backdrop-blur-md shadow-xs ${
+              className={`hidden sm:flex items-center gap-1.5 mr-2 px-2.5 py-1 rounded-xl border transition-all cursor-pointer backdrop-blur-md shadow-xs ${
                 currentSelection === 'writing'
-                  ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                  : 'bg-white/90 text-slate-800 border-slate-200 hover:border-violet-300'
+                  ? 'bg-[#1B64B0] text-white border-[#1B64B0] shadow-sm'
+                  : 'bg-white/95 text-slate-800 border-slate-200 hover:border-[#1B64B0]'
               }`}
             >
-              <span className="font-extrabold text-[10px] whitespace-nowrap">Writing AI</span>
-              <span className={`text-[8.5px] font-mono font-bold px-1 rounded ${
-                currentSelection === 'writing' ? 'bg-violet-800 text-white' : 'bg-violet-50 text-violet-800'
+              <span className="font-extrabold text-[10.5px] whitespace-nowrap">Writing AI</span>
+              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md ${
+                currentSelection === 'writing' ? 'bg-sky-950/40 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 8.0+
               </span>
@@ -314,29 +306,27 @@ export default function HeroOpenBook() {
               onClick={() => setActiveSkill(skill.id)}
               onMouseEnter={() => setHoveredSkill(skill.id)}
               onMouseLeave={() => setHoveredSkill(null)}
-              className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-2xs ${isSelected
-                ? 'bg-[#1B64B0] text-white border-[#1B64B0] shadow-md shadow-sky-900/15'
-                : 'bg-white text-[#14263D] border-[#E2E8F0] hover:border-sky-300 hover:bg-sky-50/50'
-                }`}
+              className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-left border transition-all duration-200 cursor-pointer shadow-2xs select-none active:scale-[0.98] ${
+                isSelected
+                  ? 'bg-[#1B64B0] text-white border-[#1B64B0] shadow-md shadow-sky-900/15'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50'
+              }`}
             >
-              <div
-                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-bold ${isSelected ? 'bg-white/20 text-white' : ''
-                  }`}
-                style={{
-                  backgroundColor: !isSelected ? `${skill.accentColor}18` : undefined,
-                  color: !isSelected ? skill.accentColor : undefined,
-                }}
-              >
-                <Icon className="w-3.5 h-3.5" />
-              </div>
+              <Icon
+                className={`w-4 h-4 shrink-0 transition-colors ${
+                  isSelected
+                    ? 'text-white'
+                    : 'text-slate-400 group-hover:text-[#1B64B0]'
+                }`}
+              />
               <div className="min-w-0 flex-1">
-                <p className={`font-bold text-xs leading-tight whitespace-nowrap ${isSelected ? 'text-white' : 'text-[#14263D]'}`}>
+                <p className={`font-bold text-xs leading-tight whitespace-nowrap ${isSelected ? 'text-white' : 'text-slate-900 group-hover:text-[#1B64B0]'}`}>
                   {skill.shortTitle}
                 </p>
                 <p
-                  className={`text-[10px] font-mono font-semibold whitespace-nowrap ${isSelected ? 'text-sky-100' : ''
-                    }`}
-                  style={{ color: !isSelected ? skill.accentColor : undefined }}
+                  className={`text-[10px] font-mono font-semibold whitespace-nowrap mt-0.5 ${
+                    isSelected ? 'text-sky-100' : 'text-slate-400'
+                  }`}
                 >
                   {skill.bandTarget}
                 </p>
@@ -348,41 +338,32 @@ export default function HeroOpenBook() {
 
       {/* Selected Skill Criteria Card (Light Card with Teacher Dong Slate / Sky Tokens) */}
       {currentSkillData && (
-        <div className="mt-3 w-full max-w-[480px] lg:max-w-[520px] p-3.5 rounded-2xl bg-white border border-[#E1EBF5] shadow-lg shadow-sky-900/5 text-[#14263D] transition-all duration-300">
+        <div className="mt-3 w-full max-w-[480px] lg:max-w-[520px] p-4 rounded-2xl bg-white border border-slate-200 shadow-sm text-slate-800 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: currentSkillData.accentColor }}
-              />
-              <h4 className="font-extrabold text-sm text-[#14263D] flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#1B64B0]" />
+              <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
                 {currentSkillData.title}
-                <span
-                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"
-                  style={{
-                    backgroundColor: `${currentSkillData.accentColor}15`,
-                    color: currentSkillData.accentColor,
-                  }}
-                >
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-50 text-[#1B64B0] border border-sky-100">
                   {currentSkillData.bandTarget}
                 </span>
               </h4>
             </div>
             <span className="text-[11px] text-[#1B64B0] font-semibold flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-[#1B83B6]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#1B64B0]" />
               EdTech SFU
             </span>
           </div>
 
-          <p className="text-xs text-[#55687D] mb-2.5 leading-relaxed">{currentSkillData.description}</p>
+          <p className="text-xs text-slate-600 mb-2.5 leading-relaxed">{currentSkillData.description}</p>
 
           <div className="flex flex-wrap gap-1.5">
             {currentSkillData.criteria.map((c, idx) => (
               <span
                 key={idx}
-                className="text-[10.5px] px-2.5 py-1 rounded-lg bg-[#F7FAFD] text-[#14263D] font-semibold border border-[#E1EBF5] flex items-center gap-1.5"
+                className="text-[10.5px] px-2.5 py-1 rounded-lg bg-white text-slate-700 font-semibold border border-slate-200 flex items-center gap-1.5 shadow-2xs"
               >
-                <Zap className="w-3 h-3 text-[#1B83B6]" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#1B64B0]" />
                 {c}
               </span>
             ))}

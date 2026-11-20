@@ -237,8 +237,8 @@ export default function StudentSpeakingPage() {
       {/* Studio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold mb-1">
-            <Headphones className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 text-xs font-bold mb-1">
+            <Mic className="w-3.5 h-3.5 text-[#1B64B0]" />
             <span>IELTS Speaking Studio (Web Audio API Waveform)</span>
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">

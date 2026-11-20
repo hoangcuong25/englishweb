@@ -41,6 +41,7 @@ import {
   LayoutGrid,
   List,
   Compass,
+  Globe,
 } from 'lucide-react';
 
 interface AttachedMaterial {
@@ -1016,7 +1017,8 @@ export default function AdminCoursesPage() {
                       : 'text-slate-600 hover:text-sky-700'
                   }`}
                 >
-                  <span>🇬🇧 Tiếng Anh & IELTS ({englishCoursesCount})</span>
+                  <Globe className="w-3.5 h-3.5 shrink-0" />
+                  <span>Tiếng Anh & IELTS ({englishCoursesCount})</span>
                 </button>
                 <button
                   type="button"
@@ -1030,7 +1032,8 @@ export default function AdminCoursesPage() {
                       : 'text-slate-600 hover:text-emerald-700'
                   }`}
                 >
-                  <span>🌟 Phát Triển Cá Nhân & Sư Phạm ({personalDevCoursesCount})</span>
+                  <Compass className="w-3.5 h-3.5 shrink-0" />
+                  <span>Phát Triển Cá Nhân & Sư Phạm ({personalDevCoursesCount})</span>
                 </button>
               </div>
 
@@ -1658,21 +1661,22 @@ export default function AdminCoursesPage() {
 
             <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
               {[
-                { id: 'ALL', label: `Tất cả (${enrollments.length})` },
-                { id: 'PENDING', label: `⏳ Chờ duyệt (${pendingCount})` },
-                { id: 'ACTIVE', label: '✅ Đã kích hoạt' },
-                { id: 'REJECTED', label: '❌ Đã từ chối' },
+                { id: 'ALL', label: `Tất cả (${enrollments.length})`, icon: null },
+                { id: 'PENDING', label: `Chờ duyệt (${pendingCount})`, icon: Clock },
+                { id: 'ACTIVE', label: 'Đã kích hoạt', icon: CheckCircle2 },
+                { id: 'REJECTED', label: 'Đã từ chối', icon: X },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setEnrollmentFilter(tab.id as any)}
-                  className={`px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition flex items-center gap-1.5 ${
                     enrollmentFilter === tab.id
                       ? 'bg-sky-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {tab.label}
+                  {tab.icon && <tab.icon className="w-3.5 h-3.5 shrink-0" />}
+                  <span>{tab.label}</span>
                 </button>
               ))}
 
@@ -1818,7 +1822,7 @@ export default function AdminCoursesPage() {
                       <BookOpen className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-black">🇬🇧 Đào Tạo Tiếng Anh & IELTS</p>
+                      <p className="text-xs font-black">Đào Tạo Tiếng Anh & IELTS</p>
                       <p className="text-[10px] text-slate-500">IELTS, Giao tiếp, Doanh nghiệp, Thiếu nhi</p>
                     </div>
                   </button>
@@ -1849,7 +1853,7 @@ export default function AdminCoursesPage() {
                       <Compass className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-black">🌟 Phát Triển Cá Nhân & Sư Phạm</p>
+                      <p className="text-xs font-black">Phát Triển Cá Nhân & Sư Phạm</p>
                       <p className="text-[10px] text-slate-500">Sư phạm EdTech, Kỹ năng sống & mềm</p>
                     </div>
                   </button>

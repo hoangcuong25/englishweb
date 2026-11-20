@@ -20,6 +20,7 @@ import {
   Compass,
   Mic,
   GraduationCap,
+  Languages,
 } from 'lucide-react';
 
 const ENGLISH_CATEGORIES = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'];
@@ -158,12 +159,10 @@ export default function StudentDashboard() {
       {/* 2. Four Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Stat 1: Courses */}
-        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
+        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3 group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted">Khóa học đang học</span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50 text-primary flex items-center justify-center">
-              <BookOpen className="w-4 h-4" />
-            </div>
+            <BookOpen className="w-5 h-5 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -171,7 +170,7 @@ export default function StudentDashboard() {
             </div>
             <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
               <div
-                className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                className="bg-[#1B64B0] h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${overview.averageProgress || 68}%` }}
               ></div>
             </div>
@@ -179,15 +178,13 @@ export default function StudentDashboard() {
         </div>
 
         {/* Stat 2: Quizzes passed */}
-        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
+        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3 group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted">Quiz đã vượt qua</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
+            <CheckCircle2 className="w-5 h-5 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               {overview.completedQuizzesCount} <span className="text-xs font-bold text-slate-400">bài thi</span>
             </div>
             <p className="text-[11px] text-muted mt-1">Sàn điểm đạt chuẩn &ge; 80%</p>
@@ -195,7 +192,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Stat 3: Target Band / Adaptive Skill Competency Index */}
-        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
+        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3 group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted">
               {enrolledTracks.length === 1
@@ -207,8 +204,10 @@ export default function StudentDashboard() {
                 : 'Mục tiêu Sư Phạm'}
             </span>
 
-            {/* Toggle metric pill - only show when student has multiple tracks */}
-            {enrolledTracks.length > 1 && (
+            {/* Toggle metric pill or single track icon */}
+            {enrolledTracks.length === 1 ? (
+              <Target className="w-5 h-5 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+            ) : (
               <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[9.5px] font-extrabold">
                 {enrolledTracks.includes('ielts') && (
                   <button
@@ -216,7 +215,7 @@ export default function StudentDashboard() {
                     onClick={() => setMetricTab('ielts')}
                     className={`px-1.5 py-0.5 rounded-md transition ${
                       metricTab === 'ielts'
-                        ? 'bg-white text-amber-600 shadow-xs'
+                        ? 'bg-white text-[#1B64B0] shadow-xs'
                         : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
@@ -229,7 +228,7 @@ export default function StudentDashboard() {
                     onClick={() => setMetricTab('skills')}
                     className={`px-1.5 py-0.5 rounded-md transition ${
                       metricTab === 'skills'
-                        ? 'bg-white text-emerald-600 shadow-xs'
+                        ? 'bg-white text-[#1B64B0] shadow-xs'
                         : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
@@ -242,7 +241,7 @@ export default function StudentDashboard() {
                     onClick={() => setMetricTab('pedagogy')}
                     className={`px-1.5 py-0.5 rounded-md transition ${
                       metricTab === 'pedagogy'
-                        ? 'bg-white text-sky-600 shadow-xs'
+                        ? 'bg-white text-[#1B64B0] shadow-xs'
                         : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
@@ -255,31 +254,31 @@ export default function StudentDashboard() {
           <div>
             {metricTab === 'ielts' && (
               <>
-                <div className="text-2xl sm:text-3xl font-black text-amber-500 tracking-tight">
+                <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                   Band {latestSpeaking?.overallBand ? latestSpeaking.overallBand.toFixed(1) : '7.0+'}
                 </div>
                 <p className="text-[11px] text-muted mt-1">
-                  Mục tiêu cá nhân: <strong className="text-amber-600">Band 7.5+ IELTS</strong>
+                  Mục tiêu cá nhân: <strong className="text-[#1B64B0]">Band 7.5+ IELTS</strong>
                 </p>
               </>
             )}
             {metricTab === 'skills' && (
               <>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
+                <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                   92/100
                 </div>
                 <p className="text-[11px] text-muted mt-1">
-                  Mục tiêu cá nhân: <strong className="text-emerald-700">Tích lũy &ge; 90đ (Xuất Sắc ⭐)</strong>
+                  Mục tiêu cá nhân: <strong className="text-[#1B64B0]">Tích lũy &ge; 90đ (Xuất Sắc)</strong>
                 </p>
               </>
             )}
             {metricTab === 'pedagogy' && (
               <>
-                <div className="text-2xl sm:text-3xl font-black text-sky-600 tracking-tight">
+                <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                   4/5 Modul
                 </div>
                 <p className="text-[11px] text-muted mt-1">
-                  Mục tiêu cá nhân: <strong className="text-sky-700">Chứng chỉ Giỏi ⭐</strong>
+                  Mục tiêu cá nhân: <strong className="text-[#1B64B0]">Chứng chỉ Giỏi</strong>
                 </p>
               </>
             )}
@@ -287,15 +286,13 @@ export default function StudentDashboard() {
         </div>
 
         {/* Stat 4: Attendance */}
-        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
+        <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3 group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted">Chuyên cần WebRTC</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-              <CalendarCheck className="w-4 h-4" />
-            </div>
+            <CalendarCheck className="w-5 h-5 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-purple-600 tracking-tight">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               {attendanceRate}%
             </div>
             <p className="text-[11px] text-muted mt-1">{attendance.present}/{attendance.totalSessions} buổi đúng giờ (PRESENT)</p>
@@ -307,9 +304,7 @@ export default function StudentDashboard() {
       <div className="bg-white rounded-3xl border border-line p-5 sm:p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-sky-50 text-primary flex items-center justify-center">
-              <Target className="w-4 h-4" />
-            </div>
+            <Target className="w-5 h-5 text-[#1B64B0]" />
             <div>
               <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">
                 {enrolledTracks.length === 1 ? 'Mục Tiêu Cá Nhân Của Bạn' : 'Mục Tiêu Cá Nhân Theo Nhóm Kỹ Năng'}
@@ -321,7 +316,7 @@ export default function StudentDashboard() {
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-100 self-start sm:self-auto">
+          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 self-start sm:self-auto">
             {enrolledTracks.length === 1 ? 'Lộ Trình Đang Học' : `${enrolledTracks.length} Lộ Trình Đang Học`}
           </span>
         </div>
@@ -335,29 +330,29 @@ export default function StudentDashboard() {
         }`}>
           {/* Track 1: Tiếng Anh & IELTS */}
           {enrolledTracks.includes('ielts') && (
-            <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70 space-y-2.5">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2.5 hover:border-[#1B64B0] transition-colors group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Award className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-[#1B64B0]" />
                   <span>Tiếng Anh & IELTS</span>
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100/90 text-amber-800">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                   Hiện tại: Band {latestSpeaking?.overallBand ? latestSpeaking.overallBand.toFixed(1) : '7.0'}
                 </span>
               </div>
               <div>
                 <p className="text-[11px] text-slate-500 font-medium">Mục tiêu cá nhân:</p>
-                <p className="text-sm font-black text-amber-700 mt-0.5">
+                <p className="text-sm font-black text-slate-900 mt-0.5 group-hover:text-[#1B64B0] transition-colors">
                   Target Band 7.5+ Academic
                 </p>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-bold text-slate-500">
                   <span>Tiến độ hoàn thành</span>
-                  <span className="text-amber-700 font-extrabold">88%</span>
+                  <span className="text-[#1B64B0] font-extrabold">88%</span>
                 </div>
-                <div className="w-full bg-amber-200/60 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-amber-500 h-full rounded-full" style={{ width: '88%' }}></div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#1B64B0] h-full rounded-full" style={{ width: '88%' }}></div>
                 </div>
               </div>
             </div>
@@ -365,29 +360,29 @@ export default function StudentDashboard() {
 
           {/* Track 2: Kỹ Năng Mềm & Sống */}
           {enrolledTracks.includes('skills') && (
-            <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200/70 space-y-2.5">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2.5 hover:border-[#1B64B0] transition-colors group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Compass className="w-4 h-4 text-[#1B64B0]" />
                   <span>Kỹ Năng Mềm & Sống</span>
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-800">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                   Hiện tại: 92/100đ
                 </span>
               </div>
               <div>
                 <p className="text-[11px] text-slate-500 font-medium">Mục tiêu cá nhân:</p>
-                <p className="text-sm font-black text-emerald-700 mt-0.5">
-                  Tích lũy &ge; 90đ (Xuất Sắc ⭐)
+                <p className="text-sm font-black text-slate-900 mt-0.5 group-hover:text-[#1B64B0] transition-colors">
+                  Tích lũy &ge; 90đ (Xuất Sắc)
                 </p>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-bold text-slate-500">
                   <span>Tiến độ hoàn thành</span>
-                  <span className="text-emerald-700 font-extrabold">92%</span>
+                  <span className="text-[#1B64B0] font-extrabold">92%</span>
                 </div>
-                <div className="w-full bg-emerald-200/60 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: '92%' }}></div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#1B64B0] h-full rounded-full" style={{ width: '92%' }}></div>
                 </div>
               </div>
             </div>
@@ -395,29 +390,29 @@ export default function StudentDashboard() {
 
           {/* Track 3: Sư Phạm & Giảng Dạy EdTech */}
           {enrolledTracks.includes('pedagogy') && (
-            <div className="p-4 rounded-2xl bg-sky-50/40 border border-sky-200/70 space-y-2.5">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2.5 hover:border-[#1B64B0] transition-colors group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-sky-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+                <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <GraduationCap className="w-4 h-4 text-[#1B64B0]" />
                   <span>Sư Phạm & Nghiệp Vụ</span>
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100/90 text-sky-800">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                   Hiện tại: 4/5 Chuyên đề
                 </span>
               </div>
               <div>
                 <p className="text-[11px] text-slate-500 font-medium">Mục tiêu cá nhân:</p>
-                <p className="text-sm font-black text-sky-700 mt-0.5">
-                  Chứng chỉ Sư Phạm Xuất Sắc ⭐
+                <p className="text-sm font-black text-slate-900 mt-0.5 group-hover:text-[#1B64B0] transition-colors">
+                  Chứng chỉ Sư Phạm Xuất Sắc
                 </p>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-bold text-slate-500">
                   <span>Tiến độ hoàn thành</span>
-                  <span className="text-sky-700 font-extrabold">80%</span>
+                  <span className="text-[#1B64B0] font-extrabold">80%</span>
                 </div>
-                <div className="w-full bg-sky-200/60 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-sky-500 h-full rounded-full" style={{ width: '80%' }}></div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#1B64B0] h-full rounded-full" style={{ width: '80%' }}></div>
                 </div>
               </div>
             </div>
@@ -528,13 +523,15 @@ export default function StudentDashboard() {
             {/* Pillar A: Tiếng Anh & IELTS */}
             <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
               <div className="flex items-center justify-between border-b border-line pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🇬🇧</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 text-[#1B64B0] flex items-center justify-center shrink-0">
+                    <Languages className="w-4 h-4" />
+                  </div>
                   <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
                     Phân Hệ Đào Tạo Tiếng Anh & IELTS
                   </h4>
                 </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                   IELTS Mastery
                 </span>
               </div>
@@ -542,33 +539,33 @@ export default function StudentDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <Link
                   href="/student/ielts"
-                  className="p-3 rounded-2xl bg-sky-50/60 hover:bg-sky-100/70 border border-sky-100 transition space-y-1 group"
+                  className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 transition space-y-1 group select-none shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 group-hover:text-sky-700">IELTS 4 Kỹ Năng</span>
-                    <Award className="w-3.5 h-3.5 text-sky-600" />
+                    <span className="text-xs font-black text-slate-900 group-hover:text-[#1B64B0]">IELTS 4 Kỹ Năng</span>
+                    <Award className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
                   </div>
                   <p className="text-[10.5px] text-slate-500 line-clamp-1">Nghe • Đọc • Viết • Nói</p>
                 </Link>
 
                 <Link
                   href="/student/writing"
-                  className="p-3 rounded-2xl bg-purple-50/60 hover:bg-purple-100/70 border border-purple-100 transition space-y-1 group"
+                  className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 transition space-y-1 group select-none shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 group-hover:text-purple-700">Writing AI Studio</span>
-                    <PenTool className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-xs font-black text-slate-900 group-hover:text-[#1B64B0]">Writing AI Studio</span>
+                    <PenTool className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
                   </div>
                   <p className="text-[10.5px] text-slate-500 line-clamp-1">Chấm 4 tiêu chí TR, CC, LR, GRA</p>
                 </Link>
 
                 <Link
                   href="/student/speaking"
-                  className="p-3 rounded-2xl bg-amber-50/60 hover:bg-amber-100/70 border border-amber-100 transition space-y-1 group"
+                  className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 transition space-y-1 group select-none shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 group-hover:text-amber-700">Speaking Studio</span>
-                    <Mic className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-xs font-black text-slate-900 group-hover:text-[#1B64B0]">Speaking Studio</span>
+                    <Mic className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
                   </div>
                   <p className="text-[10.5px] text-slate-500 line-clamp-1">Thu âm & Chẩn đoán phát âm</p>
                 </Link>
@@ -578,13 +575,15 @@ export default function StudentDashboard() {
             {/* Pillar B: Phát Triển Cá Nhân & Sư Phạm */}
             <div className="p-5 rounded-3xl bg-white border border-line shadow-xs space-y-3">
               <div className="flex items-center justify-between border-b border-line pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🌟</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 text-[#1B64B0] flex items-center justify-center shrink-0">
+                    <Compass className="w-4 h-4" />
+                  </div>
                   <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
                     Phân Hệ Phát Triển Cá Nhân & Sư Phạm
                   </h4>
                 </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                   Kỹ Năng Sống
                 </span>
               </div>
@@ -592,33 +591,33 @@ export default function StudentDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <Link
                   href="/student/courses?track=personal_dev"
-                  className="p-3 rounded-2xl bg-emerald-50/60 hover:bg-emerald-100/70 border border-emerald-100 transition space-y-1 group"
+                  className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 transition space-y-1 group select-none shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 group-hover:text-emerald-700">Sư Phạm EdTech</span>
-                    <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-xs font-black text-slate-900 group-hover:text-[#1B64B0]">Sư Phạm EdTech</span>
+                    <GraduationCap className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
                   </div>
                   <p className="text-[10.5px] text-slate-500 line-clamp-1">Năng lực giảng dạy hiện đại</p>
                 </Link>
 
                 <Link
                   href="/student/courses?track=personal_dev"
-                  className="p-3 rounded-2xl bg-teal-50/60 hover:bg-teal-100/70 border border-teal-100 transition space-y-1 group"
+                  className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 transition space-y-1 group select-none shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 group-hover:text-teal-700">Kỹ Năng Sống</span>
-                    <Compass className="w-3.5 h-3.5 text-teal-600" />
+                    <span className="text-xs font-black text-slate-900 group-hover:text-[#1B64B0]">Kỹ Năng Sống</span>
+                    <Compass className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
                   </div>
                   <p className="text-[10.5px] text-slate-500 line-clamp-1">Thuyết trình & Lãnh đạo bản thân</p>
                 </Link>
 
                 <Link
                   href="/student/quizzes"
-                  className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition space-y-1 group"
+                  className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 transition space-y-1 group select-none shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 group-hover:text-slate-800">Quiz Tình Huống</span>
-                    <Sparkles className="w-3.5 h-3.5 text-slate-600" />
+                    <span className="text-xs font-black text-slate-900 group-hover:text-[#1B64B0]">Quiz Tình Huống</span>
+                    <Sparkles className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
                   </div>
                   <p className="text-[10.5px] text-slate-500 line-clamp-1">Đánh giá & Trắc nghiệm thực hành</p>
                 </Link>

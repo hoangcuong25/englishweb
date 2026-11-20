@@ -41,6 +41,10 @@ import {
   Baby,
   Users,
   TrendingUp,
+  Globe,
+  Target,
+  Trophy,
+  FileEdit,
 } from 'lucide-react';
 
 // ==========================================
@@ -891,24 +895,26 @@ function AssessmentHubContent() {
                   Lộ Trình:
                 </span>
                 {[
-                  { id: 'ALL', label: `Tất Cả (${mockTests.length})` },
+                  { id: 'ALL', label: `Tất Cả (${mockTests.length})`, icon: null },
                   {
                     id: 'ENGLISH',
-                    label: `🇬🇧 Tiếng Anh & IELTS (${
+                    label: `Tiếng Anh & IELTS (${
                       mockTests.filter((t) =>
                         ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(t.category || 'IELTS'),
                       ).length
                     })`,
+                    icon: Globe,
                   },
                   {
                     id: 'PERSONAL_DEV',
-                    label: `🌟 Kỹ Năng & Sư Phạm (${
+                    label: `Kỹ Năng & Sư Phạm (${
                       mockTests.filter((t) =>
                         ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(
                           t.category || '',
                         ),
                       ).length
                     })`,
+                    icon: Compass,
                   },
                 ].map((track) => (
                   <button
@@ -917,13 +923,14 @@ function AssessmentHubContent() {
                       setFilterTrack(track.id as any);
                       setFilterCategory('ALL');
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
                       filterTrack === track.id
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    {track.label}
+                    {track.icon && <track.icon className="w-3.5 h-3.5 shrink-0" />}
+                    <span>{track.label}</span>
                   </button>
                 ))}
               </div>
@@ -934,22 +941,23 @@ function AssessmentHubContent() {
                   Loại Bài:
                 </span>
                 {[
-                  { id: 'ALL', label: 'Tất Cả Loại' },
-                  { id: 'FULL_MOCK_TEST', label: '🏆 Thi Thử (Mock)' },
-                  { id: 'SITUATION_QUIZ', label: '🎯 Tình Huống (Case)' },
-                  { id: 'PRACTICE_TEST', label: '📝 Luyện Tập' },
-                  { id: 'LESSON_QUIZ', label: '📖 Bài Học' },
+                  { id: 'ALL', label: 'Tất Cả Loại', icon: null },
+                  { id: 'FULL_MOCK_TEST', label: 'Thi Thử (Mock)', icon: Trophy },
+                  { id: 'SITUATION_QUIZ', label: 'Tình Huống (Case)', icon: Target },
+                  { id: 'PRACTICE_TEST', label: 'Luyện Tập', icon: FileEdit },
+                  { id: 'LESSON_QUIZ', label: 'Bài Học', icon: BookOpen },
                 ].map((tp) => (
                   <button
                     key={tp.id}
                     onClick={() => setFilterQuizType(tp.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap ${
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
                       filterQuizType === tp.id
                         ? 'bg-primary text-white shadow-xs'
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    {tp.label}
+                    {tp.icon && <tp.icon className="w-3 h-3 shrink-0" />}
+                    <span>{tp.label}</span>
                   </button>
                 ))}
               </div>
@@ -973,28 +981,28 @@ function AssessmentHubContent() {
                 {(filterTrack === 'PERSONAL_DEV'
                   ? [
                       { id: 'ALL', label: 'Tất cả Kỹ Năng' },
-                      { id: 'PEDAGOGY', label: '🌟 Sư Phạm EdTech' },
-                      { id: 'LIFE_SKILLS', label: '🌟 Kỹ Năng Sống' },
-                      { id: 'SOFT_SKILLS', label: '🌟 Kỹ Năng Mềm' },
-                      { id: 'PERSONAL_DEV', label: '🌟 Bản Thân' },
+                      { id: 'PEDAGOGY', label: 'Sư Phạm EdTech' },
+                      { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
+                      { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
+                      { id: 'PERSONAL_DEV', label: 'Bản Thân' },
                     ]
                   : filterTrack === 'ENGLISH'
                   ? [
                       { id: 'ALL', label: 'Tất cả Tiếng Anh' },
-                      { id: 'IELTS', label: '🇬🇧 IELTS 4 Kỹ Năng' },
-                      { id: 'ENGLISH', label: '🇬🇧 General English' },
-                      { id: 'BUSINESS', label: '🇬🇧 Business English' },
-                      { id: 'KIDS', label: '🇬🇧 Kids English' },
+                      { id: 'IELTS', label: 'IELTS 4 Kỹ Năng' },
+                      { id: 'ENGLISH', label: 'General English' },
+                      { id: 'BUSINESS', label: 'Business English' },
+                      { id: 'KIDS', label: 'Kids English' },
                     ]
                   : [
                       { id: 'ALL', label: 'Tất cả danh mục' },
-                      { id: 'IELTS', label: '🇬🇧 IELTS' },
-                      { id: 'ENGLISH', label: '🇬🇧 General' },
-                      { id: 'BUSINESS', label: '🇬🇧 Business' },
-                      { id: 'PEDAGOGY', label: '🌟 Sư Phạm' },
-                      { id: 'LIFE_SKILLS', label: '🌟 Kỹ Năng Sống' },
-                      { id: 'SOFT_SKILLS', label: '🌟 Kỹ Năng Mềm' },
-                      { id: 'PERSONAL_DEV', label: '🌟 Bản Thân' },
+                      { id: 'IELTS', label: 'IELTS' },
+                      { id: 'ENGLISH', label: 'General' },
+                      { id: 'BUSINESS', label: 'Business' },
+                      { id: 'PEDAGOGY', label: 'Sư Phạm' },
+                      { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
+                      { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
+                      { id: 'PERSONAL_DEV', label: 'Bản Thân' },
                     ]
                 ).map((c) => (
                   <button
@@ -1052,34 +1060,49 @@ function AssessmentHubContent() {
                             </td>
                             <td className="py-3.5 px-4 whitespace-nowrap">
                               <div className="space-y-1">
-                                <span className={`inline-block px-2 py-0.5 rounded-md text-[10.5px] font-black ${
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-black ${
                                   isPersonalDev ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-sky-50 text-sky-700 border border-sky-200'
                                 }`}>
-                                  {isPersonalDev ? '🌟 ' : '🇬🇧 '}
-                                  {t.category || 'IELTS'}
+                                  {isPersonalDev ? <Compass className="w-3 h-3 shrink-0" /> : <Globe className="w-3 h-3 shrink-0" />}
+                                  <span>{t.category || 'IELTS'}</span>
                                 </span>
                                 {t.courseTitle && (
-                                  <div className="text-[10px] text-slate-500 font-semibold truncate max-w-[140px]">
-                                    📚 {t.courseTitle}
+                                  <div className="text-[10px] text-slate-500 font-semibold truncate max-w-[140px] flex items-center gap-1">
+                                    <BookOpen className="w-3 h-3 text-slate-400 shrink-0" />
+                                    <span className="truncate">{t.courseTitle}</span>
                                   </div>
                                 )}
                               </div>
                             </td>
                             <td className="py-3.5 px-4 whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded-md text-[10.5px] font-black ${
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-black ${
                                 t.quizType === 'SITUATION_QUIZ'
                                   ? 'bg-purple-100 text-purple-800'
                                   : t.quizType === 'FULL_MOCK_TEST'
                                   ? 'bg-sky-100 text-sky-800'
                                   : 'bg-emerald-100 text-emerald-800'
                               }`}>
-                                {t.quizType === 'SITUATION_QUIZ'
-                                  ? '🎯 Tình Huống'
-                                  : t.quizType === 'FULL_MOCK_TEST'
-                                  ? '🏆 Thi Thử'
-                                  : t.quizType === 'LESSON_QUIZ'
-                                  ? '📖 Bài Học'
-                                  : '📝 Luyện Tập'}
+                                {t.quizType === 'SITUATION_QUIZ' ? (
+                                  <>
+                                    <Target className="w-3 h-3 shrink-0" />
+                                    <span>Tình Huống</span>
+                                  </>
+                                ) : t.quizType === 'FULL_MOCK_TEST' ? (
+                                  <>
+                                    <Trophy className="w-3 h-3 shrink-0" />
+                                    <span>Thi Thử</span>
+                                  </>
+                                ) : t.quizType === 'LESSON_QUIZ' ? (
+                                  <>
+                                    <BookOpen className="w-3 h-3 shrink-0" />
+                                    <span>Bài Học</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileEdit className="w-3 h-3 shrink-0" />
+                                    <span>Luyện Tập</span>
+                                  </>
+                                )}
                               </span>
                             </td>
                             <td className="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">
@@ -1682,7 +1705,8 @@ function AssessmentHubContent() {
                         : 'border-line text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <span>🇬🇧 Tiếng Anh & IELTS</span>
+                    <Globe className="w-3.5 h-3.5 shrink-0" />
+                    <span>Tiếng Anh & IELTS</span>
                   </button>
                   <button
                     type="button"
@@ -1702,7 +1726,8 @@ function AssessmentHubContent() {
                         : 'border-line text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <span>🌟 Phát Triển Cá Nhân & Sư Phạm</span>
+                    <Compass className="w-3.5 h-3.5 shrink-0" />
+                    <span>Phát Triển Cá Nhân & Sư Phạm</span>
                   </button>
                 </div>
               </div>
@@ -1723,16 +1748,16 @@ function AssessmentHubContent() {
                   options={
                     testFormData.track === 'PERSONAL_DEV'
                       ? [
-                          { value: 'PEDAGOGY', label: '🌟 Năng Lực Sư Phạm EdTech' },
-                          { value: 'LIFE_SKILLS', label: '🌟 Kỹ Năng Sống & Thuyết Trình' },
-                          { value: 'SOFT_SKILLS', label: '🌟 Kỹ Năng Mềm Doanh Nghiệp' },
-                          { value: 'PERSONAL_DEV', label: '🌟 Phát Triển Bản Thân & Lãnh Đạo' },
+                          { value: 'PEDAGOGY', label: 'Năng Lực Sư Phạm EdTech' },
+                          { value: 'LIFE_SKILLS', label: 'Kỹ Năng Sống & Thuyết Trình' },
+                          { value: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm Doanh Nghiệp' },
+                          { value: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân & Lãnh Đạo' },
                         ]
                       : [
-                          { value: 'IELTS', label: '🇬🇧 IELTS 4 Kỹ Năng Master' },
-                          { value: 'ENGLISH', label: '🇬🇧 General English' },
-                          { value: 'BUSINESS', label: '🇬🇧 Business English' },
-                          { value: 'KIDS', label: '🇬🇧 Kids English' },
+                          { value: 'IELTS', label: 'IELTS 4 Kỹ Năng Master' },
+                          { value: 'ENGLISH', label: 'General English' },
+                          { value: 'BUSINESS', label: 'Business English' },
+                          { value: 'KIDS', label: 'Kids English' },
                         ]
                   }
                 />
@@ -1760,11 +1785,11 @@ function AssessmentHubContent() {
                   value={testFormData.quizType}
                   onChange={(val) => setTestFormData({ ...testFormData, quizType: val })}
                   options={[
-                    { value: 'SITUATION_QUIZ', label: '🎯 Trắc nghiệm Tình huống (Case Study)' },
-                    { value: 'FULL_MOCK_TEST', label: '🏆 Đề Thi Thử Hoàn Chỉnh (Full Mock Test)' },
-                    { value: 'PRACTICE_TEST', label: '📝 Mini-Test / Luyện tập chuyên đề' },
-                    { value: 'LESSON_QUIZ', label: '📖 Trắc nghiệm củng cố bài học' },
-                    { value: 'DIAGNOSTIC_TEST', label: '🔍 Bài đánh giá chẩn đoán năng lực' },
+                    { value: 'SITUATION_QUIZ', label: 'Trắc nghiệm Tình huống (Case Study)' },
+                    { value: 'FULL_MOCK_TEST', label: 'Đề Thi Thử Hoàn Chỉnh (Full Mock Test)' },
+                    { value: 'PRACTICE_TEST', label: 'Mini-Test / Luyện tập chuyên đề' },
+                    { value: 'LESSON_QUIZ', label: 'Trắc nghiệm củng cố bài học' },
+                    { value: 'DIAGNOSTIC_TEST', label: 'Bài đánh giá chẩn đoán năng lực' },
                   ]}
                 />
 

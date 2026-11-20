@@ -29,6 +29,9 @@ import {
   X,
   ShieldCheck,
   Compass,
+  Briefcase,
+  Globe,
+  HeartHandshake,
 } from 'lucide-react';
 
 interface MockLesson {
@@ -308,73 +311,36 @@ function StudentCoursesContent() {
     return fromMy + fromRec;
   }, [myCourses, recommendedCourses]);
 
-  // Category Badge helper with explicit Track indicator
+  // Category Badge helper with explicit Track indicator - Unified Form
   const renderCategoryBadge = (category?: string) => {
     const cat = (category || '').toUpperCase();
-    switch (cat) {
-      case 'IELTS':
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[11px] font-black uppercase flex items-center gap-1">
-            <span>🇬🇧</span>
-            <span>IELTS Masterclass</span>
-          </span>
-        );
-      case 'BUSINESS':
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[11px] font-black uppercase flex items-center gap-1">
-            <span>🇬🇧</span>
-            <span>Business English</span>
-          </span>
-        );
-      case 'KIDS':
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[11px] font-black uppercase flex items-center gap-1">
-            <span>🇬🇧</span>
-            <span>Tiếng Anh Thiếu Nhi</span>
-          </span>
-        );
-      case 'ENGLISH':
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[11px] font-black uppercase flex items-center gap-1">
-            <span>🇬🇧</span>
-            <span>General English</span>
-          </span>
-        );
-      case 'PEDAGOGY':
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[11px] font-black uppercase flex items-center gap-1">
-            <span>🌟</span>
-            <span>Năng Lực Sư Phạm</span>
-          </span>
-        );
-      case 'LIFE_SKILLS':
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-teal-100 text-teal-800 text-[11px] font-black uppercase flex items-center gap-1">
-            <span>🌟</span>
-            <span>Kỹ Năng Sống</span>
-          </span>
-        );
-      case 'SOFT_SKILLS':
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-black uppercase flex items-center gap-1">
-            <span>🌟</span>
-            <span>Kỹ Năng Mềm</span>
-          </span>
-        );
-      case 'PERSONAL_DEV':
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-[11px] font-black uppercase flex items-center gap-1">
-            <span>🌟</span>
-            <span>Phát Triển Bản Thân</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-black uppercase">
-            {category || 'Khóa học'}
-          </span>
-        );
+    const badgeMap: Record<string, { label: string; icon: React.ElementType }> = {
+      IELTS: { label: 'IELTS Masterclass', icon: Award },
+      BUSINESS: { label: 'Business English', icon: Briefcase },
+      KIDS: { label: 'Tiếng Anh Thiếu Nhi', icon: Sparkles },
+      ENGLISH: { label: 'General English', icon: Globe },
+      PEDAGOGY: { label: 'Năng Lực Sư Phạm', icon: GraduationCap },
+      LIFE_SKILLS: { label: 'Kỹ Năng Sống', icon: HeartHandshake },
+      SOFT_SKILLS: { label: 'Kỹ Năng Mềm', icon: Users },
+      PERSONAL_DEV: { label: 'Phát Triển Bản Thân', icon: Compass },
+    };
+
+    const item = badgeMap[cat];
+    if (item) {
+      const Icon = item.icon;
+      return (
+        <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 text-[11px] font-bold uppercase flex items-center gap-1.5 shadow-2xs">
+          <Icon className="w-3.5 h-3.5 text-[#1B64B0] shrink-0" />
+          <span>{item.label}</span>
+        </span>
+      );
     }
+
+    return (
+      <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold uppercase">
+        {category || 'Khóa học'}
+      </span>
+    );
   };
 
   // Dynamic Subcategory Filter Pills based on activeTrack

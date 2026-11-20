@@ -27,6 +27,7 @@ import {
   Briefcase,
   Baby,
   Compass,
+  Languages,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -296,8 +297,8 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-sky-100 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-sm font-black shadow-xs">
-                    🇬🇧
+                  <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shadow-xs">
+                    <Languages className="w-4 h-4" />
                   </div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
@@ -319,28 +320,24 @@ export default function AdminDashboard() {
                     label: 'IELTS 4 Kỹ Năng',
                     sub: 'Academic & General',
                     icon: BookOpen,
-                    color: 'text-amber-700 bg-amber-50/70 border-amber-200 hover:bg-amber-100/60',
                   },
                   {
                     category: 'ENGLISH',
                     label: 'General English',
                     sub: 'Giao tiếp & Ngữ pháp',
                     icon: GraduationCap,
-                    color: 'text-sky-700 bg-sky-50/70 border-sky-200 hover:bg-sky-100/60',
                   },
                   {
                     category: 'BUSINESS',
                     label: 'Business English',
                     sub: 'Đàm phán thương mại',
                     icon: Briefcase,
-                    color: 'text-emerald-700 bg-emerald-50/70 border-emerald-200 hover:bg-emerald-100/60',
                   },
                   {
                     category: 'KIDS',
                     label: 'Kids English',
                     sub: 'Tiếng Anh thiếu nhi',
                     icon: Baby,
-                    color: 'text-orange-700 bg-orange-50/70 border-orange-200 hover:bg-orange-100/60',
                   },
                 ].map((pillar) => {
                   const Icon = pillar.icon;
@@ -349,17 +346,17 @@ export default function AdminDashboard() {
                     <Link
                       key={pillar.category}
                       href={`/admin/courses?category=${pillar.category}`}
-                      className={`p-3 rounded-2xl border transition space-y-1.5 block ${pillar.color}`}
+                      className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-sky-300 transition space-y-1.5 block group shadow-2xs select-none"
                     >
                       <div className="flex items-center justify-between">
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-white/80 shadow-xs">
+                        <Icon className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 group-hover:bg-sky-50 group-hover:text-[#1B64B0] px-1.5 py-0.5 rounded-md transition-colors">
                           {count} khóa
                         </span>
                       </div>
                       <div>
-                        <h5 className="text-[11.5px] font-black leading-tight truncate">{pillar.label}</h5>
-                        <p className="text-[10px] opacity-75 truncate">{pillar.sub}</p>
+                        <h5 className="text-[11.5px] font-black text-slate-800 group-hover:text-[#1B64B0] leading-tight truncate transition-colors">{pillar.label}</h5>
+                        <p className="text-[10px] text-slate-400 truncate">{pillar.sub}</p>
                       </div>
                     </Link>
                   );
@@ -411,8 +408,8 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-purple-100 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-black shadow-xs">
-                    🌟
+                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-xs">
+                    <Compass className="w-4 h-4" />
                   </div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
@@ -434,28 +431,24 @@ export default function AdminDashboard() {
                     label: 'Năng Lực Sư Phạm',
                     sub: 'Soạn giảng & EdTech',
                     icon: Sparkles,
-                    color: 'text-purple-700 bg-purple-50/70 border-purple-200 hover:bg-purple-100/60',
                   },
                   {
                     category: 'LIFE_SKILLS',
                     label: 'Kỹ Năng Sống',
                     sub: 'Thuyết trình & Nói',
                     icon: Compass,
-                    color: 'text-indigo-700 bg-indigo-50/70 border-indigo-200 hover:bg-indigo-100/60',
                   },
                   {
                     category: 'SOFT_SKILLS',
                     label: 'Kỹ Năng Mềm',
                     sub: 'Teamwork & Đàm phán',
                     icon: Users,
-                    color: 'text-teal-700 bg-teal-50/70 border-teal-200 hover:bg-teal-100/60',
                   },
                   {
                     category: 'PERSONAL_DEV',
                     label: 'Phát Triển Bản Thân',
                     sub: 'Lãnh đạo & Tư duy',
                     icon: TrendingUp,
-                    color: 'text-rose-700 bg-rose-50/70 border-rose-200 hover:bg-rose-100/60',
                   },
                 ].map((pillar) => {
                   const Icon = pillar.icon;
@@ -464,17 +457,17 @@ export default function AdminDashboard() {
                     <Link
                       key={pillar.category}
                       href={`/admin/courses?category=${pillar.category}`}
-                      className={`p-3 rounded-2xl border transition space-y-1.5 block ${pillar.color}`}
+                      className="p-3.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-sky-300 transition space-y-1.5 block group shadow-2xs select-none"
                     >
                       <div className="flex items-center justify-between">
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-white/80 shadow-xs">
+                        <Icon className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 group-hover:bg-sky-50 group-hover:text-[#1B64B0] px-1.5 py-0.5 rounded-md transition-colors">
                           {count} khóa
                         </span>
                       </div>
                       <div>
-                        <h5 className="text-[11.5px] font-black leading-tight truncate">{pillar.label}</h5>
-                        <p className="text-[10px] opacity-75 truncate">{pillar.sub}</p>
+                        <h5 className="text-[11.5px] font-black text-slate-800 group-hover:text-[#1B64B0] leading-tight truncate transition-colors">{pillar.label}</h5>
+                        <p className="text-[10.5px] text-slate-400 truncate">{pillar.sub}</p>
                       </div>
                     </Link>
                   );
