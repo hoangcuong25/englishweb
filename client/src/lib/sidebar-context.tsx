@@ -15,44 +15,43 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  // Default to open on desktop
-  const [isOpen, setIsOpen] = useState(true);
+  // Read initial preference synchronously to avoid layout flicker (CLS)
+  const [isOpen, setIsOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('sidebar_open');
+        if (saved !== null) return saved === 'true';
+        const match = document.cookie.match(/sidebar_open=(true|false)/);
+        if (match) return match[1] === 'true';
+      } catch {}
+    }
+    return true;
+  });
   const [isMobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
-  // Restore saved desktop sidebar preference
-  useEffect(() => {
+  const saveState = (next: boolean) => {
     try {
-      const saved = localStorage.getItem('sidebar_open');
-      if (saved !== null) {
-        setIsOpen(saved === 'true');
-      }
-    } catch {
-      // Ignore storage errors in restricted contexts
-    }
-  }, []);
+      localStorage.setItem('sidebar_open', String(next));
+      document.cookie = `sidebar_open=${next}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch {}
+  };
 
   const toggleSidebar = () => {
     setIsOpen((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem('sidebar_open', String(next));
-      } catch {}
+      saveState(next);
       return next;
     });
   };
 
   const openSidebar = () => {
     setIsOpen(true);
-    try {
-      localStorage.setItem('sidebar_open', 'true');
-    } catch {}
+    saveState(true);
   };
 
   const closeSidebar = () => {
     setIsOpen(false);
-    try {
-      localStorage.setItem('sidebar_open', 'false');
-    } catch {}
+    saveState(false);
   };
 
   const toggleMobileDrawer = () => {

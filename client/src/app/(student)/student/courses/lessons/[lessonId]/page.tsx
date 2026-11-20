@@ -7,6 +7,8 @@ import { lessonsService } from '@/services/lessons.service';
 import { materialsService } from '@/services/materials.service';
 import { handleApiError } from '@/lib/api-error';
 import { toast } from '@/components/ui/toast';
+import { useAuth } from '@/lib/auth-context';
+import DynamicWatermarkCanvas from '@/components/shared/dynamic-watermark-canvas';
 import {
   ArrowLeft,
   PlayCircle,
@@ -21,6 +23,10 @@ import {
   ShieldAlert,
   Sparkles,
   BookOpen,
+  X,
+  Lock,
+  ShieldCheck,
+  RefreshCw,
 } from 'lucide-react';
 
 interface StudyData {
@@ -78,11 +84,22 @@ export default function LessonStudyPage() {
   const router = useRouter();
   const lessonId = params?.lessonId as string;
 
+  const { user } = useAuth();
   const [data, setData] = useState<StudyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'content' | 'materials' | 'practice'>('content');
   const [completing, setCompleting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+
+  // Secured Material Viewer State (Dynamic Watermark Protection)
+  const [viewerMaterial, setViewerMaterial] = useState<{
+    id: string;
+    title: string;
+    type: 'PDF' | 'AUDIO';
+    signedUrl: string;
+    watermark?: { fullName?: string; phone?: string; userId?: string };
+  } | null>(null);
+  const [loadingMaterialId, setLoadingMaterialId] = useState<string | null>(null);
 
   const fetchStudyData = useCallback(async () => {
     if (!lessonId) return;
@@ -121,16 +138,25 @@ export default function LessonStudyPage() {
     }
   };
 
-  const handleOpenMaterial = async (matId: string) => {
+  const handleOpenMaterial = async (mat: { id: string; title: string; type: 'PDF' | 'AUDIO' }) => {
+    setLoadingMaterialId(mat.id);
     try {
-      const res = await materialsService.getSignedUrl(matId);
+      const res = await materialsService.getSignedUrl(mat.id);
       if (res?.signedUrl) {
-        window.open(res.signedUrl, '_blank');
+        setViewerMaterial({
+          id: mat.id,
+          title: mat.title,
+          type: mat.type,
+          signedUrl: res.signedUrl,
+          watermark: res.watermark,
+        });
       } else {
-        toast.info('Đang mở học liệu an toàn...');
+        toast.info('Đang chuẩn bị học liệu an toàn...');
       }
     } catch (err) {
       handleApiError(err, 'Không thể tạo URL bảo mật cho học liệu');
+    } finally {
+      setLoadingMaterialId(null);
     }
   };
 
@@ -351,10 +377,16 @@ export default function LessonStudyPage() {
                       </div>
 
                       <button
-                        onClick={() => handleOpenMaterial(mat.id)}
-                        className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-primary font-bold text-xs flex items-center space-x-1 transition"
+                        onClick={() => handleOpenMaterial(mat)}
+                        disabled={loadingMaterialId === mat.id}
+                        className="px-3.5 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-primary font-bold text-xs flex items-center space-x-1.5 transition disabled:opacity-50 cursor-pointer shadow-2xs"
                       >
-                        <span>Xem Học Liệu</span>
+                        {loadingMaterialId === mat.id ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                        )}
+                        <span>{loadingMaterialId === mat.id ? 'Đang mở...' : 'Xem An Toàn'}</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -505,6 +537,112 @@ export default function LessonStudyPage() {
           </div>
         </div>
       </div>
+
+      {/* SECURED WATERMARKED MATERIAL VIEWER MODAL */}
+      {viewerMaterial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-5xl h-[88vh] flex flex-col shadow-2xl border border-slate-700 overflow-hidden animate-in zoom-in-95">
+            {/* Viewer Header */}
+            <div className="px-5 py-3.5 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center space-x-3 truncate pr-3">
+                <div className="w-8 h-8 rounded-xl bg-primary/20 text-sky-400 flex items-center justify-center shrink-0">
+                  {viewerMaterial.type === 'PDF' ? (
+                    <FileText className="w-4 h-4" />
+                  ) : (
+                    <Music className="w-4 h-4" />
+                  )}
+                </div>
+                <div className="truncate">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-100 truncate">
+                    {viewerMaterial.title}
+                  </h3>
+                  <div className="flex items-center space-x-2 text-[10px] text-slate-400">
+                    <span className="flex items-center space-x-1 text-emerald-400 font-bold">
+                      <ShieldCheck className="w-3 h-3" />
+                      <span>Bảo Mật Dynamic Watermark</span>
+                    </span>
+                    <span>•</span>
+                    <span>Hiệu lực phiên: 15 phút</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <Link
+                  href="/student/library"
+                  className="hidden sm:flex items-center space-x-1 text-[11px] font-bold text-sky-400 hover:text-sky-300 px-3 py-1.5 rounded-xl bg-slate-800 transition"
+                  title="Mở trong Thư viện số cá nhân"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Kho Thư Viện</span>
+                </Link>
+                <button
+                  onClick={() => setViewerMaterial(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                  title="Đóng học liệu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Viewer Stage with Dynamic Watermark Overlay */}
+            <div className="flex-1 relative bg-slate-100 overflow-hidden flex items-center justify-center select-none">
+              {viewerMaterial.type === 'PDF' ? (
+                <div className="w-full h-full relative">
+                  <iframe
+                    src={`${viewerMaterial.signedUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                    className="w-full h-full border-none"
+                    title={viewerMaterial.title}
+                  />
+                  {/* Dynamic Watermark Canvas Protection */}
+                  <DynamicWatermarkCanvas
+                    studentName={viewerMaterial.watermark?.fullName || user?.fullName || 'Học Viên Teacher Dong'}
+                    studentPhone={viewerMaterial.watermark?.phone || user?.phone || '0912345678'}
+                    studentId={viewerMaterial.watermark?.userId || user?.id || 'HV-2026'}
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-full relative flex flex-col items-center justify-center p-8 bg-slate-900 text-white space-y-6">
+                  <div className="w-24 h-24 rounded-3xl bg-primary/20 text-sky-400 flex items-center justify-center border border-sky-400/30 shadow-xl">
+                    <Music className="w-12 h-12" />
+                  </div>
+                  <div className="text-center space-y-1 max-w-md">
+                    <h4 className="text-base font-bold text-slate-100">{viewerMaterial.title}</h4>
+                    <p className="text-xs text-slate-400">
+                      Tệp âm thanh chuẩn hóa giảng dạy IELTS Audio. Phát an toàn qua Signed URL.
+                    </p>
+                  </div>
+                  <div className="w-full max-w-md p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-lg">
+                    <audio controls autoPlay src={viewerMaterial.signedUrl} className="w-full h-10" />
+                  </div>
+
+                  {/* Watermark for Audio Player */}
+                  <DynamicWatermarkCanvas
+                    studentName={viewerMaterial.watermark?.fullName || user?.fullName || 'Học Viên Teacher Dong'}
+                    studentPhone={viewerMaterial.watermark?.phone || user?.phone || '0912345678'}
+                    studentId={viewerMaterial.watermark?.userId || user?.id || 'HV-2026'}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Viewer Anti-leak Notice Footer */}
+            <div className="px-5 py-2.5 bg-slate-900 border-t border-slate-800 text-[11px] text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+              <span className="flex items-center space-x-1.5 text-amber-400/90 font-medium text-center sm:text-left">
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                <span>Học liệu được mã hóa bản quyền riêng cho tài khoản: {user?.fullName || 'Học Viên'} ({user?.email})</span>
+              </span>
+              <button
+                onClick={() => setViewerMaterial(null)}
+                className="px-4 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition"
+              >
+                Đóng Trình Xem
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
