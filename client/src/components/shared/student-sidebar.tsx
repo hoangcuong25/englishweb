@@ -191,6 +191,7 @@ export default function StudentSidebar() {
 
   return (
     <aside
+      suppressHydrationWarning
       className={`hidden lg:flex flex-col h-full select-none shrink-0 overflow-hidden bg-white text-slate-800 border-r border-line transition-[width] duration-300 ease-in-out ${
         isOpen ? 'w-64' : 'w-20'
       }`}
@@ -198,32 +199,22 @@ export default function StudentSidebar() {
     >
       {/* Header with Title and Toggle Button on the Right */}
       <div className={`h-10 px-3.5 border-b border-line/60 flex items-center shrink-0 ${isOpen ? 'justify-between' : 'justify-center'}`}>
-        {isOpen ? (
-          <>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
-              {t('role_student', 'Học viên')} (STUDENT)
-            </span>
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
-              title="Thu gọn sidebar (Chế độ Icon)"
-              aria-label="Thu gọn thanh bên"
-            >
-              <PanelLeftClose className="w-3.5 h-3.5" />
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
-            title="Mở rộng sidebar (Chi tiết)"
-            aria-label="Mở rộng thanh bên"
-          >
-            <PanelLeftOpen className="w-4 h-4" />
-          </button>
+        {isOpen && (
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
+            {t('role_student', 'Học viên')} (STUDENT)
+          </span>
         )}
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className={`p-1 rounded-md hover:bg-slate-100 transition cursor-pointer shrink-0 ${
+            isOpen ? 'text-slate-400 hover:text-slate-700' : 'text-slate-500 hover:text-slate-800'
+          }`}
+          title={isOpen ? 'Thu gọn sidebar (Chế độ Icon)' : 'Mở rộng sidebar (Chi tiết)'}
+          aria-label={isOpen ? 'Thu gọn thanh bên' : 'Mở rộng thanh bên'}
+        >
+          {isOpen ? <PanelLeftClose className="w-3.5 h-3.5" /> : <PanelLeftOpen className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* Nav List: Icon + Text when open, Centered Icons when collapsed */}

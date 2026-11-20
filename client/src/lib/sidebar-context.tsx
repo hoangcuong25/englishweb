@@ -15,19 +15,21 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  // Read initial preference synchronously to avoid layout flicker (CLS)
-  const [isOpen, setIsOpen] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('sidebar_open');
-        if (saved !== null) return saved === 'true';
-        const match = document.cookie.match(/sidebar_open=(true|false)/);
-        if (match) return match[1] === 'true';
-      } catch {}
-    }
-    return true;
-  });
+  // Always initialize to true on both server and client to prevent React hydration mismatch
+  const [isOpen, setIsOpen] = useState<boolean>(true);
   const [isMobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_open');
+      if (saved !== null) {
+        setIsOpen(saved === 'true');
+      } else {
+        const match = document.cookie.match(/sidebar_open=(true|false)/);
+        if (match) setIsOpen(match[1] === 'true');
+      }
+    } catch {}
+  }, []);
 
   const saveState = (next: boolean) => {
     try {

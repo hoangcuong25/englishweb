@@ -65,6 +65,7 @@ export default function AdminSidebar() {
 
   return (
     <aside
+      suppressHydrationWarning
       className={`hidden lg:flex flex-col h-full select-none shrink-0 overflow-hidden bg-slate-900 text-slate-300 border-r border-slate-800 transition-[width] duration-300 ease-in-out ${
         isOpen ? 'w-64' : 'w-20'
       }`}
@@ -72,32 +73,22 @@ export default function AdminSidebar() {
     >
       {/* Header with Title and Toggle Button on the Right */}
       <div className={`h-10 px-3.5 border-b border-slate-800 flex items-center shrink-0 ${isOpen ? 'justify-between' : 'justify-center'}`}>
-        {isOpen ? (
-          <>
-            <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider truncate">
-              {t('role_admin', 'Quản Trị Viên / Giảng Viên')}
-            </span>
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer shrink-0"
-              title="Thu gọn sidebar (Chế độ Icon)"
-              aria-label="Thu gọn thanh bên"
-            >
-              <PanelLeftClose className="w-3.5 h-3.5" />
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="p-1 rounded-md text-amber-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-            title="Mở rộng sidebar (Chi tiết)"
-            aria-label="Mở rộng thanh bên"
-          >
-            <PanelLeftOpen className="w-4 h-4" />
-          </button>
+        {isOpen && (
+          <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider truncate">
+            {t('role_admin', 'Quản Trị Viên / Giảng Viên')}
+          </span>
         )}
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className={`p-1 rounded-md hover:text-white hover:bg-slate-800 transition cursor-pointer shrink-0 ${
+            isOpen ? 'text-slate-400' : 'text-amber-400'
+          }`}
+          title={isOpen ? 'Thu gọn sidebar (Chế độ Icon)' : 'Mở rộng sidebar (Chi tiết)'}
+          aria-label={isOpen ? 'Thu gọn thanh bên' : 'Mở rộng thanh bên'}
+        >
+          {isOpen ? <PanelLeftClose className="w-3.5 h-3.5" /> : <PanelLeftOpen className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* Nav List: Icon + Text when open, Centered Icons when collapsed */}
