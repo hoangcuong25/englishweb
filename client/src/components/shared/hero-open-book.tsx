@@ -91,9 +91,9 @@ export default function HeroOpenBook() {
   const currentSkillData = IELTS_SKILLS.find((s) => s.id === currentSelection);
 
   return (
-    <div className="w-full flex flex-col items-center overflow-hidden">
+    <div className="w-full flex flex-col items-center">
       {/* 3D Diorama Stage Container - Strictly contained without negative margins */}
-      <div className="relative w-full max-w-[480px] lg:max-w-[520px] select-none py-2">
+      <div className="relative w-full max-w-[480px] lg:max-w-[520px] select-none pt-4 pb-2 sm:pt-6 sm:pb-2">
         {/* Soft Ambient Sky-Blue Glow behind the floating diorama */}
         <div
           className="absolute inset-0 rounded-full blur-3xl opacity-60 transition-all duration-700 pointer-events-none"
@@ -120,7 +120,7 @@ export default function HeroOpenBook() {
           />
 
           {/* Floating Holographic Academy Emblem over Central Dome */}
-          <div className="absolute top-[2%] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none">
+          <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md border border-[#BBDDF5] shadow-[0_4px_16px_rgba(27,100,176,0.12)] text-[#1B64B0]">
               <span className="w-2 h-2 rounded-full bg-[#1B64B0] animate-pulse" />
               <span className="text-[10.5px] font-black tracking-wider uppercase">
@@ -130,7 +130,7 @@ export default function HeroOpenBook() {
                 8.0+
               </span>
             </div>
-            <div className="w-[1.5px] h-4 bg-gradient-to-b from-[#1B64B0]/60 to-transparent" />
+            <div className="w-[1.5px] h-5 sm:h-6 bg-gradient-to-b from-[#1B64B0]/60 to-transparent" />
           </div>
 
           {/* Interactive Target Reticles & Self-Contained HUD Badges ON the Diorama */}
@@ -293,8 +293,8 @@ export default function HeroOpenBook() {
         </div>
       </div>
 
-      {/* Interactive 4-Skills Selector Tabs (Clean Light-Mode UI - 100% Contained) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1 w-full max-w-[480px] lg:max-w-[520px]">
+      {/* Interactive 4-Skills Selector Tabs (Clean, Compact Light-Mode UI - 2 rows x 2 columns) */}
+      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mt-1 w-full max-w-[380px] sm:max-w-[420px]">
         {IELTS_SKILLS.map((skill) => {
           const Icon = skill.icon;
           const isSelected = currentSelection === skill.id;
@@ -306,31 +306,31 @@ export default function HeroOpenBook() {
               onClick={() => setActiveSkill(skill.id)}
               onMouseEnter={() => setHoveredSkill(skill.id)}
               onMouseLeave={() => setHoveredSkill(null)}
-              className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-left border transition-all duration-200 cursor-pointer shadow-2xs select-none active:scale-[0.98] ${
+              className={`group flex items-center justify-between gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-left border transition-all duration-200 cursor-pointer shadow-2xs select-none active:scale-[0.98] ${
                 isSelected
-                  ? 'bg-[#1B64B0] text-white border-[#1B64B0] shadow-md shadow-sky-900/15'
+                  ? 'bg-[#1B64B0] text-white border-[#1B64B0] shadow-sm shadow-sky-900/15'
                   : 'bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50'
               }`}
             >
-              <Icon
-                className={`w-4 h-4 shrink-0 transition-colors ${
-                  isSelected
-                    ? 'text-white'
-                    : 'text-slate-400 group-hover:text-[#1B64B0]'
-                }`}
-              />
-              <div className="min-w-0 flex-1">
-                <p className={`font-bold text-xs leading-tight whitespace-nowrap ${isSelected ? 'text-white' : 'text-slate-900 group-hover:text-[#1B64B0]'}`}>
-                  {skill.shortTitle}
-                </p>
-                <p
-                  className={`text-[10px] font-mono font-semibold whitespace-nowrap mt-0.5 ${
-                    isSelected ? 'text-sky-100' : 'text-slate-400'
+              <div className="flex items-center gap-2 min-w-0">
+                <Icon
+                  className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                    isSelected
+                      ? 'text-white'
+                      : 'text-slate-400 group-hover:text-[#1B64B0]'
                   }`}
-                >
-                  {skill.bandTarget}
-                </p>
+                />
+                <span className={`font-bold text-[11px] sm:text-xs whitespace-nowrap ${isSelected ? 'text-white' : 'text-slate-900 group-hover:text-[#1B64B0]'}`}>
+                  {skill.shortTitle}
+                </span>
               </div>
+              <span
+                className={`text-[9.5px] sm:text-[10px] font-mono font-semibold whitespace-nowrap px-1.5 py-0.5 rounded-md shrink-0 ${
+                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {skill.bandTarget}
+              </span>
             </button>
           );
         })}
@@ -338,32 +338,32 @@ export default function HeroOpenBook() {
 
       {/* Selected Skill Criteria Card (Light Card with Teacher Dong Slate / Sky Tokens) */}
       {currentSkillData && (
-        <div className="mt-3 w-full max-w-[480px] lg:max-w-[520px] p-4 rounded-2xl bg-white border border-slate-200 shadow-sm text-slate-800 transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#1B64B0]" />
-              <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+        <div className="mt-2.5 w-full max-w-[380px] sm:max-w-[420px] p-3 sm:p-3.5 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-800 transition-all duration-300">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#1B64B0]" />
+              <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
                 {currentSkillData.title}
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-50 text-[#1B64B0] border border-sky-100">
+                <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-sky-50 text-[#1B64B0] border border-sky-100">
                   {currentSkillData.bandTarget}
                 </span>
               </h4>
             </div>
-            <span className="text-[11px] text-[#1B64B0] font-semibold flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-[#1B64B0]" />
+            <span className="text-[10.5px] text-[#1B64B0] font-semibold flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-[#1B64B0]" />
               EdTech SFU
             </span>
           </div>
 
-          <p className="text-xs text-slate-600 mb-2.5 leading-relaxed">{currentSkillData.description}</p>
+          <p className="text-[11px] text-slate-600 mb-2 leading-relaxed">{currentSkillData.description}</p>
 
           <div className="flex flex-wrap gap-1.5">
             {currentSkillData.criteria.map((c, idx) => (
               <span
                 key={idx}
-                className="text-[10.5px] px-2.5 py-1 rounded-lg bg-white text-slate-700 font-semibold border border-slate-200 flex items-center gap-1.5 shadow-2xs"
+                className="text-[10px] px-2 py-0.5 rounded-md bg-white text-slate-700 font-semibold border border-slate-200 flex items-center gap-1 shadow-2xs"
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#1B64B0]" />
+                <CheckCircle2 className="w-3 h-3 text-[#1B64B0]" />
                 {c}
               </span>
             ))}
