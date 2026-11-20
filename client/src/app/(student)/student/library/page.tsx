@@ -454,20 +454,25 @@ export default function StudentLibraryPage() {
                   <RefreshCw className="w-8 h-8 animate-spin text-primary" />
                   <p className="text-xs font-semibold">Đang tạo Signed URL bảo mật 15 phút...</p>
                 </div>
+              ) : selectedMaterial.fileType === 'PDF' && signedUrlData?.signedUrl ? (
+                <div className="w-full h-full relative">
+                  <iframe
+                    src={`${signedUrlData.signedUrl.startsWith('http') ? signedUrlData.signedUrl : `http://localhost:3001${signedUrlData.signedUrl.startsWith('/') ? '' : '/'}${signedUrlData.signedUrl}`}#toolbar=0&navpanes=0&scrollbar=1`}
+                    className="w-full h-full border-none"
+                    title={selectedMaterial.title}
+                  />
+                </div>
               ) : selectedMaterial.fileType === 'PDF' ? (
                 <div className="w-full h-full p-8 flex flex-col items-center justify-center space-y-4 text-center">
                   <div className="w-20 h-20 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shadow-inner">
                     <FileText className="w-10 h-10" />
                   </div>
                   <h4 className="text-base font-bold text-slate-800">
-                    Đang hiển thị tài liệu: {selectedMaterial.title}
+                    Đang nạp tài liệu: {selectedMaterial.title}
                   </h4>
                   <p className="text-xs text-muted max-w-md">
-                    Tài liệu được bảo vệ bản quyền với Dynamic Watermark thời gian thực. Bất kỳ hành vi chụp hoặc quay màn hình đều sẽ hiển thị rõ định danh tài khoản.
+                    Tài liệu được bảo vệ bản quyền với Dynamic Watermark thời gian thực.
                   </p>
-                  <div className="p-3 rounded-xl bg-white border border-line text-xs font-mono text-slate-600">
-                    Trang {currentPage} / {totalPages} (Đã ghi nhớ vào LocalStorage)
-                  </div>
                 </div>
               ) : (
                 <div className="w-full max-w-md p-8 bg-white rounded-3xl border border-line shadow-lg space-y-4 text-center">

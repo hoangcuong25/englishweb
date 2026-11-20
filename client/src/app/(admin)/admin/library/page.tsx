@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { materialsService } from '@/services/materials.service';
+import { materialsService, SignedUrlResponse } from '@/services/materials.service';
 import { coursesService, Course } from '@/services/courses.service';
 import CustomSelect from '@/components/ui/custom-select';
 import { toast } from '@/components/ui/toast';
 import { handleApiError } from '@/lib/api-error';
+import { useAuth } from '@/lib/auth-context';
+import DynamicWatermarkCanvas from '@/components/shared/dynamic-watermark-canvas';
 import {
   Upload,
   CheckCircle2,
@@ -15,6 +17,12 @@ import {
   Music,
   GraduationCap,
   Filter,
+  Eye,
+  ShieldCheck,
+  Lock,
+  Maximize2,
+  Minimize2,
+  RefreshCw,
 } from 'lucide-react';
 
 interface MaterialItem {
@@ -42,11 +50,31 @@ interface RawMaterial {
 }
 
 export default function AdminLibraryPage() {
+  const { user } = useAuth();
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notice, setNotice] = useState('');
+
+  // Preview State
+  const [previewMaterial, setPreviewMaterial] = useState<MaterialItem | null>(null);
+  const [signedUrlData, setSignedUrlData] = useState<SignedUrlResponse | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+
+  const handleOpenPreview = async (m: MaterialItem) => {
+    setPreviewMaterial(m);
+    setLoadingPreview(true);
+    try {
+      const res = await materialsService.getSignedUrl(m.id);
+      setSignedUrlData(res);
+    } catch (err) {
+      handleApiError(err, 'Lỗi khi tạo liên kết xem trước học liệu');
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
 
   const fetchMaterials = async () => {
     try {
@@ -261,7 +289,7 @@ export default function AdminLibraryPage() {
                 <th className="py-3 px-4">Signed URL 15m</th>
                 <th className="py-3 px-4">Dynamic Watermark</th>
                 <th className="py-3 px-4">Ngày Upload</th>
-                <th className="py-3 px-4 text-right">Xóa</th>
+                <th className="py-3 px-4 text-right">Thao Tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -275,7 +303,15 @@ export default function AdminLibraryPage() {
                 filteredMaterials.map((m) => (
                   <tr key={m.id} className="hover:bg-slate-50/50 transition">
                     <td className="py-3.5 px-4 font-bold text-slate-800 max-w-xs">
-                      {m.title}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPreview(m)}
+                        className="text-left font-bold text-slate-800 hover:text-primary transition flex items-center gap-1.5 group cursor-pointer"
+                        title="Bấm để xem trực tiếp học liệu này"
+                      >
+                        <span className="group-hover:underline underline-offset-2">{m.title}</span>
+                        <Eye className="w-3.5 h-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </button>
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -306,13 +342,25 @@ export default function AdminLibraryPage() {
                     </td>
                     <td className="py-3.5 px-4 text-muted">{m.uploadDate}</td>
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleDeleteMaterial(m.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition"
-                        title="Xóa học liệu"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end space-x-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPreview(m)}
+                          className="px-2.5 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-primary font-bold text-xs transition flex items-center space-x-1 cursor-pointer border border-sky-200 shadow-2xs"
+                          title="Xem trực tuyến với Watermark"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Xem</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMaterial(m.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer"
+                          title="Xóa học liệu"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -523,6 +571,143 @@ export default function AdminLibraryPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Secured Material Preview Modal (with PDF / Audio viewer & Dynamic Watermark) */}
+      {previewMaterial && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/75 backdrop-blur-sm transition-all duration-300 ${
+            isFocusMode ? 'p-0' : 'p-3 sm:p-6'
+          }`}
+        >
+          <div
+            className={`bg-white flex flex-col shadow-2xl overflow-hidden relative border border-slate-700 transition-all duration-300 ${
+              isFocusMode ? 'w-screen h-screen rounded-none' : 'w-full max-w-5xl h-[88vh] rounded-3xl'
+            }`}
+          >
+            {/* Header */}
+            <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between shrink-0 border-b border-slate-800">
+              <div className="flex items-center space-x-3 truncate pr-3">
+                <div className="w-8 h-8 rounded-xl bg-primary/20 text-sky-400 flex items-center justify-center shrink-0">
+                  {previewMaterial.fileType === 'PDF' ? (
+                    <FileText className="w-4 h-4" />
+                  ) : (
+                    <Music className="w-4 h-4" />
+                  )}
+                </div>
+                <div className="truncate">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-100 truncate">
+                    {previewMaterial.title}
+                  </h3>
+                  <div className="flex items-center space-x-2 text-[10px] text-slate-400">
+                    <span className="flex items-center space-x-1 text-emerald-400 font-bold">
+                      <ShieldCheck className="w-3 h-3" />
+                      <span>Dynamic Watermark DRM</span>
+                    </span>
+                    <span>•</span>
+                    <span>Khóa: {previewMaterial.courseTitle}</span>
+                    <span>•</span>
+                    <span>Hiệu lực Signed URL: 15 phút</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsFocusMode(!isFocusMode)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
+                  title={isFocusMode ? 'Thu nhỏ' : 'Toàn màn hình'}
+                >
+                  {isFocusMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  <span className="hidden sm:inline">{isFocusMode ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewMaterial(null);
+                    setSignedUrlData(null);
+                    setIsFocusMode(false);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content Stage with Dynamic Watermark Overlay */}
+            <div className="flex-1 relative bg-slate-100 overflow-hidden flex items-center justify-center select-none">
+              {loadingPreview ? (
+                <div className="flex flex-col items-center justify-center space-y-2 text-slate-500">
+                  <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+                  <p className="text-xs font-semibold">Đang nạp học liệu qua Signed URL...</p>
+                </div>
+              ) : previewMaterial.fileType === 'PDF' && signedUrlData?.signedUrl ? (
+                <div className="w-full h-full relative">
+                  <iframe
+                    src={`${signedUrlData.signedUrl.startsWith('http') ? signedUrlData.signedUrl : `http://localhost:3001${signedUrlData.signedUrl.startsWith('/') ? '' : '/'}${signedUrlData.signedUrl}`}#toolbar=0&navpanes=0&scrollbar=1`}
+                    className="w-full h-full border-none"
+                    title={previewMaterial.title}
+                  />
+                  <DynamicWatermarkCanvas
+                    studentName={signedUrlData?.watermark?.fullName || user?.fullName || 'Admin Teacher Dong'}
+                    studentPhone={signedUrlData?.watermark?.phone || user?.phone || '0912345678'}
+                    studentId={signedUrlData?.watermark?.userId || user?.id || 'ADMIN-2026'}
+                  />
+                </div>
+              ) : previewMaterial.fileType === 'AUDIO_MP3' && signedUrlData?.signedUrl ? (
+                <div className="w-full h-full relative flex flex-col items-center justify-center p-8 bg-slate-900 text-white space-y-6">
+                  <div className="w-24 h-24 rounded-3xl bg-primary/20 text-sky-400 flex items-center justify-center border border-sky-400/30 shadow-xl">
+                    <Music className="w-12 h-12" />
+                  </div>
+                  <div className="text-center space-y-1 max-w-md">
+                    <h4 className="text-base font-bold text-slate-100">{previewMaterial.title}</h4>
+                    <p className="text-xs text-slate-400">
+                      Tệp âm thanh giáo trình số. Phát trực tuyến bảo mật qua Signed URL.
+                    </p>
+                  </div>
+                  <div className="w-full max-w-md p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-lg">
+                    <audio
+                      controls
+                      autoPlay
+                      src={signedUrlData.signedUrl.startsWith('http') ? signedUrlData.signedUrl : `http://localhost:3001${signedUrlData.signedUrl.startsWith('/') ? '' : '/'}${signedUrlData.signedUrl}`}
+                      className="w-full h-10"
+                    />
+                  </div>
+                  <DynamicWatermarkCanvas
+                    studentName={signedUrlData?.watermark?.fullName || user?.fullName || 'Admin Teacher Dong'}
+                    studentPhone={signedUrlData?.watermark?.phone || user?.phone || '0912345678'}
+                    studentId={signedUrlData?.watermark?.userId || user?.id || 'ADMIN-2026'}
+                  />
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-500">
+                  Không thể nạp học liệu này. Vui lòng thử lại.
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-2.5 bg-slate-900 border-t border-slate-800 text-[11px] text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+              <span className="flex items-center space-x-1.5 text-amber-400/90 font-medium text-center sm:text-left">
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                <span>Chế độ xem trước của Quản trị viên • Tự động kích hoạt Dynamic Watermark bảo vệ bản quyền</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPreviewMaterial(null);
+                  setSignedUrlData(null);
+                  setIsFocusMode(false);
+                }}
+                className="px-4 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition cursor-pointer"
+              >
+                Đóng Trình Xem
+              </button>
+            </div>
           </div>
         </div>
       )}

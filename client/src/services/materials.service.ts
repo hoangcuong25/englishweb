@@ -75,7 +75,13 @@ export const materialsService = {
 
   async getSignedUrl(id: string): Promise<SignedUrlResponse> {
     const response = await api.post(`/materials/${id}/signed-url`);
-    return response.data?.data || response.data;
+    const data: SignedUrlResponse = response.data?.data || response.data;
+    if (data?.signedUrl && !data.signedUrl.startsWith('http://') && !data.signedUrl.startsWith('https://')) {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+      const origin = apiBase.replace(/\/api\/?$/, '');
+      data.signedUrl = `${origin}${data.signedUrl.startsWith('/') ? '' : '/'}${data.signedUrl}`;
+    }
+    return data;
   },
 
   async create(data: Record<string, unknown>) {
