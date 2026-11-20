@@ -89,14 +89,20 @@ export class CoursesService {
     const course = await this.prisma.course.findFirst({
       where: isUuid ? { id: identifier } : { slug: identifier },
       include: {
-        materials: true,
+        materials: {
+          where: { parentId: null },
+          include: { children: true },
+        },
         modules: {
           orderBy: { orderIndex: 'asc' },
           include: {
             lessons: {
               orderBy: { orderIndex: 'asc' },
               include: {
-                materials: true,
+                materials: {
+                  where: { parentId: null },
+                  include: { children: true },
+                },
                 quizzes: {
                   select: {
                     id: true,

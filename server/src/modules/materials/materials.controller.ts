@@ -13,8 +13,9 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -51,15 +52,48 @@ export class MaterialsController {
   @Post('upload')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'file', maxCount: 1 },
+      { name: 'audio', maxCount: 1 },
+    ]),
+  )
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin tải lên tệp tin học liệu số PDF/Audio nhị phân thật' })
+  @ApiOperation({
+    summary:
+      'Admin tải lên học liệu số (PDF đề thi + Audio bài nghe đính kèm cùng lúc hoặc riêng)',
+  })
   @ApiResponse({ status: 201, description: 'Tải lên học liệu số thành công' })
   upload(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles()
+    files: {
+      file?: Express.Multer.File[];
+      audio?: Express.Multer.File[];
+    },
     @Body() body: any,
   ) {
-    return this.materialsService.uploadFile(file, body);
+    return this.materialsService.uploadWithAudio(files, body);
+  }
+
+  @Post(':id/attach-audio')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('audio'))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Admin gắn thêm tệp âm thanh Audio bài nghe vào đề thi / tài liệu PDF có sẵn',
+  })
+  @ApiParam({ name: 'id', description: 'UUID của đề thi / tài liệu PDF cha' })
+  attachAudio(
+    @Param('id') id: string,
+    @UploadedFile() audio: Express.Multer.File,
+    @Body() body: any,
+  ) {
+    return this.materialsService.uploadFile(audio, {
+      ...body,
+      parentId: id,
+    });
   }
 
   @Put(':id')

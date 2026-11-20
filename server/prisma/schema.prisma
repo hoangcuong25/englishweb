@@ -267,8 +267,14 @@ model Material {
   isWatermarked   Boolean      @default(true)
   createdAt       DateTime     @default(now())
 
+  // Self-relation: Audio tracks can be children attached directly to a parent PDF exam/material
+  parentId        String?
+  parent          Material?    @relation("MaterialHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children        Material[]   @relation("MaterialHierarchy")
+
   @@index([courseId])
   @@index([lessonId])
+  @@index([parentId])
   @@map("materials")
 }
 

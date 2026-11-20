@@ -165,7 +165,10 @@ export class LessonsService {
             course: true,
           },
         },
-        materials: true,
+        materials: {
+          where: { parentId: null },
+          include: { children: true },
+        },
         quizzes: {
           select: {
             id: true,
@@ -271,7 +274,10 @@ export class LessonsService {
             },
           },
         },
-        materials: true,
+        materials: {
+          where: { parentId: null },
+          include: { children: true },
+        },
         quizzes: {
           include: {
             questions: {

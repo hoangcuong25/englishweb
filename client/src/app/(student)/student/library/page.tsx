@@ -24,6 +24,9 @@ import {
   GraduationCap,
   BookOpen,
   ArrowRight,
+  Play,
+  Pause,
+  Volume2,
 } from 'lucide-react';
 
 interface LibraryMaterial {
@@ -34,6 +37,7 @@ interface LibraryMaterial {
   courseTitle: string;
   size: string;
   updatedAt: string;
+  childrenCount?: number;
 }
 
 interface RawMaterial {
@@ -45,6 +49,7 @@ interface RawMaterial {
   course?: { id?: string; title?: string };
   createdAt?: string;
   lesson?: { module?: { course?: { id?: string; title?: string } } };
+  children?: RawMaterial[];
 }
 
 interface EnrolledCourseItem {
@@ -74,6 +79,45 @@ export default function StudentLibraryPage() {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages] = useState(24);
+
+  // Audio Player State for Child Listening Tracks
+  const [activeAudioIdx, setActiveAudioIdx] = useState(0);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [audioPlaybackRate, setAudioPlaybackRate] = useState(1);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const studentAudioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const formatAudioTime = (sec: number) => {
+    if (!sec || isNaN(sec)) return '00:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const togglePlayAudio = () => {
+    if (!studentAudioRef.current) return;
+    if (isAudioPlaying) {
+      studentAudioRef.current.pause();
+      setIsAudioPlaying(false);
+    } else {
+      studentAudioRef.current.play();
+      setIsAudioPlaying(true);
+    }
+  };
+
+  const handleSeekAudio = (t: number) => {
+    if (!studentAudioRef.current) return;
+    studentAudioRef.current.currentTime = t;
+    setAudioCurrentTime(t);
+  };
+
+  const handleSetSpeed = (rate: number) => {
+    setAudioPlaybackRate(rate);
+    if (studentAudioRef.current) {
+      studentAudioRef.current.playbackRate = rate;
+    }
+  };
 
   const handlePageChange = (delta: number) => {
     if (!selectedMaterial) return;
@@ -122,6 +166,7 @@ export default function StudentLibraryPage() {
               courseTitle: cTitle,
               size: m.fileSize ? `${(m.fileSize / (1024 * 1024)).toFixed(1)} MB` : '6.2 MB',
               updatedAt: m.createdAt ? new Date(m.createdAt).toLocaleDateString('vi-VN') : '08/11/2026',
+              childrenCount: Array.isArray(m.children) ? m.children.length : 0,
             };
           });
           setMaterials(mapped);
@@ -147,6 +192,10 @@ export default function StudentLibraryPage() {
   const handleOpenSecureMaterial = async (mat: LibraryMaterial) => {
     setSelectedMaterial(mat);
     setLoadingSignedUrl(true);
+    setActiveAudioIdx(0);
+    setIsAudioPlaying(false);
+    setAudioCurrentTime(0);
+    setAudioPlaybackRate(1);
     try {
       const savedPage = localStorage.getItem(`reader_page_${mat.id}`);
       if (savedPage) {
@@ -363,6 +412,14 @@ export default function StudentLibraryPage() {
                       <h3 className="text-sm font-bold text-slate-900 mt-1 line-clamp-2">
                         {mat.title}
                       </h3>
+                      {Boolean(mat.childrenCount && mat.childrenCount > 0) && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-850 border border-amber-300">
+                            <Headphones className="w-3 h-3 text-amber-700" />
+                            <span>Kèm {mat.childrenCount} Audio bài nghe</span>
+                          </span>
+                        </div>
+                      )}
                       <p className="text-[11px] text-muted mt-1">
                         Dung lượng: {mat.size} • Cập nhật: {mat.updatedAt}
                       </p>
@@ -373,10 +430,23 @@ export default function StudentLibraryPage() {
                     <span className="text-[11px] text-slate-400">Chỉ xem trực tuyến • Có Watermark</span>
                     <button
                       onClick={() => handleOpenSecureMaterial(mat)}
-                      className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-bold transition shadow-sm flex items-center space-x-1.5"
+                      className={`px-3.5 py-1.5 rounded-lg text-white text-xs font-bold transition shadow-sm flex items-center space-x-1.5 ${
+                        mat.childrenCount && mat.childrenCount > 0
+                          ? 'bg-emerald-600 hover:bg-emerald-700'
+                          : 'bg-primary hover:bg-primary-dark'
+                      }`}
                     >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Mở Xem Bảo Mật</span>
+                      {mat.childrenCount && mat.childrenCount > 0 ? (
+                        <>
+                          <Headphones className="w-3.5 h-3.5" />
+                          <span>Xem Đề & Nghe Audio</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Mở Xem Bảo Mật</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -455,12 +525,124 @@ export default function StudentLibraryPage() {
                   <p className="text-xs font-semibold">Đang tạo Signed URL bảo mật 15 phút...</p>
                 </div>
               ) : selectedMaterial.fileType === 'PDF' && signedUrlData?.signedUrl ? (
-                <div className="w-full h-full relative">
-                  <iframe
-                    src={`${signedUrlData.signedUrl.startsWith('http') ? signedUrlData.signedUrl : `http://localhost:3001${signedUrlData.signedUrl.startsWith('/') ? '' : '/'}${signedUrlData.signedUrl}`}#toolbar=0&navpanes=0&scrollbar=1`}
-                    className="w-full h-full border-none"
-                    title={selectedMaterial.title}
-                  />
+                <div className="w-full h-full relative flex flex-col">
+                  {/* Sticky Audio Player Bar on Top of PDF if Audios Exist */}
+                  {signedUrlData.audios && signedUrlData.audios.length > 0 && (
+                    <div className="w-full bg-slate-900 border-b border-slate-700/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-white z-20 shadow-md">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
+                          <Headphones className="w-4 h-4" />
+                        </span>
+                        {signedUrlData.audios.length > 1 ? (
+                          <select
+                            value={activeAudioIdx}
+                            onChange={(e) => {
+                              setActiveAudioIdx(Number(e.target.value));
+                              setIsAudioPlaying(false);
+                            }}
+                            className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1 font-semibold max-w-[200px] truncate"
+                          >
+                            {signedUrlData.audios.map((track, idx) => (
+                              <option key={track.id} value={idx}>
+                                {track.title || `Track Audio 0${idx + 1}`}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="truncate max-w-[220px]">
+                            <p className="text-xs font-bold text-slate-100 truncate">
+                              {signedUrlData.audios[0]?.title || 'Audio Đề Thi'}
+                            </p>
+                            <span className="text-[10px] text-amber-400 font-semibold">Tệp âm thanh con đi kèm đề thi</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Integrated Audio Controls */}
+                      <div className="flex items-center gap-3 flex-1 max-w-md justify-center">
+                        <button
+                          type="button"
+                          onClick={togglePlayAudio}
+                          className="w-8 h-8 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center font-bold shadow transition cursor-pointer shrink-0"
+                          title={isAudioPlaying ? 'Tạm dừng' : 'Phát bài nghe'}
+                        >
+                          {isAudioPlaying ? (
+                            <Pause className="w-4 h-4 fill-current" />
+                          ) : (
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          )}
+                        </button>
+
+                        <div className="flex items-center gap-2 flex-1 min-w-[120px]">
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {formatAudioTime(audioCurrentTime)}
+                          </span>
+                          <input
+                            type="range"
+                            min={0}
+                            max={audioDuration || 100}
+                            value={audioCurrentTime}
+                            onChange={(e) => handleSeekAudio(Number(e.target.value))}
+                            className="w-full accent-amber-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {formatAudioTime(audioDuration)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Playback speed switchers */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-slate-400 font-bold hidden sm:inline">Tốc độ:</span>
+                        {[0.75, 1.0, 1.25, 1.5].map((speed) => (
+                          <button
+                            key={speed}
+                            type="button"
+                            onClick={() => handleSetSpeed(speed)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold transition cursor-pointer ${
+                              audioPlaybackRate === speed
+                                ? 'bg-amber-500 text-slate-950 shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                            }`}
+                          >
+                            {speed}x
+                          </button>
+                        ))}
+                      </div>
+
+                      <audio
+                        ref={studentAudioRef}
+                        key={signedUrlData.audios[activeAudioIdx]?.id || 'audio-track'}
+                        src={
+                          signedUrlData.audios[activeAudioIdx]?.signedUrl?.startsWith('http')
+                            ? signedUrlData.audios[activeAudioIdx]?.signedUrl
+                            : `http://localhost:3001${signedUrlData.audios[activeAudioIdx]?.signedUrl?.startsWith('/') ? '' : '/'}${signedUrlData.audios[activeAudioIdx]?.signedUrl || ''}`
+                        }
+                        onTimeUpdate={() => {
+                          if (studentAudioRef.current) {
+                            setAudioCurrentTime(studentAudioRef.current.currentTime);
+                          }
+                        }}
+                        onLoadedMetadata={() => {
+                          if (studentAudioRef.current) {
+                            setAudioDuration(studentAudioRef.current.duration);
+                            studentAudioRef.current.playbackRate = audioPlaybackRate;
+                          }
+                        }}
+                        onEnded={() => setIsAudioPlaying(false)}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+
+                  {/* PDF Document Stage */}
+                  <div className="flex-1 w-full h-full relative">
+                    <iframe
+                      src={`${signedUrlData.signedUrl.startsWith('http') ? signedUrlData.signedUrl : `http://localhost:3001${signedUrlData.signedUrl.startsWith('/') ? '' : '/'}${signedUrlData.signedUrl}`}#toolbar=0&navpanes=0&scrollbar=1`}
+                      className="w-full h-full border-none"
+                      title={selectedMaterial.title}
+                    />
+                  </div>
                 </div>
               ) : selectedMaterial.fileType === 'PDF' ? (
                 <div className="w-full h-full p-8 flex flex-col items-center justify-center space-y-4 text-center">
@@ -475,17 +657,33 @@ export default function StudentLibraryPage() {
                   </p>
                 </div>
               ) : (
-                <div className="w-full max-w-md p-8 bg-white rounded-3xl border border-line shadow-lg space-y-4 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
-                    <Headphones className="w-8 h-8" />
+                <div className="w-full max-w-lg p-6 bg-slate-900 text-white rounded-3xl border border-slate-700 shadow-2xl space-y-5 text-center z-10">
+                  <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center mx-auto text-amber-400 shadow-xl shadow-amber-500/10">
+                    <Headphones className="w-10 h-10" />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900">{selectedMaterial.title}</h4>
-                  <audio controls className="w-full" controlsList="nodownload">
-                    <source src={signedUrlData?.signedUrl || ''} type="audio/mp3" />
-                    Trình duyệt của bạn không hỗ trợ thẻ audio.
-                  </audio>
-                  <p className="text-[11px] text-muted">
-                    Bản quyền thuộc Teacher Dong Academy. Chặn nút tải trực tiếp.
+                  <div>
+                    <h4 className="text-base font-black text-slate-100">{selectedMaterial.title}</h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {selectedMaterial.courseTitle} • Audio IELTS bản quyền chính thức
+                    </p>
+                  </div>
+                  <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700">
+                    <audio
+                      key={signedUrlData?.signedUrl}
+                      controls
+                      autoPlay
+                      src={
+                        signedUrlData?.signedUrl?.startsWith('http')
+                          ? signedUrlData.signedUrl
+                          : `http://localhost:3001${signedUrlData?.signedUrl?.startsWith('/') ? '' : '/'}${signedUrlData?.signedUrl || ''}`
+                      }
+                      className="w-full h-10"
+                      controlsList="nodownload"
+                    />
+                  </div>
+                  <p className="text-[11px] text-amber-400/90 font-medium flex items-center justify-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Bản quyền thuộc Teacher Dong Academy. Chặn nút tải trực tiếp.</span>
                   </p>
                 </div>
               )}

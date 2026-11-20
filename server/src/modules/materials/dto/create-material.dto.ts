@@ -21,6 +21,11 @@ export class CreateMaterialDto {
   @IsString()
   lessonId?: string;
 
+  @ApiPropertyOptional({ example: 'parent-material-uuid-here' })
+  @IsOptional()
+  @IsString()
+  parentId?: string;
+
   @ApiProperty({ example: 'IELTS Writing Task 2 Masterclass Guide.pdf' })
   @IsNotEmpty({ message: 'Tiêu đề tài liệu không được để trống' })
   @IsString()

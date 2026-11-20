@@ -78,6 +78,7 @@ export class MaterialsService {
       data: {
         courseId: resolvedCourseId,
         lessonId: resolvedLessonId,
+        parentId: dto.parentId || null,
         title: dto.title,
         type: dto.type,
         fileKey: dto.fileKey,
@@ -85,6 +86,9 @@ export class MaterialsService {
         durationSeconds: dto.durationSeconds,
         isPrivate: dto.isPrivate ?? true,
         isWatermarked: dto.isWatermarked ?? true,
+      },
+      include: {
+        children: true,
       },
     });
   }
@@ -194,6 +198,7 @@ export class MaterialsService {
       data: {
         courseId: courseId || null,
         lessonId: lessonId || null,
+        parentId: body.parentId || null,
         title,
         type,
         fileKey: fileName,
@@ -202,7 +207,56 @@ export class MaterialsService {
         isPrivate,
         isWatermarked,
       },
+      include: {
+        children: true,
+      },
     });
+  }
+
+  async uploadWithAudio(
+    files: { file?: Express.Multer.File[]; audio?: Express.Multer.File[] },
+    body: any,
+  ) {
+    const mainFile = files?.file?.[0];
+    const audioFile = files?.audio?.[0];
+
+    if (!mainFile && !audioFile) {
+      throw AppException.badRequest(
+        AppErrorCode.MATERIAL_FILE_PAYLOAD_MISSING,
+        'Vui lòng chọn tệp tin PDF đề thi hoặc tệp âm thanh Audio.',
+      );
+    }
+
+    // 1. If only audio file was uploaded with parentId (attaching audio to an existing test)
+    if (!mainFile && audioFile) {
+      return this.uploadFile(audioFile, {
+        ...body,
+        type: MaterialType.AUDIO,
+        parentId: body.parentId || null,
+      });
+    }
+
+    // 2. If main file is uploaded (PDF test paper)
+    if (mainFile) {
+      const parent = await this.uploadFile(mainFile, body);
+
+      // If accompanying audio was also uploaded, create it as child
+      if (audioFile && parent) {
+        const audioTitle =
+          (body.audioTitle && body.audioTitle.trim()) ||
+          `${parent.title} - Audio Bài Nghe`;
+        await this.uploadFile(audioFile, {
+          title: audioTitle,
+          courseId: parent.courseId,
+          lessonId: parent.lessonId,
+          parentId: parent.id,
+          isPrivate: parent.isPrivate,
+          isWatermarked: parent.isWatermarked,
+        });
+      }
+
+      return this.findById(parent.id);
+    }
   }
 
   async update(id: string, dto: UpdateMaterialDto) {
@@ -249,6 +303,9 @@ export class MaterialsService {
     const where: any = {};
     if (query.fileType) {
       where.type = query.fileType;
+    } else {
+      // By default in main materials list, only list top-level materials (where parentId is null), with children attached
+      where.parentId = null;
     }
     if (query.lessonId) {
       where.lessonId = query.lessonId;
@@ -355,6 +412,18 @@ export class MaterialsService {
               },
             },
           },
+          children: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              fileKey: true,
+              fileSize: true,
+              durationSeconds: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: 'asc' },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -374,7 +443,21 @@ export class MaterialsService {
 
   async findByLessonId(lessonId: string) {
     return this.prisma.material.findMany({
-      where: { lessonId },
+      where: { lessonId, parentId: null },
+      include: {
+        children: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            fileKey: true,
+            fileSize: true,
+            durationSeconds: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -383,6 +466,18 @@ export class MaterialsService {
     const material = await this.prisma.material.findUnique({
       where: { id },
       include: {
+        children: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            fileKey: true,
+            fileSize: true,
+            durationSeconds: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
         course: {
           select: {
             id: true,
@@ -479,6 +574,34 @@ export class MaterialsService {
     const studentCode = `TD-STU-${user.id.substring(0, 4).toUpperCase()}`;
     const maskedPhone = this.maskPhone(user.phone);
 
+    // If material has child audios, also generate signed URLs for them!
+    const childAudios = await this.prisma.material.findMany({
+      where: { parentId: material.id, type: MaterialType.AUDIO },
+      select: { id: true, title: true, fileKey: true, durationSeconds: true, fileSize: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const audios = childAudios.map((child) => {
+      const childToken = this.jwtService.sign(
+        {
+          materialId: child.id,
+          userId: user.id,
+          fileKey: child.fileKey,
+        },
+        {
+          secret: this.jwtSecret,
+          expiresIn: '15m',
+        },
+      );
+      return {
+        id: child.id,
+        title: child.title,
+        signedUrl: `/api/materials/${child.id}/stream?token=${childToken}`,
+        durationSeconds: child.durationSeconds,
+        fileSize: child.fileSize,
+      };
+    });
+
     return {
       materialId: material.id,
       title: material.title,
@@ -487,6 +610,7 @@ export class MaterialsService {
       token,
       expiresInSeconds: 900,
       expiresAt: expiresAt.toISOString(),
+      audios,
       watermark: {
         studentName: user.fullName || 'Học viên Teacher Dong',
         studentCode,

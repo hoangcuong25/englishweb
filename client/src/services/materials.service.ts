@@ -30,16 +30,35 @@ export interface Material {
   isWatermarked?: boolean;
   isPrivate?: boolean;
   createdAt: string;
+  parentId?: string | null;
+  children?: Material[];
+}
+
+export interface AttachedAudioTrack {
+  id: string;
+  title: string;
+  signedUrl: string;
+  durationSeconds?: number;
+  fileSize?: number;
 }
 
 export interface SignedUrlResponse {
+  materialId?: string;
+  title?: string;
+  type?: 'PDF' | 'AUDIO';
   signedUrl: string;
+  token?: string;
   expiresInSeconds: number;
+  audios?: AttachedAudioTrack[];
   watermark: {
-    fullName: string;
+    fullName?: string;
+    studentName?: string;
     phone?: string;
-    userId: string;
-    timestamp: number;
+    maskedPhone?: string;
+    userId?: string;
+    studentCode?: string;
+    timestamp?: number;
+    renderedTimestamp?: string;
   };
 }
 
@@ -91,6 +110,15 @@ export const materialsService = {
 
   async uploadWithFile(formData: FormData) {
     const response = await api.post('/materials/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  async attachAudio(materialId: string, formData: FormData) {
+    const response = await api.post(`/materials/${materialId}/attach-audio`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
