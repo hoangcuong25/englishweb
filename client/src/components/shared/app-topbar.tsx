@@ -91,6 +91,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
     { href: '/admin/homework', label: t('nav_admin_homework', 'Giao bài tập về nhà'), icon: FileText },
     { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến'), icon: Video },
     { href: '/admin/assessments', label: t('nav_admin_assessments', 'Khảo thí & Chấm thi IELTS'), icon: Award },
+    { href: '/admin/pedagogy-assessments', label: t('nav_admin_pedagogy_assessments', 'Khảo thí Sư phạm & Tình huống'), icon: Sparkles },
     { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },
     { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
     { href: '/admin/messages', label: t('nav_messages', 'Tin nhắn trực tiếp'), icon: MessageSquare },

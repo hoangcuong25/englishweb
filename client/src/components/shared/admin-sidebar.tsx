@@ -19,6 +19,7 @@ import {
   FileText,
   PanelLeftClose,
   PanelLeftOpen,
+  Sparkles,
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -38,9 +39,10 @@ export default function AdminSidebar() {
       ],
     },
     {
-      title: 'Khảo Thí & Chấm Thi IELTS',
+      title: 'Khảo Thí & Đánh Giá',
       items: [
         { href: '/admin/assessments', label: t('nav_admin_assessments', 'Khảo thí & Chấm thi IELTS'), icon: Award },
+        { href: '/admin/pedagogy-assessments', label: t('nav_admin_pedagogy_assessments', 'Khảo thí Sư phạm & Tình huống'), icon: Sparkles },
       ],
     },
     {
