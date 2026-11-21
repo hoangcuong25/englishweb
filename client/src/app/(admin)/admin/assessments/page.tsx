@@ -252,6 +252,14 @@ function AssessmentHubContent() {
 
   // Smart Cambridge Importer State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importMode, setImportMode] = useState<'create_new' | 'existing'>('create_new');
+  const [newQuizTitle, setNewQuizTitle] = useState('Cambridge IELTS 20 - Academic Reading Test 1');
+  const [newQuizSkill, setNewQuizSkill] = useState('READING');
+  const [newQuizTimeLimit, setNewQuizTimeLimit] = useState(60);
+  const [newQuizPassScore, setNewQuizPassScore] = useState(80);
+  const [detectedPassage, setDetectedPassage] = useState('');
+  const [showPassageEditor, setShowPassageEditor] = useState(false);
+  const [detectedKeyCount, setDetectedKeyCount] = useState(0);
   const [importTargetQuizId, setImportTargetQuizId] = useState('');
   const [importTab, setImportTab] = useState<'text' | 'file'>('text');
   const [importText, setImportText] = useState('');
@@ -484,45 +492,175 @@ function AssessmentHubContent() {
   // ==========================================
   // SMART CAMBRIDGE IMPORTER LOGIC & PARSER
   // ==========================================
-  const sampleCambridgeReadingText = `Questions 1-4
+  const sampleCambridgeReadingText = `CAMBRIDGE IELTS 20 - ACADEMIC READING TEST 1
+
+READING PASSAGE 1
+You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1 below.
+
+URBAN MICROCLIMATES AND SUSTAINABLE ARCHITECTURE
+
+Paragraph A
+Over the past two decades, metropolitan hubs worldwide have experienced intensified microclimatic anomalies known as Urban Heat Islands (UHI). Dense concrete infrastructure, asphalt surfaces, and anthropogenic heat emissions cause metropolitan temperatures to exceed surrounding rural baselines by up to 5 to 8 degrees Celsius during peak summer seasons.
+
+Paragraph B
+To mitigate these climatic challenges, contemporary civil engineers and architects are pioneering "biophilic building engineering." A notable prototype is the vertical botanical facade, incorporating indigenous foliage directly onto cantilevered building balconies. Plants act as organic thermal insulators and evaporative cooling units, reducing ambient surface temperatures by absorbing solar radiation.
+
+Paragraph C
+Automated IoT sensor arrays placed across structural elevations continuously evaluate micro-environmental parameters, including relative humidity, particulate concentration, and ambient airflow. These sensors relay real-time telemetry to central municipal management platforms, dynamically controlling misting nozzles and solar louvers to stabilize local microclimates.
+
+Paragraph D
+Despite these demonstrated technological advantages, the broad-scale implementation of biophilic facades faces several hurdles. Chief among these is the ongoing maintenance cost associated with automated drip-irrigation networks, as well as structural considerations regarding the dynamic weight of hydrated soil and mature root networks.
+
+Questions 1-5
 Do the following statements agree with the information given in Reading Passage 1?
-In boxes 1-4 on your answer sheet, write:
+In boxes 1-5 on your answer sheet, write:
 TRUE if the statement agrees with the information
 FALSE if the statement contradicts the information
 NOT GIVEN if there is no information on this
 
-1. The ancient Roman water distribution grid was constructed entirely above ground level.
-Answer: FALSE
-Explanation: Paragraph 1 states that the vast majority was subterranean aqueducts.
+1. Urban Heat Islands cause metropolitan centers to be warmer than surrounding rural areas.
+2. Vertical botanical facades utilize synthetic artificial foliage to reflect solar radiation.
+3. Automated IoT sensors adjust misting nozzles and solar louvers based on real-time climate data.
+4. The municipal government of Milan financed the entire vertical forest construction project.
+5. High maintenance costs of drip-irrigation systems present a challenge to widespread adoption.
 
-2. Modern metropolitan areas deploy AI-assisted IoT sensors to regulate municipal traffic flow.
-Answer: TRUE
-Explanation: Paragraph 3 mentions automated camera systems detecting congestion in real-time.
+Questions 6-9
+Choose the correct letter, A, B, C or D.
+Write the correct letter in boxes 6-9 on your answer sheet.
 
-3. The municipal government of Copenhagen achieved total carbon neutrality ahead of schedule in 2024.
-Answer: NOT GIVEN
-Explanation: The passage mentions ambitious targets but no confirmation of early completion.
+6. What is the primary cause of Urban Heat Islands mentioned in Paragraph A?
+A. Excessive use of residential air conditioning units
+B. Dense concrete, asphalt surfaces and anthropogenic heat emissions
+C. Increased rainfall in rural territories
+D. Absence of underground public transit networks
 
-4. What is the primary environmental benefit of deploying decentralized solar microgrids?
-A. To eliminate all consumer electric bills
-B. To reduce peak-hour transmission loss and fossil fuel reliance
-C. To replace national utility providers completely
-D. To encourage residential crypto mining activities
-Answer: B
-Explanation: Paragraph 5 highlights reduced transmission resistance and cleaner distributed energy.
+7. How do biophilic facades achieve ambient cooling?
+A. By reflecting sunlight using mirrored glass tiles
+B. Through organic thermal insulation and evaporative plant cooling
+C. By circulating chilled water through underground pipes
+D. By blocking all natural air currents around the building
 
-5. Sustainable urban high-rise buildings utilize specialized ______ windows to generate thermal insulation.
-Answer: double-glazed / vacuum-insulated
-Explanation: Paragraph 6 details advanced glazing materials for thermal efficiency.`;
+8. According to Paragraph C, what do structural IoT sensors monitor?
+A. Pedestrian foot traffic and noise pollution
+B. Energy consumption of individual residential apartments
+C. Relative humidity, particulate concentration and ambient airflow
+D. Structural seismic vibrations during earthquakes
+
+9. What structural concern is noted regarding mature botanical installations?
+A. The dynamic weight of hydrated soil and root systems
+B. Fire risk posed by dry autumn leaves
+C. Electrical interference caused by dense plant cover
+D. High wind resistance during hurricane conditions
+
+Questions 10-13
+Complete the notes below.
+Choose ONE WORD ONLY from the passage for each answer.
+Write your answers in boxes 10-13 on your answer sheet.
+
+Innovations in Urban Climate Management:
+10. The temperature difference between cities and rural areas can reach up to 8 degrees ______ during peak periods.
+11. Plants absorb solar ______ to reduce the heating effect on exterior walls.
+12. Sensor networks transmit live ______ directly to municipal control platforms.
+13. Building designs must account for the added weight of hydrated ______ and root systems.
+
+ANSWER KEY
+1. TRUE
+2. FALSE
+3. TRUE
+4. NOT GIVEN
+5. TRUE
+6. B
+7. B
+8. C
+9. A
+10. Celsius
+11. radiation
+12. telemetry
+13. soil`;
 
   const handleOpenImportModal = (quizId?: string) => {
-    setImportTargetQuizId(quizId || mockTests[0]?.id || '');
+    if (quizId) {
+      setImportTargetQuizId(quizId);
+      setImportMode('existing');
+    } else {
+      setImportTargetQuizId(mockTests[0]?.id || '');
+      setImportMode('create_new');
+    }
     setParsedQuestions([]);
+    setDetectedPassage('');
+    setDetectedKeyCount(0);
     setIsImportModalOpen(true);
   };
 
   const parseCambridgeRawText = (rawText: string, forcedType = 'AUTO') => {
-    const lines = rawText.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (!rawText.trim()) {
+      return { title: '', passage: '', questions: [], detectedKeyCount: 0 };
+    }
+
+    // 1. Extract ANSWER KEY section if placed at the end of the file
+    const keyMap = new Map<number, string>();
+    let textBody = rawText;
+    const answerKeyRegex = /(?:^|\n)\s*(?:ANSWER\s*KEY|KEY|ĐÁP\s*ÁN|ANSWERS)[\s\:\r\n]+([\s\S]*)$/i;
+    const answerKeyMatch = rawText.match(answerKeyRegex);
+
+    if (answerKeyMatch) {
+      const keySection = answerKeyMatch[1];
+      textBody = rawText.slice(0, answerKeyMatch.index);
+      const keyLineRegex = /(?:^|\n)\s*(\d+)[\.\:\)]\s*([A-Za-z0-9\s\/\-_,\.\'\"]+)/g;
+      let m: RegExpExecArray | null;
+      while ((m = keyLineRegex.exec(keySection)) !== null) {
+        const qNum = parseInt(m[1], 10);
+        const val = m[2].trim();
+        if (!isNaN(qNum) && val) {
+          keyMap.set(qNum, val);
+        }
+      }
+    }
+
+    // 2. Extract Title and Reading Passage if present
+    let detectedTitle = '';
+    let detectedPassage = '';
+    const lines = textBody.split('\n').map((l) => l.trim()).filter(Boolean);
+
+    if (lines.length > 0 && /CAMBRIDGE|IELTS|READING|PRACTICE|MOCK/i.test(lines[0])) {
+      detectedTitle = lines[0];
+    }
+
+    let passageStartIndex = -1;
+    let questionsStartIndex = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (passageStartIndex === -1 && /^(?:READING\s+PASSAGE|PASSAGE)\s*([0-9A-Z]*)/i.test(line)) {
+        passageStartIndex = i;
+      }
+      if (
+        questionsStartIndex === -1 &&
+        (/^Questions?\s+\d+/i.test(line) || /^(?:Question\s+|Q\s*)?1[\.\:\)]\s+/i.test(line))
+      ) {
+        questionsStartIndex = i;
+        break;
+      }
+    }
+
+    if (passageStartIndex !== -1 && questionsStartIndex > passageStartIndex) {
+      const passageLines = lines.slice(passageStartIndex, questionsStartIndex);
+      const contentLines: string[] = [];
+      for (const pLine of passageLines) {
+        if (/^(?:READING\s+PASSAGE|PASSAGE)\s*/i.test(pLine)) continue;
+        if (/^You should spend about/i.test(pLine)) continue;
+        contentLines.push(pLine);
+      }
+      if (contentLines.length > 0) {
+        if (!detectedTitle) {
+          detectedTitle = contentLines[0];
+        }
+        detectedPassage = contentLines.join('\n\n');
+      }
+    }
+
+    // 3. Parse questions starting from questionsStartIndex (or line 0 if no passage)
+    const questionLines = questionsStartIndex !== -1 ? lines.slice(questionsStartIndex) : lines;
     const questions: {
       orderIndex: number;
       type: string;
@@ -542,15 +680,24 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
 
     const processAndPush = (q: typeof currentQ) => {
       if (!q) return;
+
+      // Map answer from Answer Key at end of file if not specified inline
+      if (!q.answer && keyMap.has(q.number)) {
+        q.answer = keyMap.get(q.number);
+      }
+
       let type = forcedType !== 'AUTO' ? forcedType : 'SINGLE_CHOICE';
-      const ans = (q.answer || '').trim().toUpperCase();
+      const rawAns = (q.answer || '').trim();
+      const ansUpper = rawAns.toUpperCase();
 
       if (forcedType === 'AUTO') {
-        if (['TRUE', 'FALSE', 'NOT GIVEN'].includes(ans) || q.text.toUpperCase().includes('TRUE/FALSE/NOT GIVEN')) {
+        if (['TRUE', 'FALSE', 'NOT GIVEN'].includes(ansUpper) || q.text.toUpperCase().includes('TRUE/FALSE/NOT GIVEN')) {
           type = 'TRUE_FALSE_NOT_GIVEN';
-        } else if (['YES', 'NO', 'NOT GIVEN'].includes(ans)) {
+        } else if (['YES', 'NO', 'NOT GIVEN'].includes(ansUpper) || q.text.toUpperCase().includes('YES/NO/NOT GIVEN')) {
           type = 'YES_NO_NOT_GIVEN';
         } else if (q.options.length >= 2) {
+          type = 'SINGLE_CHOICE';
+        } else if (/^[A-D]$/i.test(rawAns)) {
           type = 'SINGLE_CHOICE';
         } else {
           type = 'FILL_BLANK';
@@ -560,30 +707,31 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
       let finalOptions: { content: string; isCorrect: boolean }[] = [];
       if (type === 'TRUE_FALSE_NOT_GIVEN') {
         finalOptions = [
-          { content: 'TRUE', isCorrect: ans === 'TRUE' },
-          { content: 'FALSE', isCorrect: ans === 'FALSE' },
-          { content: 'NOT GIVEN', isCorrect: ans === 'NOT GIVEN' },
+          { content: 'TRUE', isCorrect: ansUpper === 'TRUE' },
+          { content: 'FALSE', isCorrect: ansUpper === 'FALSE' },
+          { content: 'NOT GIVEN', isCorrect: ansUpper === 'NOT GIVEN' },
         ];
       } else if (type === 'YES_NO_NOT_GIVEN') {
         finalOptions = [
-          { content: 'YES', isCorrect: ans === 'YES' },
-          { content: 'NO', isCorrect: ans === 'NO' },
-          { content: 'NOT GIVEN', isCorrect: ans === 'NOT GIVEN' },
+          { content: 'YES', isCorrect: ansUpper === 'YES' },
+          { content: 'NO', isCorrect: ansUpper === 'NO' },
+          { content: 'NOT GIVEN', isCorrect: ansUpper === 'NOT GIVEN' },
         ];
-      } else if (type === 'FILL_BLANK' || type === 'NOTE_COMPLETION') {
-        const parts = (q.answer || 'Đáp án mẫu').split('/');
+      } else if (type === 'FILL_BLANK' || type === 'NOTE_COMPLETION' || type === 'SENTENCE_COMPLETION') {
+        const parts = (rawAns || 'Đáp án mẫu').split('/');
         finalOptions = parts.map((p) => ({ content: p.trim(), isCorrect: true }));
       } else {
+        // SINGLE_CHOICE
         finalOptions = q.options.map((opt) => ({
-          content: opt.text || opt.letter,
-          isCorrect: opt.letter === ans || opt.text.trim().toLowerCase() === ans.toLowerCase(),
+          content: opt.text ? `${opt.letter}. ${opt.text}` : opt.letter,
+          isCorrect: opt.letter.toUpperCase() === ansUpper || opt.text.trim().toLowerCase() === rawAns.toLowerCase(),
         }));
         if (finalOptions.length === 0) {
           finalOptions = [
-            { content: 'A. Option A', isCorrect: ans === 'A' },
-            { content: 'B. Option B', isCorrect: ans === 'B' },
-            { content: 'C. Option C', isCorrect: ans === 'C' },
-            { content: 'D. Option D', isCorrect: ans === 'D' },
+            { content: 'A', isCorrect: ansUpper === 'A' },
+            { content: 'B', isCorrect: ansUpper === 'B' },
+            { content: 'C', isCorrect: ansUpper === 'C' },
+            { content: 'D', isCorrect: ansUpper === 'D' },
           ];
         }
       }
@@ -593,19 +741,32 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
         type,
         content: q.text,
         options: finalOptions,
-        explanation: q.explanation || 'Theo thông tin từ đề thi chuẩn Cambridge.',
+        explanation:
+          q.explanation ||
+          (q.answer
+            ? `Đáp án chính xác: ${q.answer} theo tài liệu khảo thí Cambridge.`
+            : 'Theo bài đọc đề thi chuẩn Cambridge.'),
       });
     };
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+    for (let i = 0; i < questionLines.length; i++) {
+      const line = questionLines[i];
 
-      // Ignore title/instruction lines like "Questions 1-5" or "Do the following statements..."
-      if (/^Questions?\s+\d+/i.test(line) || /^Do the following/i.test(line) || /^In boxes/i.test(line) || /^Choose the correct/i.test(line)) {
+      // Ignore instruction lines
+      if (
+        /^Questions?\s+\d+/i.test(line) ||
+        /^Do the following/i.test(line) ||
+        /^In boxes/i.test(line) ||
+        /^Choose the correct/i.test(line) ||
+        /^Complete the/i.test(line) ||
+        /^Write your answers/i.test(line) ||
+        /^Choose ONE WORD/i.test(line) ||
+        /^Choose NO MORE/i.test(line)
+      ) {
         continue;
       }
 
-      const ansMatch = line.match(/^(?:Answer|Ans|Key|Đáp án)[\s\:\-]+([A-Za-z0-9\s\/\-_]+)$/i);
+      const ansMatch = line.match(/^(?:Answer|Ans|Key|Đáp án)[\s\:\-]+([A-Za-z0-9\s\/\-_,\.\'\"]+)$/i);
       if (ansMatch && currentQ) {
         currentQ.answer = ansMatch[1].trim();
         continue;
@@ -636,7 +797,13 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
     }
 
     if (currentQ) processAndPush(currentQ);
-    return questions;
+
+    return {
+      title: detectedTitle,
+      passage: detectedPassage,
+      questions,
+      detectedKeyCount: keyMap.size,
+    };
   };
 
   const handleParseImportText = () => {
@@ -645,19 +812,21 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
       return;
     }
     const results = parseCambridgeRawText(importText, importForcedType);
-    if (results.length === 0) {
+    if (results.questions.length === 0) {
       showNotice('⚠️ Không tìm thấy câu hỏi nào hợp lệ. Vui lòng định dạng số thứ tự (ví dụ: 1. Câu hỏi...)');
       return;
     }
-    setParsedQuestions(results);
-    showNotice(`🎉 Đã bóc tách thành công ${results.length} câu hỏi chuẩn Cambridge! Hãy kiểm tra Live Preview.`);
+    setParsedQuestions(results.questions);
+    if (results.title) setNewQuizTitle(results.title);
+    if (results.passage) setDetectedPassage(results.passage);
+    setDetectedKeyCount(results.detectedKeyCount);
+
+    const keyNotice = results.detectedKeyCount > 0 ? ` • ${results.detectedKeyCount} đáp án từ Answer Key` : '';
+    const passageNotice = results.passage ? ' • Bài đọc Passage tự động bóc tách' : '';
+    showNotice(`🎉 Đã bóc tách thành công ${results.questions.length} câu hỏi chuẩn Cambridge${keyNotice}${passageNotice}!`);
   };
 
   const handleExecuteImport = async () => {
-    if (!importTargetQuizId) {
-      showNotice('❌ Vui lòng chọn bài Quiz / Đề thi mục tiêu cần nạp câu hỏi!');
-      return;
-    }
     if (parsedQuestions.length === 0) {
       showNotice('❌ Chưa có câu hỏi nào được phân tích để import!');
       return;
@@ -665,22 +834,53 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
 
     setIsSubmittingImport(true);
     try {
-      const targetTest = mockTests.find((t) => t.id === importTargetQuizId);
+      let targetQuizId = importTargetQuizId;
+      let targetSkill = 'READING';
+
+      if (importMode === 'create_new') {
+        const createdQuiz = await quizzesService.createQuiz({
+          title: newQuizTitle.trim() || 'Cambridge IELTS Practice Test',
+          skill: newQuizSkill,
+          passage: detectedPassage.trim() || undefined,
+          timeLimitMinutes: Number(newQuizTimeLimit) || 60,
+          passScore: Number(newQuizPassScore) || 80,
+          quizType: 'PRACTICE_TEST',
+          testType: 'FULL_MOCK_TEST',
+          category: 'IELTS',
+        });
+        targetQuizId = createdQuiz.id;
+        targetSkill = newQuizSkill;
+      } else {
+        if (!targetQuizId) {
+          showNotice('❌ Vui lòng chọn bài Quiz / Đề thi mục tiêu cần nạp câu hỏi!');
+          setIsSubmittingImport(false);
+          return;
+        }
+        const targetTest = mockTests.find((t) => t.id === targetQuizId);
+        targetSkill = targetTest?.skill || 'READING';
+      }
+
       const payload = parsedQuestions.map((q) => ({
         content: q.content,
-        skill: targetTest?.skill || 'READING',
+        skill: targetSkill,
         type: q.type,
         explanation: q.explanation,
         orderIndex: q.orderIndex,
         options: q.options,
       }));
 
-      await quizzesService.addQuestionsBulk(importTargetQuizId, payload);
-      showNotice(`🎉 Đã import thành công ${parsedQuestions.length} câu hỏi chuẩn Cambridge vào đề thi!`);
+      await quizzesService.addQuestionsBulk(targetQuizId, payload);
+      showNotice(
+        importMode === 'create_new'
+          ? `🎉 Đã tạo đề thi "${newQuizTitle}" và nạp thành công ${parsedQuestions.length} câu hỏi!`
+          : `🎉 Đã nạp thành công ${parsedQuestions.length} câu hỏi chuẩn Cambridge vào đề thi!`
+      );
       await fetchQuizzesAndTests();
       setIsImportModalOpen(false);
       setParsedQuestions([]);
       setImportText('');
+      setDetectedPassage('');
+      setDetectedKeyCount(0);
     } catch (err: unknown) {
       showNotice(`❌ Lỗi khi import câu hỏi: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
     } finally {
@@ -738,33 +938,58 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const fileName = file.name.toLowerCase();
     const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        if (Array.isArray(json)) {
-          const validated = json.map((item, idx) => ({
-            orderIndex: item.orderIndex || idx + 1,
-            type: item.type || 'SINGLE_CHOICE',
-            content: item.content || item.questionText || `Câu hỏi ${idx + 1}`,
-            options: Array.isArray(item.options)
-              ? item.options
-              : [
-                  { content: 'TRUE', isCorrect: true },
-                  { content: 'FALSE', isCorrect: false },
-                ],
-            explanation: item.explanation || 'Theo bài đọc Cambridge.',
-          }));
-          setParsedQuestions(validated);
-          showNotice(`✅ Đã nạp thành công ${validated.length} câu hỏi từ file JSON!`);
-        } else {
-          showNotice('❌ Định dạng file JSON không hợp lệ (phải là danh sách mảng câu hỏi)');
+
+    if (fileName.endsWith('.json')) {
+      reader.onload = (event) => {
+        try {
+          const json = JSON.parse(event.target?.result as string);
+          if (Array.isArray(json)) {
+            const validated = json.map((item, idx) => ({
+              orderIndex: item.orderIndex || idx + 1,
+              type: item.type || 'SINGLE_CHOICE',
+              content: item.content || item.questionText || `Câu hỏi ${idx + 1}`,
+              options: Array.isArray(item.options)
+                ? item.options
+                : [
+                    { content: 'TRUE', isCorrect: true },
+                    { content: 'FALSE', isCorrect: false },
+                  ],
+              explanation: item.explanation || 'Theo bài đọc Cambridge.',
+            }));
+            setParsedQuestions(validated);
+            showNotice(`✅ Đã nạp thành công ${validated.length} câu hỏi từ file JSON!`);
+          } else {
+            showNotice('❌ Định dạng file JSON không hợp lệ (phải là danh sách mảng câu hỏi)');
+          }
+        } catch {
+          showNotice('❌ Lỗi đọc file JSON: Nội dung không đúng cú pháp JSON');
         }
-      } catch {
-        showNotice('❌ Lỗi đọc file JSON: Nội dung không đúng cú pháp JSON');
-      }
-    };
-    reader.readAsText(file);
+      };
+      reader.readAsText(file);
+    } else {
+      // Handle .txt, .md, .csv Cambridge exam files
+      reader.onload = (event) => {
+        const text = (event.target?.result as string) || '';
+        setImportText(text);
+        const results = parseCambridgeRawText(text, importForcedType);
+        if (results.questions.length === 0) {
+          showNotice('⚠️ Không tìm thấy câu hỏi hợp lệ trong file. Vui lòng kiểm tra định dạng.');
+          return;
+        }
+        setParsedQuestions(results.questions);
+        if (results.title) setNewQuizTitle(results.title);
+        if (results.passage) setDetectedPassage(results.passage);
+        setDetectedKeyCount(results.detectedKeyCount);
+        setImportTab('text');
+
+        const keyNotice = results.detectedKeyCount > 0 ? ` • ${results.detectedKeyCount} đáp án từ Answer Key` : '';
+        const passageNotice = results.passage ? ' • Đã bóc tách bài đọc' : '';
+        showNotice(`🎉 Đã đọc file "${file.name}" và bóc tách ${results.questions.length} câu hỏi${keyNotice}${passageNotice}!`);
+      };
+      reader.readAsText(file);
+    }
   };
 
   const filteredMockTests = useMemo(() => {
@@ -2514,31 +2739,156 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
               </button>
             </div>
 
-            {/* Target Quiz Selector */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <CustomSelect
-                label="1. Chọn Đề thi / Quiz cần nạp câu hỏi *"
-                value={importTargetQuizId}
-                onChange={(val) => setImportTargetQuizId(val)}
-                options={mockTests.map((t) => ({
-                  value: t.id,
-                  label: t.title,
-                  sublabel: `${t.category} • ${t.skill} • ${t.questionsCount || 0} câu hiện có`,
-                }))}
-              />
+            {/* Import Mode Selector: Create New vs Existing Quiz */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setImportMode('create_new')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
+                    importMode === 'create_new'
+                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+                  <span>⚡ Tự động tạo Đề thi Cambridge mới (Khuyên dùng)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportMode('existing')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
+                    importMode === 'existing'
+                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Nạp vào Đề thi có sẵn trong kho</span>
+                </button>
+              </div>
 
-              <CustomSelect
-                label="2. Định dạng câu hỏi (Auto / Chỉ định) *"
-                value={importForcedType}
-                onChange={(val) => setImportForcedType(val)}
-                options={[
-                  { value: 'AUTO', label: 'Tự động nhận diện thông minh (Khuyên dùng)' },
-                  { value: 'TRUE_FALSE_NOT_GIVEN', label: 'Ép dạng: True / False / Not Given' },
-                  { value: 'YES_NO_NOT_GIVEN', label: 'Ép dạng: Yes / No / Not Given' },
-                  { value: 'SINGLE_CHOICE', label: 'Ép dạng: Trắc nghiệm 4 lựa chọn (A, B, C, D)' },
-                  { value: 'FILL_BLANK', label: 'Ép dạng: Điền từ vào chỗ trống' },
-                ]}
-              />
+              {/* Mode 1: Create New Quiz Fields */}
+              {importMode === 'create_new' && (
+                <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/80 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2 space-y-1">
+                      <label className="block text-xs font-extrabold text-slate-800">
+                        Tiêu đề Đề thi mới *
+                      </label>
+                      <input
+                        type="text"
+                        value={newQuizTitle}
+                        onChange={(e) => setNewQuizTitle(e.target.value)}
+                        placeholder="VD: Cambridge IELTS 20 - Academic Reading Test 1"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-extrabold text-slate-800">
+                        Kỹ năng bài thi *
+                      </label>
+                      <select
+                        value={newQuizSkill}
+                        onChange={(e) => setNewQuizSkill(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="READING">READING (Đọc hiểu)</option>
+                        <option value="LISTENING">LISTENING (Nghe hiểu)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Thời gian làm bài (Phút)
+                      </label>
+                      <input
+                        type="number"
+                        min={5}
+                        max={180}
+                        value={newQuizTimeLimit}
+                        onChange={(e) => setNewQuizTimeLimit(Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Điểm sàn đạt (%)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={newQuizPassScore}
+                        onChange={(e) => setNewQuizPassScore(Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Detected Passage Preview / Editor */}
+                  {detectedPassage && (
+                    <div className="pt-2 border-t border-emerald-200/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-900">
+                          <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>
+                            Đã bóc tách Bài đọc Passage ({detectedPassage.split(/\s+/).filter(Boolean).length} từ)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowPassageEditor(!showPassageEditor)}
+                          className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline"
+                        >
+                          {showPassageEditor ? 'Thu gọn bài đọc' : 'Xem & Chỉnh sửa bài đọc'}
+                        </button>
+                      </div>
+
+                      {showPassageEditor && (
+                        <textarea
+                          rows={6}
+                          value={detectedPassage}
+                          onChange={(e) => setDetectedPassage(e.target.value)}
+                          placeholder="Nội dung bài đọc Reading Passage..."
+                          className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs font-sans leading-relaxed bg-white focus:outline-none focus:border-emerald-600"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mode 2: Existing Quiz Selector */}
+              {importMode === 'existing' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <CustomSelect
+                    label="1. Chọn Đề thi / Quiz cần nạp câu hỏi *"
+                    value={importTargetQuizId}
+                    onChange={(val) => setImportTargetQuizId(val)}
+                    options={mockTests.map((t) => ({
+                      value: t.id,
+                      label: t.title,
+                      sublabel: `${t.category} • ${t.skill} • ${t.questionsCount || 0} câu hiện có`,
+                    }))}
+                  />
+
+                  <CustomSelect
+                    label="2. Định dạng câu hỏi (Auto / Chỉ định) *"
+                    value={importForcedType}
+                    onChange={(val) => setImportForcedType(val)}
+                    options={[
+                      { value: 'AUTO', label: 'Tự động nhận diện thông minh (Khuyên dùng)' },
+                      { value: 'TRUE_FALSE_NOT_GIVEN', label: 'Ép dạng: True / False / Not Given' },
+                      { value: 'YES_NO_NOT_GIVEN', label: 'Ép dạng: Yes / No / Not Given' },
+                      { value: 'SINGLE_CHOICE', label: 'Ép dạng: Trắc nghiệm 4 lựa chọn (A, B, C, D)' },
+                      { value: 'FILL_BLANK', label: 'Ép dạng: Điền từ vào chỗ trống' },
+                    ]}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Tab switch: Raw Text Parser vs JSON File Upload */}
@@ -2566,7 +2916,7 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
                 }`}
               >
                 <FileCode className="w-3.5 h-3.5" />
-                <span>Import File JSON & Template Mẫu</span>
+                <span>Tải File Đề Thi (.txt, .md, .json, .csv)</span>
               </button>
             </div>
 
@@ -2581,11 +2931,11 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
                     type="button"
                     onClick={() => {
                       setImportText(sampleCambridgeReadingText);
-                      showNotice('📋 Đã nạp đề mẫu Cambridge Reading để thử nghiệm!');
+                      showNotice('📋 Đã nạp đề mẫu Cambridge 20 Full Test (Passage + 13 câu + Answer Key)!');
                     }}
                     className="text-xs font-extrabold text-emerald-700 hover:text-emerald-800 underline flex items-center gap-1"
                   >
-                    <span>Dán đề mẫu thử nghiệm</span>
+                    <span>Dán đề mẫu Cambridge 20 thử nghiệm</span>
                   </button>
                 </div>
 
@@ -2593,23 +2943,13 @@ Explanation: Paragraph 6 details advanced glazing materials for thermal efficien
                   rows={8}
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}
-                  placeholder={`Dán nội dung câu hỏi theo định dạng:
-1. The ancient Roman water system was built entirely above ground.
-Answer: FALSE
-Explanation: Paragraph 1 states...
-
-2. What is the primary purpose of smart traffic grids?
-A. Decrease fines
-B. Reduce carbon emissions
-C. Replace human drivers
-D. Encourage biking
-Answer: B`}
+                  placeholder="Dán nguyên vẹn nội dung đề thi Cambridge (bao gồm tiêu đề, Reading Passage, câu hỏi và Answer Key ở cuối file). Hệ thống sẽ tự động bóc tách toàn bộ!"
                   className="w-full px-4 py-3 rounded-2xl border border-line text-xs font-mono focus:outline-none focus:border-emerald-500 bg-slate-50 focus:bg-white leading-relaxed"
                 ></textarea>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-[11px] text-slate-500">
-                    Hỗ trợ tự động: Số câu hỏi (`1.`, `2.`), Dạng TFNG/YNNG, Trắc nghiệm ABCD, Điền từ, Dòng `Answer: ...` và `Explanation: ...`
+                    Hỗ trợ tự động: Bóc tách Reading Passage, TFNG/YNNG, Trắc nghiệm ABCD, Điền từ & Khớp Answer Key ở cuối sách!
                   </span>
                   <button
                     type="button"
@@ -2623,16 +2963,16 @@ Answer: B`}
               </div>
             )}
 
-            {/* TAB 2: JSON FILE UPLOAD & TEMPLATE */}
+            {/* TAB 2: JSON/TXT/MD FILE UPLOAD & TEMPLATE */}
             {importTab === 'file' && (
               <div className="space-y-4 p-5 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
                   <div>
                     <h4 className="text-xs font-black text-slate-900">
-                      Tải Tệp Mẫu Cấu Trúc JSON Chuẩn Cambridge
+                      Tải File Đề Thi Hoặc Mẫu Template Cấu Trúc
                     </h4>
                     <p className="text-[11px] text-slate-500">
-                      File mẫu bao gồm đầy đủ dạng TFNG, Trắc nghiệm 4 đáp án và Điền từ.
+                      Hỗ trợ tệp văn bản Cambridge thô (.txt, .md) hoặc tệp JSON câu hỏi chuẩn hóa.
                     </p>
                   </div>
                   <button
@@ -2647,19 +2987,19 @@ Answer: B`}
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-2">
-                    Tải lên file JSON câu hỏi của bạn:
+                    Tải lên file đề thi của bạn:
                   </label>
                   <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-white transition group">
                     <Upload className="w-8 h-8 text-slate-400 group-hover:text-emerald-600 transition" />
                     <span className="text-xs font-extrabold text-slate-700 mt-2">
-                      Nhấp để chọn file hoặc kéo thả file JSON vào đây
+                      Nhấp để chọn file hoặc kéo thả file đề thi vào đây
                     </span>
                     <span className="text-[11px] text-slate-400 mt-0.5">
-                      Định dạng hỗ trợ: .json (Mảng các Question objects)
+                      Định dạng hỗ trợ: .txt, .md (Văn bản Cambridge), .json (Mảng câu hỏi), .csv
                     </span>
                     <input
                       type="file"
-                      accept=".json"
+                      accept=".json,.txt,.md,.csv"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
@@ -2671,18 +3011,32 @@ Answer: B`}
             {/* LIVE PREVIEW SECTION */}
             {parsedQuestions.length > 0 && (
               <div className="space-y-3 pt-3 border-t border-line">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-black text-slate-900">
                       Kết Quả Bóc Tách (Live Preview):
                     </span>
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs">
                       {parsedQuestions.length} câu hỏi hợp lệ
                     </span>
+                    {detectedKeyCount > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-black text-xs">
+                        {detectedKeyCount} đáp án Answer Key
+                      </span>
+                    )}
+                    {detectedPassage && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 font-black text-xs">
+                        Bài đọc {detectedPassage.split(/\s+/).filter(Boolean).length} từ
+                      </span>
+                    )}
                   </div>
                   <button
                     type="button"
-                    onClick={() => setParsedQuestions([])}
+                    onClick={() => {
+                      setParsedQuestions([]);
+                      setDetectedPassage('');
+                      setDetectedKeyCount(0);
+                    }}
                     className="text-xs text-slate-400 hover:text-red-500"
                   >
                     Xóa kết quả
@@ -2765,6 +3119,8 @@ Answer: B`}
                 <span>
                   {isSubmittingImport
                     ? 'Đang import...'
+                    : importMode === 'create_new'
+                    ? `⚡ Tạo Đề Thi & Import ${parsedQuestions.length} Câu Hỏi`
                     : `Xác Nhận Lưu ${parsedQuestions.length} Câu Hỏi Vào Đề`}
                 </span>
               </button>
