@@ -295,7 +295,7 @@ export class QuizzesService {
         explanation: dto.explanation,
         orderIndex: dto.orderIndex ?? 0,
         options: {
-          create: dto.options.map((opt) => ({
+          create: (dto.options || []).map((opt) => ({
             content: opt.content,
             isCorrect: opt.isCorrect,
           })),

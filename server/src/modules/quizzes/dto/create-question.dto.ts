@@ -85,9 +85,10 @@ export class CreateQuestionDto {
   @IsNumber()
   orderIndex?: number;
 
-  @ApiProperty({ type: [QuestionOptionDto] })
+  @ApiPropertyOptional({ type: [QuestionOptionDto] })
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => QuestionOptionDto)
-  options: QuestionOptionDto[];
+  options?: QuestionOptionDto[];
 }

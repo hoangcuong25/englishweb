@@ -25,6 +25,8 @@ import {
   Target,
   GraduationCap,
   Layers,
+  PenTool,
+  ListChecks,
 } from 'lucide-react';
 
 interface PersonalDevTestItem {
@@ -65,19 +67,24 @@ function PersonalDevAssessmentsContent() {
     description: '',
   });
 
-  // Modal 2: Add Question to Test
+  // Modal 2: Add Question to Test (Only 2 types: SINGLE_CHOICE or SHORT_ANSWER)
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [targetQuizId, setTargetQuizId] = useState('');
   const [targetQuizTitle, setTargetQuizTitle] = useState('');
   const [submittingQuestion, setSubmittingQuestion] = useState(false);
   const [questionForm, setQuestionForm] = useState({
+    type: 'SINGLE_CHOICE' as 'SINGLE_CHOICE' | 'SHORT_ANSWER',
     questionText: '',
+    // For SINGLE_CHOICE:
     optA: '',
     optB: '',
     optC: '',
     optD: '',
     correctOpt: 'A' as 'A' | 'B' | 'C' | 'D',
-    explanation: '',
+    // For SHORT_ANSWER:
+    wordLimitGuide: '150 - 250 từ',
+    // Shared:
+    explanation: '', // Rationale for MCQ or Rubric/Hướng dẫn chấm for Paragraph
   });
 
   // Fetch Tests
@@ -234,50 +241,68 @@ function PersonalDevAssessmentsContent() {
     setTargetQuizId(test.id);
     setTargetQuizTitle(test.title);
     setQuestionForm({
+      type: 'SINGLE_CHOICE',
       questionText: '',
       optA: '',
       optB: '',
       optC: '',
       optD: '',
       correctOpt: 'A',
+      wordLimitGuide: '150 - 250 từ',
       explanation: '',
     });
     setIsQuestionModalOpen(true);
   };
 
-  // Save Question
+  // Save Question (Supporting 2 Types: SINGLE_CHOICE and SHORT_ANSWER)
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!questionForm.questionText.trim()) {
-      toast.error('Vui lòng nhập nội dung câu hỏi đánh giá / tình huống!');
-      return;
-    }
-    if (!questionForm.optA.trim() || !questionForm.optB.trim()) {
-      toast.error('Vui lòng nhập tối thiểu 2 phương án giải quyết (A và B)!');
+      toast.error('Vui lòng nhập nội dung câu hỏi / đề bài!');
       return;
     }
 
     setSubmittingQuestion(true);
     try {
-      const options = [
-        { content: questionForm.optA.trim(), isCorrect: questionForm.correctOpt === 'A' },
-        { content: questionForm.optB.trim(), isCorrect: questionForm.correctOpt === 'B' },
-      ];
-      if (questionForm.optC.trim()) {
-        options.push({ content: questionForm.optC.trim(), isCorrect: questionForm.correctOpt === 'C' });
-      }
-      if (questionForm.optD.trim()) {
-        options.push({ content: questionForm.optD.trim(), isCorrect: questionForm.correctOpt === 'D' });
+      if (questionForm.type === 'SINGLE_CHOICE') {
+        if (!questionForm.optA.trim() || !questionForm.optB.trim()) {
+          toast.error('Vui lòng nhập tối thiểu 2 phương án lựa chọn (A và B)!');
+          setSubmittingQuestion(false);
+          return;
+        }
+
+        const options = [
+          { content: questionForm.optA.trim(), isCorrect: questionForm.correctOpt === 'A' },
+          { content: questionForm.optB.trim(), isCorrect: questionForm.correctOpt === 'B' },
+        ];
+        if (questionForm.optC.trim()) {
+          options.push({ content: questionForm.optC.trim(), isCorrect: questionForm.correctOpt === 'C' });
+        }
+        if (questionForm.optD.trim()) {
+          options.push({ content: questionForm.optD.trim(), isCorrect: questionForm.correctOpt === 'D' });
+        }
+
+        await quizzesService.addQuestion(targetQuizId, {
+          content: questionForm.questionText.trim(),
+          type: 'SINGLE_CHOICE',
+          explanation: questionForm.explanation.trim() || undefined,
+          options,
+        });
+
+        toast.success('✓ Đã thêm câu hỏi trắc nghiệm chọn đáp án vào đề thi!');
+      } else {
+        // SHORT_ANSWER: Viết đoạn văn
+        await quizzesService.addQuestion(targetQuizId, {
+          content: questionForm.questionText.trim(),
+          type: 'SHORT_ANSWER',
+          groupPrompt: questionForm.wordLimitGuide.trim() || 'Viết đoạn văn phân tích',
+          explanation: questionForm.explanation.trim() || undefined,
+          options: [],
+        });
+
+        toast.success('✓ Đã thêm câu hỏi viết đoạn văn (tự luận) vào đề thi!');
       }
 
-      await quizzesService.addQuestion(targetQuizId, {
-        content: questionForm.questionText.trim(),
-        type: 'SINGLE_CHOICE',
-        explanation: questionForm.explanation.trim() || undefined,
-        options,
-      });
-
-      toast.success('✓ Đã thêm câu hỏi đánh giá năng lực mới vào đề thi!');
       setIsQuestionModalOpen(false);
       await fetchTests();
       setExpandedTestIds((prev) => ({ ...prev, [targetQuizId]: true }));
@@ -334,7 +359,7 @@ function PersonalDevAssessmentsContent() {
               Khảo Thí Phát Triển Cá Nhân
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Hệ thống khảo thí đánh giá năng lực, kỹ năng mềm, kỹ năng sống, tư duy lãnh đạo bản thân và tình huống thực tế chuyên sâu cho học viên phân hệ Phát Triển Cá Nhân.
+              Hệ thống khảo thí đánh giá năng lực, kỹ năng mềm, kỹ năng sống, tư duy lãnh đạo và tình huống thực tế chuyên sâu. Hỗ trợ 2 dạng câu hỏi chuẩn hóa: <strong>Chọn đáp án (Trắc nghiệm)</strong> và <strong>Viết đoạn văn (Tự luận / Tình huống mở)</strong>.
             </p>
           </div>
 
@@ -477,7 +502,7 @@ function PersonalDevAssessmentsContent() {
                         Sàn đạt &ge; {test.passScore || 80}%
                       </span>
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        {test.questionsCount || questions.length} Câu hỏi đánh giá
+                        {test.questionsCount || questions.length} Câu hỏi
                       </span>
                       {test.course && (
                         <span className="text-[11px] font-bold text-primary truncate max-w-xs">
@@ -559,12 +584,14 @@ function PersonalDevAssessmentsContent() {
 
                     {questions.length === 0 ? (
                       <div className="py-8 text-center text-xs text-muted border border-dashed border-line rounded-xl bg-white">
-                        Đề thi chưa có câu hỏi nào. Nhấn &quot;+ Thêm Câu Hỏi&quot; ở trên để tạo câu hỏi trắc nghiệm hoặc tình huống thực tế.
+                        Đề thi chưa có câu hỏi nào. Nhấn &quot;+ Thêm Câu Hỏi&quot; ở trên để tạo câu hỏi trắc nghiệm chọn đáp án hoặc viết đoạn văn tự luận.
                       </div>
                     ) : (
                       <div className="space-y-3">
                         {questions.map((q: any, qIdx: number) => {
-                          const options = q.options as { id?: string; content: string; isCorrect?: boolean }[] || [];
+                          const isEssay = q.type === 'SHORT_ANSWER';
+                          const options = (q.options as { id?: string; content: string; isCorrect?: boolean }[]) || [];
+
                           return (
                             <div
                               key={q.id || qIdx}
@@ -575,7 +602,25 @@ function PersonalDevAssessmentsContent() {
                                   <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-mono font-black text-xs flex items-center justify-center shrink-0">
                                     {qIdx + 1}
                                   </span>
-                                  <div>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      {isEssay ? (
+                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
+                                          <PenTool className="w-3 h-3" />
+                                          <span>Viết đoạn văn (Tự luận)</span>
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                          <ListChecks className="w-3 h-3" />
+                                          <span>Chọn đáp án (Trắc nghiệm)</span>
+                                        </span>
+                                      )}
+                                      {q.groupPrompt && (
+                                        <span className="text-[10.5px] font-semibold text-slate-500">
+                                          📝 {q.groupPrompt}
+                                        </span>
+                                      )}
+                                    </div>
                                     <p className="text-xs font-bold text-slate-900 leading-relaxed">
                                       {q.content || q.questionText}
                                     </p>
@@ -591,40 +636,55 @@ function PersonalDevAssessmentsContent() {
                                 </button>
                               </div>
 
-                              {/* 4 Options */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                                {options.map((opt, optIdx) => (
-                                  <div
-                                    key={optIdx}
-                                    className={`p-2.5 rounded-lg border text-xs flex items-center gap-2 ${
-                                      opt.isCorrect
-                                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
-                                        : 'bg-slate-50 border-line text-slate-700'
-                                    }`}
-                                  >
-                                    <span
-                                      className={`w-5 h-5 rounded-md text-[10px] font-mono font-black flex items-center justify-center shrink-0 ${
+                              {/* Question Body Depending on Type */}
+                              {isEssay ? (
+                                <div className="p-3 rounded-lg bg-purple-50/40 border border-purple-100 text-xs text-slate-700 space-y-1">
+                                  <span className="text-[10.5px] font-bold text-purple-800 uppercase tracking-wider block">
+                                    ✍️ Hướng dẫn bài làm của học viên:
+                                  </span>
+                                  <p className="text-slate-600 italic">
+                                    Học viên sẽ nhập trực tiếp bài viết đoạn văn vào khung soạn thảo văn bản khi làm bài.
+                                  </p>
+                                </div>
+                              ) : (
+                                /* 4 MCQ Options */
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                  {options.map((opt, optIdx) => (
+                                    <div
+                                      key={optIdx}
+                                      className={`p-2.5 rounded-lg border text-xs flex items-center gap-2 ${
                                         opt.isCorrect
-                                          ? 'bg-emerald-600 text-white'
-                                          : 'bg-slate-200 text-slate-700'
+                                          ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
+                                          : 'bg-slate-50 border-line text-slate-700'
                                       }`}
                                     >
-                                      {String.fromCharCode(65 + optIdx)}
-                                    </span>
-                                    <span className="truncate flex-1">{opt.content}</span>
-                                    {opt.isCorrect && (
-                                      <span className="text-[10px] text-emerald-700 font-black shrink-0">
-                                        ✓ Đáp án tối ưu
+                                      <span
+                                        className={`w-5 h-5 rounded-md text-[10px] font-mono font-black flex items-center justify-center shrink-0 ${
+                                          opt.isCorrect
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-slate-200 text-slate-700'
+                                        }`}
+                                      >
+                                        {String.fromCharCode(65 + optIdx)}
                                       </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
+                                      <span className="truncate flex-1">{opt.content}</span>
+                                      {opt.isCorrect && (
+                                        <span className="text-[10px] text-emerald-700 font-black shrink-0">
+                                          ✓ Đáp án tối ưu
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
 
-                              {/* Explanation */}
+                              {/* Explanation / Rubric */}
                               {q.explanation && (
                                 <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 text-[11.5px] text-amber-900">
-                                  <strong>💡 Căn cứ & Phân tích giải pháp:</strong> {q.explanation}
+                                  <strong>
+                                    {isEssay ? '💡 Hướng dẫn chấm & Tiêu chí đánh giá:' : '💡 Căn cứ & Phân tích giải pháp:'}
+                                  </strong>{' '}
+                                  {q.explanation}
                                 </div>
                               )}
                             </div>
@@ -793,7 +853,7 @@ function PersonalDevAssessmentsContent() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: ADD SCENARIO / ASSESSMENT QUESTION                               */}
+      {/* MODAL 2: ADD QUESTION (CHỌN ĐÁP ÁN HOẶC VIẾT ĐOẠN VĂN)                   */}
       {/* ========================================================================= */}
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
@@ -812,71 +872,139 @@ function PersonalDevAssessmentsContent() {
               </button>
             </div>
 
+            {/* Question Type Switcher: 2 LOẠI DUY NHẤT */}
+            <div className="bg-slate-100 p-1 rounded-2xl flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setQuestionForm({ ...questionForm, type: 'SINGLE_CHOICE' })}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
+                  questionForm.type === 'SINGLE_CHOICE'
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ListChecks className="w-4 h-4" />
+                <span>1. Chọn Đáp Án (Trắc Nghiệm)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuestionForm({ ...questionForm, type: 'SHORT_ANSWER' })}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
+                  questionForm.type === 'SHORT_ANSWER'
+                    ? 'bg-white text-purple-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <PenTool className="w-4 h-4" />
+                <span>2. Viết Đoạn Văn (Tự Luận)</span>
+              </button>
+            </div>
+
             <form onSubmit={handleSaveQuestion} className="space-y-4">
+              {/* Question Text */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Câu hỏi / Yêu cầu xử lý tình huống <span className="text-red-500">*</span>
+                  {questionForm.type === 'SINGLE_CHOICE'
+                    ? 'Câu hỏi / Yêu cầu xử lý tình huống'
+                    : 'Đề bài / Yêu cầu viết đoạn văn phân tích'}{' '}
+                  <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={questionForm.questionText}
                   onChange={(e) => setQuestionForm({ ...questionForm, questionText: e.target.value })}
-                  placeholder="Ví dụ: Trong tình huống này, giải pháp đàm phán tối ưu nhất mà người lãnh đạo nên thực hiện là gì?"
+                  placeholder={
+                    questionForm.type === 'SINGLE_CHOICE'
+                      ? 'Ví dụ: Trong tình huống này, giải pháp đàm phán tối ưu nhất mà người lãnh đạo nên thực hiện là gì?'
+                      : 'Ví dụ: Hãy viết một đoạn văn (khoảng 150 - 250 từ) phân tích nguyên nhân dẫn đến xung đột trên và đề xuất 3 bước xử lý cụ thể...'
+                  }
                   className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-indigo-600"
                 />
               </div>
 
-              {/* 4 Options */}
-              <div className="space-y-2.5">
-                <label className="block text-xs font-bold text-slate-700">
-                  Các phương án giải quyết (A, B, C, D) & Phương án tối ưu nhất:
-                </label>
+              {/* DẠNG 1: CHỌN ĐÁP ÁN (4 Options A, B, C, D) */}
+              {questionForm.type === 'SINGLE_CHOICE' ? (
+                <div className="space-y-2.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Các phương án giải quyết (A, B, C, D) & Phương án tối ưu nhất:
+                  </label>
 
-                {[
-                  { key: 'A', field: 'optA', label: 'Phương án A' },
-                  { key: 'B', field: 'optB', label: 'Phương án B' },
-                  { key: 'C', field: 'optC', label: 'Phương án C' },
-                  { key: 'D', field: 'optD', label: 'Phương án D' },
-                ].map((item) => (
-                  <div key={item.key} className="flex items-center gap-2">
-                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                  {[
+                    { key: 'A', field: 'optA', label: 'Phương án A' },
+                    { key: 'B', field: 'optB', label: 'Phương án B' },
+                    { key: 'C', field: 'optC', label: 'Phương án C' },
+                    { key: 'D', field: 'optD', label: 'Phương án D' },
+                  ].map((item) => (
+                    <div key={item.key} className="flex items-center gap-2">
+                      <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <input
+                          type="radio"
+                          name="correctPdevOpt"
+                          checked={questionForm.correctOpt === item.key}
+                          onChange={() => setQuestionForm({ ...questionForm, correctOpt: item.key as any })}
+                          className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-mono font-black text-xs flex items-center justify-center">
+                          {item.key}
+                        </span>
+                      </label>
                       <input
-                        type="radio"
-                        name="correctPdevOpt"
-                        checked={questionForm.correctOpt === item.key}
-                        onChange={() => setQuestionForm({ ...questionForm, correctOpt: item.key as any })}
-                        className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                        type="text"
+                        required={item.key === 'A' || item.key === 'B'}
+                        value={(questionForm as any)[item.field]}
+                        onChange={(e) => setQuestionForm({ ...questionForm, [item.field]: e.target.value })}
+                        placeholder={`Nhập nội dung ${item.label}...`}
+                        className="flex-1 px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-indigo-600"
                       />
-                      <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-mono font-black text-xs flex items-center justify-center">
-                        {item.key}
-                      </span>
+                    </div>
+                  ))}
+                  <span className="text-[10.5px] text-muted block italic">
+                    * Tích chọn nút tròn radio ở phương án đúng/tối ưu nhất.
+                  </span>
+                </div>
+              ) : (
+                /* DẠNG 2: VIẾT ĐOẠN VĂN */
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Gợi ý số từ / Giới hạn độ dài đoạn văn
                     </label>
                     <input
                       type="text"
-                      required={item.key === 'A' || item.key === 'B'}
-                      value={(questionForm as any)[item.field]}
-                      onChange={(e) => setQuestionForm({ ...questionForm, [item.field]: e.target.value })}
-                      placeholder={`Nhập nội dung ${item.label}...`}
-                      className="flex-1 px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-indigo-600"
+                      value={questionForm.wordLimitGuide}
+                      onChange={(e) => setQuestionForm({ ...questionForm, wordLimitGuide: e.target.value })}
+                      placeholder="Ví dụ: 150 - 250 từ hoặc Tối thiểu 100 từ"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-purple-600"
                     />
+                    <span className="text-[10.5px] text-muted block mt-1">
+                      * Chỉ dẫn này sẽ hiển thị bên cạnh câu hỏi để học viên căn chỉnh dung lượng bài viết.
+                    </span>
                   </div>
-                ))}
-                <span className="text-[10.5px] text-muted block italic">
-                  * Tích chọn nút tròn radio ở phương án đúng/tối ưu nhất.
-                </span>
-              </div>
 
-              {/* Rationale */}
+                  <div className="p-3 rounded-2xl bg-purple-50/60 border border-purple-200 text-xs text-purple-900">
+                    <span className="font-bold block mb-0.5">ℹ️ Cơ chế trả lời của học viên:</span>
+                    Học viên sẽ có khung soạn thảo văn bản trực tiếp để viết bài tự luận, đếm số từ thời gian thực và nộp bài để Admin/Giảng viên chấm điểm.
+                  </div>
+                </div>
+              )}
+
+              {/* Rationale / Rubric */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Căn cứ lý luận & Phân tích giải pháp tối ưu
+                  {questionForm.type === 'SINGLE_CHOICE'
+                    ? 'Căn cứ lý luận & Phân tích giải pháp tối ưu'
+                    : 'Hướng dẫn chấm & Tiêu chí đánh giá (Rubric)'}
                 </label>
                 <textarea
                   rows={2}
                   value={questionForm.explanation}
                   onChange={(e) => setQuestionForm({ ...questionForm, explanation: e.target.value })}
-                  placeholder="Giải thích vì sao phương án này mang lại hiệu quả đàm phán cao nhất và bảo toàn mối quan hệ lâu dài..."
+                  placeholder={
+                    questionForm.type === 'SINGLE_CHOICE'
+                      ? 'Giải thích vì sao phương án này mang lại hiệu quả cao nhất...'
+                      : 'Liệt kê các luận điểm trọng tâm, tiêu chí đạt yêu cầu để giảng viên đối chiếu khi chấm bài...'
+                  }
                   className="w-full px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-indigo-600"
                 />
               </div>

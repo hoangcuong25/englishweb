@@ -136,7 +136,7 @@ export const quizzesService = {
       groupPrompt?: string;
       imageUrl?: string;
       audioUrl?: string;
-      options: { content: string; isCorrect: boolean }[];
+      options?: { content: string; isCorrect: boolean }[];
     }
   ) {
     const response = await api.post(`/quizzes/${quizId}/questions`, data);
