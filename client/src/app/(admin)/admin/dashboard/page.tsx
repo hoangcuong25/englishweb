@@ -668,7 +668,7 @@ export default function AdminDashboard() {
           </div>
 
           <Link
-            href="/admin/courses?tab=enrollments"
+            href="/admin/enrollments"
             className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-sm transition whitespace-nowrap self-start sm:self-auto"
           >
             Vào Bàn Duyệt Đăng Ký

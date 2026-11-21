@@ -134,8 +134,8 @@ export const coursesService = {
     return response.data?.data || response.data;
   },
 
-  async rejectEnrollment(enrollmentId: string) {
-    const response = await api.put(`/courses/admin/enrollments/${enrollmentId}/reject`);
+  async rejectEnrollment(enrollmentId: string, reason?: string) {
+    const response = await api.put(`/courses/admin/enrollments/${enrollmentId}/reject`, { reason });
     return response.data?.data || response.data;
   },
 

@@ -35,7 +35,7 @@ export default function AdminSidebar() {
       items: [
         { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
         { href: '/admin/courses', label: t('nav_admin_courses', 'Khóa học & Cây giáo trình'), icon: GraduationCap },
-        { href: '/admin/courses?tab=enrollments', label: 'Duyệt học phí & Ghi danh', icon: CreditCard },
+        { href: '/admin/enrollments', label: 'Duyệt học phí & Ghi danh', icon: CreditCard },
         { href: '/admin/homework', label: t('nav_admin_homework', 'Giao bài tập về nhà'), icon: FileText },
         { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến'), icon: Video },
       ],
@@ -112,13 +112,7 @@ export default function AdminSidebar() {
 
             {sec.items.map((item) => {
               const Icon = item.icon;
-              const [itemBase, itemQuery] = item.href.split('?');
-              const isExactTabMatch = itemQuery && typeof window !== 'undefined' && window.location.search.includes(itemQuery);
-              const isActive = itemQuery
-                ? pathname === itemBase && isExactTabMatch
-                : pathname === itemBase
-                ? typeof window === 'undefined' || !window.location.search.includes('tab=enrollments')
-                : pathname.startsWith(item.href);
+              const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
 
               return (
                 <Link
