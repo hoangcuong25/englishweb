@@ -3,6 +3,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
+import { MailService } from '../../core/mail/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
@@ -11,7 +13,11 @@ import { Role, SkillType, QuestionType, NotificationType, CourseCategory } from 
 
 @Injectable()
 export class QuizzesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   // ==========================================
   // 1. QUIZ & QUESTIONS CRUD
@@ -446,22 +452,66 @@ export class QuizzesService {
       }
     }
 
-    // Automatically create a notification for Student in the database
+    // 1. Automatically create a notification for Student in the database & via WebSocket
     try {
-      await this.prisma.notification.create({
-        data: {
-          userId,
-          title: isPassed ? 'Đạt điểm sàn bài kiểm tra Quiz' : 'Kết quả bài kiểm tra Quiz',
-          content: isPassed
-            ? `Chúc mừng bạn đã vượt qua bài Quiz "${quiz.title}" với số điểm ${score}%! Hệ thống đã mở khóa bài học tiếp theo.`
-            : `Bạn đạt ${score}% bài kiểm tra "${quiz.title}" (điểm sàn: ${quiz.passScore}%). Vui lòng làm lại để mở khóa bài học.`,
-          type: NotificationType.QUIZ,
-          link: '/student/quizzes',
-          isRead: false,
-        },
+      const student = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, fullName: true, email: true },
       });
+
+      await this.notificationsService.createNotification({
+        userId,
+        title: isPassed ? 'Đạt điểm sàn bài kiểm tra Quiz' : 'Kết quả bài kiểm tra Quiz',
+        content: isPassed
+          ? `Chúc mừng bạn đã vượt qua bài Quiz "${quiz.title}" với số điểm ${score}%! Hệ thống đã mở khóa bài học tiếp theo.`
+          : `Bạn đạt ${score}% bài kiểm tra "${quiz.title}" (điểm sàn: ${quiz.passScore}%). Vui lòng làm lại để mở khóa bài học.`,
+        type: NotificationType.QUIZ,
+        link: '/student/quizzes',
+      });
+
+      // 2. Dispatch Confirmation Email to Student
+      if (student?.email) {
+        this.mailService.sendExamSubmissionConfirmedEmail({
+          email: student.email,
+          fullName: student.fullName || 'Học viên',
+          examTitle: quiz.title,
+          score: correctCount,
+          totalQuestions,
+          percentage: score,
+          isPassed,
+          reviewUrl: 'http://localhost:3000/student/quizzes',
+        }).catch((err) => console.warn('Failed to send student quiz submission confirmation email:', err));
+      }
+
+      // 3. Dispatch Notification & Email Alert to Admin
+      const admins = await this.prisma.user.findMany({
+        where: { role: Role.ADMIN, isActive: true },
+        select: { id: true, email: true, fullName: true },
+      });
+
+      for (const admin of admins) {
+        this.notificationsService.createNotification({
+          userId: admin.id,
+          title: `Bài nộp mới: ${quiz.title}`,
+          content: `Học viên ${student?.fullName || 'Học viên'} vừa nộp bài thi "${quiz.title}" (${score}%).`,
+          type: NotificationType.QUIZ,
+          link: '/admin/assessments',
+        }).catch(() => {});
+
+        if (admin.email) {
+          this.mailService.sendNewSubmissionToAdminEmail({
+            adminEmail: admin.email,
+            studentName: student?.fullName || 'Học viên',
+            studentEmail: student?.email || '',
+            examTitle: quiz.title,
+            skill: quiz.skill || 'IELTS',
+            score,
+            gradingUrl: 'http://localhost:3000/admin/assessments',
+          }).catch((err) => console.warn('Failed to send admin quiz alert email:', err));
+        }
+      }
     } catch {
-      // Do not block quiz submission
+      // Do not block quiz submission if notification/email fails
     }
 
     return {
@@ -490,6 +540,96 @@ export class QuizzesService {
         },
       },
     });
+  }
+
+  /**
+   * Admin Giao đề thi & Bắn thông báo In-app + Email tới học viên
+   */
+  async assignQuiz(
+    quizId: string,
+    options: {
+      courseId?: string;
+      dueDate?: string;
+      sendNotification?: boolean;
+      sendEmail?: boolean;
+    },
+  ) {
+    const quiz = await this.prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: { course: true },
+    });
+    if (!quiz) {
+      throw new NotFoundException(`Không tìm thấy đề thi ID: ${quizId}`);
+    }
+
+    let students: any[] = [];
+    if (options.courseId) {
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { courseId: options.courseId },
+        include: { user: true },
+      });
+      students = enrollments.map((e) => e.user).filter((u) => u && u.isActive);
+    } else {
+      students = await this.prisma.user.findMany({
+        where: { role: Role.STUDENT, isActive: true },
+        select: { id: true, email: true, fullName: true },
+      });
+    }
+
+    // Create In-App Notifications concurrently
+    const notiPromises = students.map(async (student) => {
+      if (options.sendNotification !== false) {
+        try {
+          await this.notificationsService.createNotification({
+            userId: student.id,
+            title: `Đề thi mới: ${quiz.title}`,
+            content: `Thầy Đông vừa giao bài thi "${quiz.title}" (${quiz.skill || 'IELTS'}). Hạn nộp: ${options.dueDate || 'Theo quy định'}. Vui lòng hoàn thành đúng hạn.`,
+            type: NotificationType.QUIZ,
+            link: '/student/quizzes',
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    });
+
+    const notiResults = await Promise.all(notiPromises);
+    const notiCount = notiResults.filter(Boolean).length;
+
+    // Dispatch emails concurrently in background without blocking
+    let emailCount = 0;
+    if (options.sendEmail) {
+      const emailRecipients = students.filter((s) => s.email);
+      emailCount = emailRecipients.length;
+
+      // Background dispatch with Promise.allSettled
+      Promise.allSettled(
+        emailRecipients.map((student) =>
+          this.mailService.sendNewExamAssignedEmail({
+            email: student.email,
+            fullName: student.fullName || 'Học viên',
+            examTitle: quiz.title,
+            skill: quiz.skill || 'IELTS',
+            durationMinutes: quiz.timeLimitMinutes || 60,
+            dueDate: options.dueDate,
+            examUrl: 'http://localhost:3000/student/quizzes',
+            hasAudio: !!quiz.audioUrl,
+            hasPdf: false,
+          }),
+        ),
+      ).catch((err) => console.warn('Background exam email dispatch failed:', err));
+    }
+
+    return {
+      success: true,
+      quizId,
+      examTitle: quiz.title,
+      totalStudents: students.length,
+      notifiedCount: notiCount,
+      emailSentCount: emailCount,
+    };
   }
 
   // ==========================================

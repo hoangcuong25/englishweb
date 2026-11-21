@@ -32,4 +32,9 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   deviceId?: string;
+
+  @ApiPropertyOptional({ example: '123456', description: 'Mã xác thực OTP gửi qua email' })
+  @IsOptional()
+  @IsString()
+  otp?: string;
 }

@@ -239,6 +239,25 @@ export class QuizzesController {
     return this.quizzesService.getMySubmissions(id, user.id);
   }
 
+  @Post(':id/assign')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin giao đề thi cho lớp học viên & gửi thông báo In-app và Email' })
+  @ApiParam({ name: 'id', description: 'UUID của bài Quiz / Đề thi' })
+  assignQuiz(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      courseId?: string;
+      dueDate?: string;
+      sendNotification?: boolean;
+      sendEmail?: boolean;
+    },
+  ) {
+    return this.quizzesService.assignQuiz(id, body);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

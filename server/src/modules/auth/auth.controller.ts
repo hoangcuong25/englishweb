@@ -63,6 +63,14 @@ export class AuthController {
     });
   }
 
+  @Post('register/request-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request OTP verification code for student registration' })
+  @ApiResponse({ status: 200, description: 'Registration verification OTP dispatched to email' })
+  async requestRegisterOtp(@Body() body: { email: string; fullName?: string }) {
+    return this.authService.requestRegisterOtp(body.email, body.fullName);
+  }
+
   @Post('register')
   @ApiOperation({ summary: 'Register a new student account (strictly STUDENT role)' })
   @ApiResponse({ status: 201, description: 'Student registered successfully' })

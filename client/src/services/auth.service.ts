@@ -23,6 +23,7 @@ export interface RegisterPayload {
   email: string;
   password: string;
   phone?: string;
+  otp?: string;
 }
 
 export interface UserSession {
@@ -38,6 +39,11 @@ export const authService = {
   async login(payload: LoginPayload) {
     const response = await api.post('/auth/login', payload);
     return response.data;
+  },
+
+  async requestRegisterOtp(email: string, fullName?: string) {
+    const response = await api.post('/auth/register/request-otp', { email, fullName });
+    return response.data?.data || response.data;
   },
 
   async register(payload: RegisterPayload) {

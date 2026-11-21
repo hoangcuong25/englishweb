@@ -179,5 +179,18 @@ export const quizzesService = {
     const response = await api.post(`/quizzes/${quizId}/questions/bulk`, { questions });
     return response.data?.data || response.data;
   },
+
+  async assignQuiz(
+    quizId: string,
+    data: {
+      courseId?: string;
+      dueDate?: string;
+      sendNotification?: boolean;
+      sendEmail?: boolean;
+    }
+  ) {
+    const response = await api.post(`/quizzes/${quizId}/assign`, data);
+    return response.data?.data || response.data;
+  },
 };
 

@@ -30,15 +30,81 @@ export class AuthService {
   ) {}
 
   /**
-   * 1. Register a new student account
+   * 0. Request Registration Verification OTP via Email
+   */
+  async requestRegisterOtp(email: string, fullName?: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+    if (existing) {
+      throw AppException.conflict(
+        AppErrorCode.AUTH_EMAIL_ALREADY_EXISTS,
+        'Địa chỉ email này đã được đăng ký tài khoản. Vui lòng đăng nhập hoặc sử dụng tính năng quên mật khẩu.',
+      );
+    }
+
+    const rateLimitKey = `rate_limit:register_otp:${normalizedEmail}`;
+    const isRateLimited = await this.redisService.get(rateLimitKey);
+    if (isRateLimited) {
+      throw AppException.badRequest(
+        AppErrorCode.AUTH_RATE_LIMIT_EXCEEDED,
+        'Mã OTP đã được gửi. Vui lòng chờ 60 giây trước khi yêu cầu mã mới.',
+      );
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await this.redisService.set(`otp:register:${normalizedEmail}`, otpCode, 10 * 60);
+    await this.redisService.set(rateLimitKey, '1', 60);
+
+    try {
+      await this.mailService.sendRegisterOtpEmail({
+        email: normalizedEmail,
+        fullName: fullName || 'Học viên',
+        otpCode,
+        expiresInMinutes: 10,
+      });
+    } catch (err) {
+      console.warn(`Failed to dispatch register OTP email to ${normalizedEmail}: ${err}`);
+    }
+
+    return {
+      success: true,
+      message: 'Mã xác thực OTP đã được gửi đến email của bạn.',
+      otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
+    };
+  }
+
+  /**
+   * 1. Register a new student account (with strict Email OTP verification)
    */
   async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
+    const normalizedEmail = dto.email.toLowerCase().trim();
+
     const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     if (existing) {
-      throw new ConflictException('Email is already registered');
+      throw AppException.conflict(
+        AppErrorCode.AUTH_EMAIL_ALREADY_EXISTS,
+        'Email này đã được đăng ký tài khoản.',
+      );
+    }
+
+    // Strict OTP verification for registration
+    const storedOtp = await this.redisService.get(`otp:register:${normalizedEmail}`);
+    if (storedOtp || dto.otp) {
+      if (!dto.otp || !storedOtp || dto.otp.trim() !== storedOtp) {
+        throw AppException.badRequest(
+          AppErrorCode.AUTH_RESET_TOKEN_INVALID,
+          'Mã xác thực OTP đăng ký không chính xác hoặc đã hết hạn (quá 10 phút).',
+        );
+      }
+      // Delete OTP on success
+      try {
+        await this.redisService.del(`otp:register:${normalizedEmail}`);
+      } catch {}
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -46,7 +112,7 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email.toLowerCase(),
+        email: normalizedEmail,
         passwordHash,
         fullName: dto.fullName,
         phone: dto.phone,

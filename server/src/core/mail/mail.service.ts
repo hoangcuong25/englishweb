@@ -402,6 +402,50 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * 3.4. Student Registration Email Verification OTP
+   */
+  async sendRegisterOtpEmail(data: {
+    email: string;
+    fullName: string;
+    otpCode: string;
+    expiresInMinutes?: number;
+  }) {
+    const minutes = data.expiresInMinutes || 10;
+    const subject = `Mã OTP Xác Thực Đăng Ký Tài Khoản - Teacher Dong Academy`;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 28px 24px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700;">Teacher Dong Academy</h2>
+          <p style="color: #e0f2fe; margin: 6px 0 0 0; font-size: 13px;">Xác thực quyền sở hữu email để hoàn tất đăng ký</p>
+        </div>
+        <div style="padding: 32px 24px;">
+          <p style="color: #0f172a; font-size: 16px; margin-top: 0;">Xin chào <strong>${data.fullName || 'Học viên'}</strong>,</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Cảm ơn bạn đã lựa chọn đăng ký tài khoản tại <strong>Teacher Dong Academy</strong>. Để bảo vệ tài khoản và kích hoạt quyền truy cập, vui lòng nhập mã xác thực OTP 6 chữ số dưới đây:
+          </p>
+          <div style="text-align: center; margin: 26px 0;">
+            <div style="display: inline-block; background-color: #f0f9ff; border: 2px dashed #0284c7; padding: 14px 36px; border-radius: 12px; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #0284c7;">
+              ${data.otpCode}
+            </div>
+            <p style="color: #64748b; font-size: 12px; margin-top: 8px;">Mã xác thực có hiệu lực trong vòng <strong>${minutes} phút</strong></p>
+          </div>
+          <div style="background-color: #f8fafc; border-left: 4px solid #0284c7; padding: 12px 16px; border-radius: 4px;">
+            <p style="color: #334155; font-size: 13px; margin: 0; line-height: 1.5;">
+              <strong>Bảo mật:</strong> Tuyệt đối không chia sẻ mã này cho người khác. Nếu bạn không thực hiện yêu cầu này, xin vui lòng bỏ qua email.
+            </p>
+          </div>
+        </div>
+        <div style="background-color: #f1f5f9; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
+          <p style="margin: 0;">Teacher Dong Academy &bull; Nền tảng Đào tạo IELTS & Phát triển Năng lực</p>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail({ to: data.email, subject, html });
+  }
+
+  /**
    * 4. IELTS Writing Assessment Approved & Ready (In English)
    */
   async sendWritingGradedEmail(data: {
@@ -501,6 +545,193 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
     `;
 
     return this.sendMail({ to: data.email, subject, html });
+  }
+
+  /**
+   * 6. New Exam / Mock Test Assigned Notification Email (In Vietnamese / English)
+   */
+  async sendNewExamAssignedEmail(data: {
+    email: string;
+    fullName: string;
+    examTitle: string;
+    skill: string;
+    durationMinutes: number;
+    dueDate?: string;
+    examUrl?: string;
+    hasAudio?: boolean;
+    hasPdf?: boolean;
+  }) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
+    const testLink = data.examUrl || `${frontendUrl}/student/quizzes`;
+
+    const subject = `[Teacher Dong Academy] Đề thi mới: "${data.examTitle}" - Kỹ năng ${data.skill}`;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 28px 24px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700;">Teacher Dong Academy</h1>
+          <p style="color: #e0f2fe; margin: 6px 0 0 0; font-size: 13px;">Thông báo giao đề thi / bài tập thực chiến mới</p>
+        </div>
+        <div style="padding: 32px 24px;">
+          <p style="color: #0f172a; font-size: 15px; margin-top: 0;">Xin chào <strong>${data.fullName}</strong>,</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Thầy Đông vừa phát hành đề thi mới trên hệ thống học tập của bạn. Dưới đây là thông tin chi tiết bài thi:
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 20px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              <tr>
+                <td style="color: #64748b; padding: 7px 0; width: 140px; font-weight: 500;">Tên đề thi:</td>
+                <td style="color: #0f172a; font-weight: 700;">${data.examTitle}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; padding: 7px 0; font-weight: 500;">Kỹ năng khảo thí:</td>
+                <td style="color: #0284c7; font-weight: 700;">${data.skill}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; padding: 7px 0; font-weight: 500;">Thời lượng:</td>
+                <td style="color: #0f172a; font-weight: 600;">${data.durationMinutes} phút</td>
+              </tr>
+              ${data.dueDate ? `
+              <tr>
+                <td style="color: #dc2626; padding: 7px 0; font-weight: 600;">Hạn chót nộp bài:</td>
+                <td style="color: #dc2626; font-weight: 700;">${data.dueDate}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="color: #64748b; padding: 7px 0; font-weight: 500;">Học liệu kèm theo:</td>
+                <td style="color: #059669; font-weight: 600;">
+                  ${data.hasAudio ? '🎧 Có tệp âm thanh Audio ' : ''}
+                  ${data.hasPdf ? '📄 Có tệp đề PDF ' : ''}
+                  ${!data.hasAudio && !data.hasPdf ? 'Hệ thống câu hỏi trực tuyến' : ''}
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${testLink}" style="background-color: #0284c7; color: #ffffff; padding: 14px 36px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 8px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.4);">
+              Bắt Đầu Làm Bài Ngay
+            </a>
+          </div>
+
+          <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 4px;">
+            <p style="color: #92400e; font-size: 13px; margin: 0; line-height: 1.5;">
+              <strong>Lưu ý:</strong> Đảm bảo đường truyền internet ổn định và thiết bị tai nghe trước khi bấm bắt đầu làm bài.
+            </p>
+          </div>
+        </div>
+
+        <div style="background-color: #f1f5f9; padding: 18px 24px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
+          <p style="margin: 0;">Teacher Dong Academy &bull; Nền tảng Đào tạo IELTS & Kỹ Năng Sư Phạm</p>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail({ to: data.email, subject, html });
+  }
+
+  /**
+   * 7. Exam Submission Confirmed Email to Student
+   */
+  async sendExamSubmissionConfirmedEmail(data: {
+    email: string;
+    fullName: string;
+    examTitle: string;
+    score: number;
+    totalQuestions: number;
+    percentage: number;
+    isPassed: boolean;
+    submittedAt?: string;
+    reviewUrl?: string;
+  }) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
+    const reviewLink = data.reviewUrl || `${frontendUrl}/student/quizzes`;
+    const submittedTime = data.submittedAt || new Date().toLocaleString('vi-VN');
+
+    const subject = `[Teacher Dong Academy] Xác nhận nộp bài thi: "${data.examTitle}" - Điểm: ${data.percentage}%`;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background: ${data.isPassed ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'}; padding: 26px 24px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 20px;">Nộp Bài Thi Thành Công!</h2>
+          <p style="color: #e0f2fe; margin: 6px 0 0 0; font-size: 13px;">Hệ thống đã ghi nhận bài làm của bạn vào lúc ${submittedTime}</p>
+        </div>
+        <div style="padding: 30px 24px;">
+          <p style="color: #0f172a; font-size: 15px;">Xin chào <strong>${data.fullName}</strong>,</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Bạn vừa hoàn thành và nộp bài cho đề thi <strong>"${data.examTitle}"</strong>. Dưới đây là kết quả tự động chấm tức thì:
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0;">
+            <span style="color: #64748b; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Điểm số trắc nghiệm</span>
+            <div style="color: ${data.isPassed ? '#059669' : '#0284c7'}; font-size: 38px; font-weight: 800; margin: 8px 0;">${data.percentage}%</div>
+            <p style="color: #334155; font-size: 14px; margin: 0; font-weight: 600;">
+              Trả lời đúng: ${data.score} / ${data.totalQuestions} câu hỏi &bull; Trạng thái: ${data.isPassed ? 'Đạt điểm sàn' : 'Chưa đạt sàn'}
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 26px 0;">
+            <a href="${reviewLink}" style="background-color: #0284c7; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">
+              Xem Chi Tiết Bài Làm & Lời Giải
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail({ to: data.email, subject, html });
+  }
+
+  /**
+   * 8. New Submission Alert Email to Admin
+   */
+  async sendNewSubmissionToAdminEmail(data: {
+    adminEmail: string;
+    studentName: string;
+    studentEmail: string;
+    examTitle: string;
+    skill: string;
+    score?: number;
+    gradingUrl?: string;
+  }) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
+    const gradingLink = data.gradingUrl || `${frontendUrl}/admin/assessments`;
+
+    const subject = `[Admin Alert] Học viên ${data.studentName} vừa nộp bài: "${data.examTitle}"`;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background: #0f172a; padding: 24px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 18px;">Thông Báo Bài Nộp Mới Cần Chấm</h2>
+        </div>
+        <div style="padding: 28px 24px;">
+          <p style="color: #0f172a; font-size: 14px;">Thầy Đông thân mến,</p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            Học viên <strong>${data.studentName}</strong> (<em>${data.studentEmail}</em>) vừa hoàn thành và nộp bài thi <strong>"${data.examTitle}"</strong> (${data.skill}).
+          </p>
+          ${data.score !== undefined ? `
+          <div style="background-color: #f1f5f9; padding: 14px; border-radius: 8px; margin: 16px 0; font-size: 14px;">
+            <strong>Điểm trắc nghiệm tự động:</strong> ${data.score}%
+          </div>` : ''}
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${gradingLink}" style="background-color: #0f172a; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block;">
+              Mở Trang Chấm Điểm & Phản Hồi
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail({ to: data.adminEmail, subject, html });
   }
 
   /**
