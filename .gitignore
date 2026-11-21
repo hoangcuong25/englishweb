@@ -33,3 +33,8 @@ Thumbs.db
 server/public/
 **/public/uploads/
 server/private_storage/
+
+# Large media & reference archives
+docs/Cam...bridge 20 IELTS/
+*.zip
+

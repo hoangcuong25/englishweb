@@ -47,6 +47,26 @@ export class CreateQuestionDto {
   @IsString()
   subCategory?: string;
 
+  @ApiPropertyOptional({ example: 1, default: 1, description: 'Phần / Đoạn văn (1: Passage 1 / Section 1; 2: Passage 2...)' })
+  @IsOptional()
+  @IsNumber()
+  part?: number;
+
+  @ApiPropertyOptional({ example: 'Questions 1-5: Write TRUE, FALSE or NOT GIVEN...', description: 'Chỉ dẫn / đề bài nhóm câu hỏi' })
+  @IsOptional()
+  @IsString()
+  groupPrompt?: string;
+
+  @ApiPropertyOptional({ example: 'https://.../map.jpg', description: 'Hình ảnh sơ đồ, biểu đồ hoặc bản đồ map labeling' })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @ApiPropertyOptional({ example: 'https://.../audio.mp3', description: 'File âm thanh riêng của câu hỏi (nếu có)' })
+  @IsOptional()
+  @IsString()
+  audioUrl?: string;
+
   @ApiPropertyOptional({ example: 1.0, default: 1.0 })
   @IsOptional()
   @IsNumber()

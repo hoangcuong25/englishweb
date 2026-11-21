@@ -35,7 +35,7 @@ import { Request } from 'express';
 @ApiTags('Quiz Engine & Instant Assessment')
 @Controller('quizzes')
 export class QuizzesController {
-  constructor(private readonly quizzesService: QuizzesService) {}
+  constructor(private readonly quizzesService: QuizzesService) { }
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -237,25 +237,6 @@ export class QuizzesController {
   @ApiParam({ name: 'id', description: 'UUID của bài Quiz' })
   getMySubmissions(@Param('id') id: string, @CurrentUser() user: any) {
     return this.quizzesService.getMySubmissions(id, user.id);
-  }
-
-  @Post(':id/assign')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin giao đề thi cho lớp học viên & gửi thông báo In-app và Email' })
-  @ApiParam({ name: 'id', description: 'UUID của bài Quiz / Đề thi' })
-  assignQuiz(
-    @Param('id') id: string,
-    @Body()
-    body: {
-      courseId?: string;
-      dueDate?: string;
-      sendNotification?: boolean;
-      sendEmail?: boolean;
-    },
-  ) {
-    return this.quizzesService.assignQuiz(id, body);
   }
 
   @Delete(':id')

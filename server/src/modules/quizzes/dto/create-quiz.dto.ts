@@ -69,6 +69,10 @@ export class CreateQuizDto {
   @IsString()
   audioUrl?: string;
 
+  @ApiPropertyOptional({ description: 'Cấu trúc các phần của đề thi (3 Passages Reading hoặc 4 Sections Listening hoặc Tasks/Parts)', example: [] })
+  @IsOptional()
+  sectionsPayload?: any;
+
   @ApiPropertyOptional({ example: 60, default: 15, description: 'Thời gian làm bài tính bằng phút' })
   @IsOptional()
   @IsInt()

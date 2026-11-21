@@ -62,6 +62,7 @@ export class QuizzesService {
         testType,
         passage: dto.passage,
         audioUrl: dto.audioUrl,
+        sectionsPayload: dto.sectionsPayload || null,
         timeLimitMinutes: dto.timeLimitMinutes ?? 15,
         passScore: dto.passScore ?? 80,
       },
@@ -200,6 +201,10 @@ export class QuizzesService {
           skill: q.skill || quiz.skill || SkillType.READING,
           type: q.type,
           subCategory: q.subCategory,
+          part: q.part ?? 1,
+          groupPrompt: q.groupPrompt || null,
+          imageUrl: q.imageUrl || null,
+          audioUrl: q.audioUrl || null,
           points: q.points ?? 1.0,
           explanation: q.explanation,
           orderIndex: q.orderIndex ?? 0,
@@ -282,6 +287,10 @@ export class QuizzesService {
         skill: dto.skill || quiz.skill || SkillType.READING,
         type: dto.type,
         subCategory: dto.subCategory,
+        part: dto.part ?? 1,
+        groupPrompt: dto.groupPrompt || null,
+        imageUrl: dto.imageUrl || null,
+        audioUrl: dto.audioUrl || null,
         points: dto.points ?? 1.0,
         explanation: dto.explanation,
         orderIndex: dto.orderIndex ?? 0,
@@ -303,6 +312,15 @@ export class QuizzesService {
     }
 
     return this.prisma.quiz.delete({ where: { id } });
+  }
+
+  async deleteQuestion(id: string) {
+    const question = await this.prisma.question.findUnique({ where: { id } });
+    if (!question) {
+      throw new NotFoundException(`Không tìm thấy câu hỏi ID: ${id}`);
+    }
+
+    return this.prisma.question.delete({ where: { id } });
   }
 
   // ==========================================
