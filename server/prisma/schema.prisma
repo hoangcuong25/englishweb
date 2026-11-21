@@ -121,6 +121,50 @@ enum NotificationType {
   SYSTEM
 }
 
+enum AssignmentDomain {
+  ENGLISH
+  PERSONAL_DEVELOPMENT
+  GENERAL
+}
+
+enum EnglishSkill {
+  LISTENING
+  READING
+  WRITING
+  SPEAKING
+  COMPREHENSIVE
+}
+
+enum AssignmentType {
+  QUIZ
+  LISTENING
+  READING
+  WRITING
+  SPEAKING
+  ESSAY_FILE
+  MIXED
+}
+
+enum AssignmentTargetType {
+  ALL_STUDENTS
+  SPECIFIC_STUDENTS
+  COURSE_ENROLLED
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum AssigneeStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+  LATE
+  OVERDUE
+}
+
 // ==========================================
 // 1. AUTH & USER MANAGEMENT (MÔ-ĐUN 1 & 2)
 // ==========================================
@@ -155,6 +199,9 @@ model User {
   blogPosts                BlogPost[]            @relation("UserBlogPosts")
   notifications            Notification[]
   writingDrafts            WritingDraft[]
+  createdAssignmentBanks   AssignmentBank[]      @relation("UserCreatedAssignmentBanks")
+  createdHomeworks         Homework[]            @relation("UserCreatedHomeworks")
+  assignedHomeworks        HomeworkAssignee[]    @relation("StudentReceivedHomeworks")
   homeworkSubmissions      HomeworkSubmission[]  @relation("StudentHomeworkSubmissions")
 
   @@map("users")
@@ -458,6 +505,7 @@ model Quiz {
   testType         String?         // 'FULL_MOCK_TEST', 'PRACTICE_TEST', 'LESSON_QUIZ', 'SITUATION_QUIZ'
   passage          String?         @db.LongText
   audioUrl         String?
+  sectionsPayload  Json?
   timeLimitMinutes Int             @default(15)
   passScore        Float           @default(80)
   createdAt        DateTime        @default(now())
@@ -482,6 +530,10 @@ model Question {
   skill       SkillType    @default(READING)
   type        QuestionType @default(SINGLE_CHOICE)
   subCategory String?
+  part        Int?         @default(1)
+  groupPrompt String?      @db.Text
+  imageUrl    String?
+  audioUrl    String?
   points      Float        @default(1.0)
   explanation String?      @db.Text
   orderIndex  Int          @default(0)
@@ -684,43 +736,110 @@ model Notification {
 }
 
 // ==========================================
-// 14. HOMEWORK ASSIGNMENT SYSTEM (MÔ-ĐUN 13)
+// 14. ADVANCED HOMEWORK & ASSIGNMENT BANK SYSTEM
 // ==========================================
 
-model Homework {
-  id            String    @id @default(uuid())
-  courseId      String
-  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessonId      String?
-  lesson        Lesson?   @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  title         String
-  description   String    @db.Text
-  dueDate       DateTime?
-  maxScore      Float     @default(100)
-  attachmentUrl String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model AssignmentBank {
+  id               String           @id @default(uuid())
+  title            String           @db.VarChar(255)
+  description      String           @db.Text
+  domain           AssignmentDomain @default(ENGLISH)
+  skill            EnglishSkill?
+  type             AssignmentType   @default(WRITING)
+  subType          String?          @db.VarChar(100)
+  difficulty       DifficultyLevel  @default(INTERMEDIATE)
+  tags             Json?
+  contentPayload   Json?
+  rubric           Json?
+  defaultMaxScore  Float            @default(100)
+  estimatedMinutes Int?
+  attachmentUrl    String?
+  createdById      String?
+  createdBy        User?            @relation("UserCreatedAssignmentBanks", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  submissions HomeworkSubmission[]
+  homeworks        Homework[]
+
+  @@index([domain])
+  @@index([skill])
+  @@index([type])
+  @@index([difficulty])
+  @@map("assignment_banks")
+}
+
+model Homework {
+  id               String               @id @default(uuid())
+  courseId         String?              // KHÔNG RÀNG BUỘC KHÓA HỌC: Cho phép giao độc lập
+  course           Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  lessonId         String?
+  lesson           Lesson?              @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  
+  assignmentBankId String?
+  assignmentBank   AssignmentBank?      @relation(fields: [assignmentBankId], references: [id], onDelete: SetNull)
+
+  title            String               @db.VarChar(255)
+  description      String               @db.Text
+  domain           AssignmentDomain     @default(ENGLISH)
+  skill            EnglishSkill?
+  type             AssignmentType       @default(WRITING)
+  subType          String?              @db.VarChar(100)
+  targetType       AssignmentTargetType @default(SPECIFIC_STUDENTS)
+
+  configPayload    Json?
+  
+  dueDate          DateTime?
+  maxScore         Float                @default(100)
+  attachmentUrl    String?
+  createdById      String?
+  createdBy        User?                @relation("UserCreatedHomeworks", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  assignees        HomeworkAssignee[]
+  submissions      HomeworkSubmission[]
 
   @@index([courseId])
   @@index([lessonId])
+  @@index([assignmentBankId])
+  @@index([domain])
+  @@index([skill])
+  @@index([type])
   @@map("homeworks")
 }
 
-model HomeworkSubmission {
-  id          String           @id @default(uuid())
+model HomeworkAssignee {
+  id          String         @id @default(uuid())
   homeworkId  String
-  homework    Homework         @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  homework    Homework       @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
   studentId   String
-  student     User             @relation("StudentHomeworkSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
-  content     String?          @db.LongText
-  fileUrl     String?
-  submittedAt DateTime         @default(now())
-  score       Float?
-  feedback    String?          @db.Text
-  gradedAt    DateTime?
-  status      SubmissionStatus @default(PENDING)
+  student     User           @relation("StudentReceivedHomeworks", fields: [studentId], references: [id], onDelete: Cascade)
+  status      AssigneeStatus @default(PENDING)
+  assignedAt  DateTime       @default(now())
+
+  @@unique([homeworkId, studentId])
+  @@index([homeworkId])
+  @@index([studentId])
+  @@index([status])
+  @@map("homework_assignees")
+}
+
+model HomeworkSubmission {
+  id                String           @id @default(uuid())
+  homeworkId        String
+  homework          Homework         @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  studentId         String
+  student           User             @relation("StudentHomeworkSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  content           String?          @db.LongText
+  submissionPayload Json?
+  fileUrl           String?
+  audioUrl          String?
+  submittedAt       DateTime         @default(now())
+  score             Float?
+  feedback          String?          @db.Text
+  criteriaScores    Json?
+  gradedAt          DateTime?
+  status            SubmissionStatus @default(PENDING)
 
   @@unique([homeworkId, studentId])
   @@index([homeworkId])

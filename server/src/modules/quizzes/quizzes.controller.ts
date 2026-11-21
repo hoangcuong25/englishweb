@@ -239,6 +239,16 @@ export class QuizzesController {
     return this.quizzesService.getMySubmissions(id, user.id);
   }
 
+  @Delete('questions/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin xóa một câu hỏi khảo thí' })
+  @ApiParam({ name: 'id', description: 'UUID của câu hỏi' })
+  deleteQuestion(@Param('id') id: string) {
+    return this.quizzesService.deleteQuestion(id);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

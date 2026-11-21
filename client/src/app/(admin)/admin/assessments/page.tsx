@@ -51,19 +51,39 @@ import {
   Zap,
   FileCode,
   Check,
+  Image as ImageIcon,
+  MapPin,
+  ListChecks,
 } from 'lucide-react';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
+export interface TestSectionItem {
+  part: number;
+  title: string;
+  passage?: string;
+  audioUrl?: string;
+  imageUrl?: string;
+  instructions?: string;
+  cueCard?: string;
+  minWords?: number;
+  suggestedMinutes?: number;
+  questionRange?: string;
+}
+
 // Mock Test & Quiz Interfaces
 interface QuizQuestion {
   id: string;
   quizId?: string;
   quizTitle?: string;
+  part?: number;
   skill: string;
   type?: string;
+  groupPrompt?: string;
+  imageUrl?: string;
+  audioUrl?: string;
   questionText: string;
   correctAnswer: string;
   explanation: string;
@@ -83,6 +103,7 @@ interface MockTestItem {
   passScore?: number;
   passage?: string;
   audioUrl?: string;
+  sectionsPayload?: any;
   questionsCount?: number;
   submissionsCount?: number;
   questions?: RemoteQuizQuestion[];
@@ -154,72 +175,161 @@ function AssessmentHubContent() {
   const [filterQuizType, setFilterQuizType] = useState<string>('ALL');
   const [filterSkill, setFilterSkill] = useState<string>('ALL');
 
-  // Helper Domain / Skill options per Category
+  // Helper Domain / Skill options per Category (Pure IELTS & English)
   const getDomainOptions = (cat: string) => {
     switch (cat) {
-      case 'PEDAGOGY':
-        return [
-          { value: 'TEACHING_METHOD', label: 'Phương pháp Giảng dạy & Soạn giáo án' },
-          { value: 'CLASS_MANAGEMENT', label: 'Quản trị Lớp học & Tương tác Trực Tuyến' },
-          { value: 'SITUATION_HANDLING', label: 'Xử lý Tình huống Sư phạm Thực chiến' },
-          { value: 'ASSESSMENT_RUBRICS', label: 'Kiểm tra Đánh giá & Tiêu chuẩn Sư phạm' },
-        ];
-      case 'LIFE_SKILLS':
-        return [
-          { value: 'PUBLIC_SPEAKING', label: 'Thuyết trình & Nói trước đám đông' },
-          { value: 'CRITICAL_THINKING', label: 'Tư duy Phản biện & Giải quyết vấn đề' },
-          { value: 'EMOTIONAL_CONTROL', label: 'Quản lý Cảm xúc & Vượt qua Stress' },
-          { value: 'SELF_CONFIDENCE', label: 'Tự tin & Giao tiếp Đời sống' },
-        ];
-      case 'SOFT_SKILLS':
-        return [
-          { value: 'TEAMWORK', label: 'Làm việc Nhóm & Hợp tác Đa văn hóa' },
-          { value: 'NEGOTIATION', label: 'Kỹ năng Đàm phán & Thuyết phục' },
-          { value: 'CONFLICT_RESOLUTION', label: 'Giải quyết Xung đột & Thấu cảm' },
-          { value: 'ACTIVE_LISTENING', label: 'Lắng nghe Tích cực & Phản hồi' },
-        ];
-      case 'PERSONAL_DEV':
-        return [
-          { value: 'SELF_LEADERSHIP', label: 'Lãnh đạo Bản thân & Kỷ luật thép' },
-          { value: 'GOAL_SETTING', label: 'Thiết lập Mục tiêu & Thói quen nguyên tử' },
-          { value: 'TIME_MANAGEMENT', label: 'Quản lý Thời gian & Năng suất' },
-          { value: 'GROWTH_MINDSET', label: 'Tư duy Phát triển (Growth Mindset)' },
-        ];
       case 'BUSINESS':
         return [
-          { value: 'BUSINESS_EMAIL', label: 'Thư tín Thương mại & Email quốc tế' },
-          { value: 'BUSINESS_NEGOTIATION', label: 'Đàm phán & Thương thảo Hợp đồng' },
-          { value: 'BUSINESS_PRESENTATION', label: 'Thuyết trình Dự án & Báo cáo số liệu' },
-          { value: 'BUSINESS_MEETING', label: 'Điều hành Cuộc họp & Phản xạ công sở' },
+          { value: 'READING', label: 'Business Reading (Đọc hiểu Báo cáo / Hợp đồng)' },
+          { value: 'LISTENING', label: 'Business Listening (Nghe hiểu Cuộc họp / Đàm thoại)' },
+          { value: 'WRITING', label: 'Business Writing (Soạn thảo Email / Báo cáo)' },
+          { value: 'SPEAKING', label: 'Business Speaking (Thuyết trình & Đàm phán)' },
         ];
       case 'KIDS':
         return [
-          { value: 'PHONICS', label: 'Phonics & Nhận diện Âm vần vui nhộn' },
-          { value: 'VISUAL_VOCAB', label: 'Từ vựng Hình ảnh & Đồ vật' },
-          { value: 'STORY_LISTENING', label: 'Nghe kể chuyện & Phản xạ tự nhiên' },
+          { value: 'LISTENING', label: 'Listening (Nghe hiểu & Âm vần cơ bản)' },
+          { value: 'READING', label: 'Reading (Đọc truyện tranh & Từ vựng)' },
+          { value: 'SPEAKING', label: 'Speaking (Phản xạ đàm thoại cơ bản)' },
         ];
       case 'ENGLISH':
         return [
-          { value: 'DAILY_COMMUNICATION', label: 'Giao tiếp Đời sống & Phản xạ đàm thoại' },
-          { value: 'APPLIED_GRAMMAR', label: 'Ngữ pháp Ứng dụng & Cấu trúc câu' },
-          { value: 'PRACTICAL_READING', label: 'Đọc hiểu Tin tức & Đời sống quốc tế' },
-          { value: 'LISTENING_COMPREHENSION', label: 'Nghe hiểu Podcast & Hội thoại' },
+          { value: 'READING', label: 'Reading (Đọc hiểu Đời sống & Tin tức)' },
+          { value: 'LISTENING', label: 'Listening (Nghe hiểu Podcast & Hội thoại)' },
+          { value: 'WRITING', label: 'Writing (Viết câu & Đoạn văn giao tiếp)' },
+          { value: 'SPEAKING', label: 'Speaking (Giao tiếp phản xạ đàm thoại)' },
         ];
       case 'IELTS':
       default:
         return [
-          { value: 'READING', label: 'IELTS Reading (Đọc hiểu)' },
-          { value: 'LISTENING', label: 'IELTS Listening (Nghe hiểu)' },
-          { value: 'WRITING', label: 'IELTS Writing (Viết luận)' },
-          { value: 'SPEAKING', label: 'IELTS Speaking (Nói & Phát âm)' },
-          { value: 'GRAMMAR_VOCAB', label: 'Ngữ pháp & Từ vựng Chuyên sâu' },
+          { value: 'READING', label: 'IELTS Reading (Đọc hiểu 3 Passage chuẩn Cambridge)' },
+          { value: 'LISTENING', label: 'IELTS Listening (Nghe hiểu Section 1 - 4)' },
+          { value: 'WRITING', label: 'IELTS Writing (Task 1 & Task 2)' },
+          { value: 'SPEAKING', label: 'IELTS Speaking (Part 1, 2, 3)' },
         ];
     }
+  };
+
+  const getDefaultSectionsForSkill = (skill: string): TestSectionItem[] => {
+    if (skill === 'READING') {
+      return [
+        {
+          part: 1,
+          title: 'Passage 1: Khoa học / Tự nhiên & Đời sống thực tế',
+          passage: '',
+          imageUrl: '',
+          instructions: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+          questionRange: 'Questions 1 - 13',
+        },
+        {
+          part: 2,
+          title: 'Passage 2: Lịch sử, Xã hội hoặc Đổi mới công nghệ',
+          passage: '',
+          imageUrl: '',
+          instructions: 'You should spend about 20 minutes on Questions 14-26, which are based on Reading Passage 2.',
+          questionRange: 'Questions 14 - 26',
+        },
+        {
+          part: 3,
+          title: 'Passage 3: Luận điểm nghiên cứu học thuật chuyên sâu',
+          passage: '',
+          imageUrl: '',
+          instructions: 'You should spend about 20 minutes on Questions 27-40, which are based on Reading Passage 3.',
+          questionRange: 'Questions 27 - 40',
+        },
+      ];
+    }
+
+    if (skill === 'LISTENING') {
+      return [
+        {
+          part: 1,
+          title: 'Section 1: Đàm thoại giao tiếp xã hội thường nhật (Form / Note Completion)',
+          audioUrl: '',
+          instructions: 'Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.',
+          questionRange: 'Questions 1 - 10',
+        },
+        {
+          part: 2,
+          title: 'Section 2: Độc thoại đời sống & Hướng dẫn sơ đồ / bản đồ (Map & Diagram Labeling)',
+          audioUrl: '',
+          imageUrl: '',
+          instructions: 'Label the map below. Choose the correct letter, A-H, next to Questions 11-15.',
+          questionRange: 'Questions 11 - 20',
+        },
+        {
+          part: 3,
+          title: 'Section 3: Thảo luận học thuật giữa sinh viên & giảng viên (Academic Discussion)',
+          audioUrl: '',
+          instructions: 'Choose the correct letter, A, B or C for Questions 21-30.',
+          questionRange: 'Questions 21 - 30',
+        },
+        {
+          part: 4,
+          title: 'Section 4: Bài giảng đại học chuyên đề liên tục (Academic Lecture & Note Completion)',
+          audioUrl: '',
+          instructions: 'Complete the summary notes below. Write NO MORE THAN TWO WORDS for each answer.',
+          questionRange: 'Questions 31 - 40',
+        },
+      ];
+    }
+
+    if (skill === 'WRITING') {
+      return [
+        {
+          part: 1,
+          title: 'Task 1: Báo cáo phân tích dữ liệu trực quan (Biểu đồ / Bản đồ / Quy trình)',
+          imageUrl: '',
+          instructions: 'The chart below shows... Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+          minWords: 150,
+          suggestedMinutes: 20,
+          questionRange: 'Task 1 (Min 150 từ)',
+        },
+        {
+          part: 2,
+          title: 'Task 2: Bài luận nghị luận xã hội / học thuật (Academic Essay)',
+          instructions: 'Give reasons for your answer and include any relevant examples from your own knowledge or experience.',
+          minWords: 250,
+          suggestedMinutes: 40,
+          questionRange: 'Task 2 (Min 250 từ)',
+        },
+      ];
+    }
+
+    if (skill === 'SPEAKING') {
+      return [
+        {
+          part: 1,
+          title: 'Part 1: Giới thiệu & Phỏng vấn các chủ đề quen thuộc (Introduction & Interview)',
+          instructions: 'Trả lời các câu hỏi ngắn về bản thân, công việc/học tập, sở thích và quê hương.',
+          suggestedMinutes: 4,
+          questionRange: 'Part 1 (4 - 5 phút)',
+        },
+        {
+          part: 2,
+          title: 'Part 2: Thuyết trình độc lập theo thẻ gợi ý (Individual Long Turn / Cue Card)',
+          cueCard: 'Describe an ambitious project or goal you achieved.\nYou should say:\n- What it was\n- When and why you did it\n- What obstacles you faced\nand explain how you felt when you succeeded.',
+          instructions: 'Học viên có 1 phút chuẩn bị ghi chú và 2 phút ghi âm liên tục.',
+          suggestedMinutes: 3,
+          questionRange: 'Part 2 (3 - 4 phút)',
+        },
+        {
+          part: 3,
+          title: 'Part 3: Thảo luận chuyên sâu 2 chiều (Two-way Discussion)',
+          instructions: 'Trả lời các câu hỏi mang tính phân tích, trừu tượng mở rộng từ chủ đề Part 2.',
+          suggestedMinutes: 5,
+          questionRange: 'Part 3 (4 - 5 phút)',
+        },
+      ];
+    }
+
+    return [];
   };
 
   // Modal Mock Test & Quiz State
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
+  const [activeSectionPart, setActiveSectionPart] = useState<number>(1);
+  const [testSections, setTestSections] = useState<TestSectionItem[]>([]);
   const [testFormData, setTestFormData] = useState({
     title: '',
     description: '',
@@ -228,18 +338,28 @@ function AssessmentHubContent() {
     quizType: 'FULL_MOCK_TEST',
     courseId: '',
     skill: 'READING',
-    timeLimitMinutes: 45,
+    timeLimitMinutes: 60,
     passScore: 80,
     passage: '',
     audioUrl: '',
   });
 
+  const updateActiveSection = (key: keyof TestSectionItem, value: any) => {
+    setTestSections((prev) =>
+      prev.map((s) => (s.part === activeSectionPart ? { ...s, [key]: value } : s))
+    );
+  };
+
   // Modal Question
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [qFormData, setQFormData] = useState({
     targetQuizId: '',
+    part: 1,
     skill: 'READING',
     type: 'SINGLE_CHOICE',
+    groupPrompt: '',
+    imageUrl: '',
+    audioUrl: '',
     questionText: '',
     optionA: '',
     optionB: '',
@@ -250,30 +370,23 @@ function AssessmentHubContent() {
     explanation: '',
   });
 
-  // Smart Cambridge Importer State
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [importMode, setImportMode] = useState<'create_new' | 'existing'>('create_new');
-  const [newQuizTitle, setNewQuizTitle] = useState('Cambridge IELTS 20 - Academic Reading Test 1');
-  const [newQuizSkill, setNewQuizSkill] = useState('READING');
-  const [newQuizTimeLimit, setNewQuizTimeLimit] = useState(60);
-  const [newQuizPassScore, setNewQuizPassScore] = useState(80);
-  const [detectedPassage, setDetectedPassage] = useState('');
-  const [showPassageEditor, setShowPassageEditor] = useState(false);
-  const [detectedKeyCount, setDetectedKeyCount] = useState(0);
-  const [importTargetQuizId, setImportTargetQuizId] = useState('');
-  const [importTab, setImportTab] = useState<'text' | 'file'>('text');
-  const [importText, setImportText] = useState('');
-  const [importForcedType, setImportForcedType] = useState<string>('AUTO');
-  const [parsedQuestions, setParsedQuestions] = useState<
-    {
-      orderIndex: number;
-      type: string;
-      content: string;
-      options: { content: string; isCorrect: boolean }[];
-      explanation?: string;
-    }[]
-  >([]);
-  const [isSubmittingImport, setIsSubmittingImport] = useState(false);
+  // Assessment Studio Questions State
+  const [studioQuestions, setStudioQuestions] = useState<any[]>([]);
+  const [isLoadingStudioQuestions, setIsLoadingStudioQuestions] = useState(false);
+  const [studioQuestionForm, setStudioQuestionForm] = useState({
+    type: 'TRUE_FALSE_NOT_GIVEN',
+    groupPrompt: '',
+    questionText: '',
+    imageUrl: '',
+    audioUrl: '',
+    optionA: '',
+    optionB: '',
+    optionC: '',
+    optionD: '',
+    correctAnswer: 'TRUE',
+    fillBlankAnswers: '',
+    explanation: '',
+  });
 
   const fetchQuizzesAndTests = async () => {
     setLoadingQuizzes(true);
@@ -305,6 +418,7 @@ function AssessmentHubContent() {
         passScore: item.passScore ?? 80,
         passage: item.passage,
         audioUrl: item.audioUrl,
+        sectionsPayload: item.sectionsPayload,
         questionsCount:
           typeof item._count?.questions === 'number'
             ? item._count.questions
@@ -335,8 +449,12 @@ function AssessmentHubContent() {
               id: q.id,
               quizId: test.id,
               quizTitle: test.title,
+              part: (q as any).part ?? 1,
               skill: q.skillType || test.skill || 'READING',
               type: q.type || 'SINGLE_CHOICE',
+              groupPrompt: (q as any).groupPrompt,
+              imageUrl: (q as any).imageUrl,
+              audioUrl: (q as any).audioUrl,
               questionText: q.questionText || q.content || 'Nội dung câu hỏi',
               correctAnswer: correctLetter,
               explanation: q.explanation || 'Giải thích chuẩn theo tiêu chí đề thi.',
@@ -354,33 +472,123 @@ function AssessmentHubContent() {
 
   const handleOpenCreateTestModal = (targetCourseId?: string, targetCategory?: string) => {
     setEditingTestId(null);
+    setStudioQuestions([]);
     const cat = targetCategory || (filterCategory !== 'ALL' ? filterCategory : 'IELTS');
-    const isDev = ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(cat);
-    const domainOpts = getDomainOptions(cat);
+    const safeCat = ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(cat) ? cat : 'IELTS';
+    const domainOpts = getDomainOptions(safeCat);
+    const initialSkill = domainOpts[0]?.value || 'READING';
+    const initialSections = getDefaultSectionsForSkill(initialSkill);
 
+    setTestSections(initialSections);
+    setActiveSectionPart(1);
     setTestFormData({
       title: '',
       description: '',
-      track: isDev ? 'PERSONAL_DEV' : 'ENGLISH',
-      category: cat,
-      quizType: isDev ? 'SITUATION_QUIZ' : 'FULL_MOCK_TEST',
+      track: 'ENGLISH',
+      category: safeCat,
+      quizType: 'FULL_MOCK_TEST',
       courseId: targetCourseId || '',
-      skill: domainOpts[0]?.value || 'READING',
-      timeLimitMinutes: isDev ? 30 : 60,
+      skill: initialSkill,
+      timeLimitMinutes: initialSkill === 'READING' ? 60 : initialSkill === 'LISTENING' ? 40 : initialSkill === 'SPEAKING' ? 15 : 60,
       passScore: 80,
       passage: '',
       audioUrl: '',
     });
+    setStudioQuestionForm({
+      type: initialSkill === 'READING' ? 'TRUE_FALSE_NOT_GIVEN' : 'SINGLE_CHOICE',
+      groupPrompt: '',
+      questionText: '',
+      imageUrl: '',
+      audioUrl: '',
+      optionA: '',
+      optionB: '',
+      optionC: '',
+      optionD: '',
+      correctAnswer: initialSkill === 'READING' ? 'TRUE' : 'A',
+      fillBlankAnswers: '',
+      explanation: '',
+    });
     setIsTestModalOpen(true);
   };
 
-  const handleSaveMockTest = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEditMockTest = async (test: MockTestItem) => {
+    setEditingTestId(test.id);
+    const cat = test.category || 'IELTS';
+    const skill = test.skill || 'READING';
+    let loadedSections: TestSectionItem[] = [];
+
+    if (Array.isArray(test.sectionsPayload) && test.sectionsPayload.length > 0) {
+      loadedSections = test.sectionsPayload;
+    } else {
+      loadedSections = getDefaultSectionsForSkill(skill);
+      if (test.passage && loadedSections[0]) {
+        loadedSections[0].passage = test.passage;
+      }
+      if (test.audioUrl && loadedSections[0]) {
+        loadedSections[0].audioUrl = test.audioUrl;
+      }
+    }
+
+    setTestSections(loadedSections);
+    setActiveSectionPart(1);
+
+    setTestFormData({
+      title: test.title,
+      description: test.description || '',
+      track: 'ENGLISH',
+      category: cat,
+      quizType: test.quizType || test.testType || 'FULL_MOCK_TEST',
+      courseId: test.courseId || '',
+      skill: skill,
+      timeLimitMinutes: test.timeLimitMinutes ?? (skill === 'READING' ? 60 : skill === 'LISTENING' ? 40 : 60),
+      passScore: 80,
+      passage: test.passage || '',
+      audioUrl: test.audioUrl || '',
+    });
+
+    setStudioQuestionForm({
+      type: skill === 'READING' ? 'TRUE_FALSE_NOT_GIVEN' : skill === 'LISTENING' ? 'FILL_BLANK' : 'SINGLE_CHOICE',
+      groupPrompt: '',
+      questionText: '',
+      imageUrl: '',
+      audioUrl: '',
+      optionA: '',
+      optionB: '',
+      optionC: '',
+      optionD: '',
+      correctAnswer: skill === 'READING' ? 'TRUE' : 'A',
+      fillBlankAnswers: '',
+      explanation: '',
+    });
+
+    setIsTestModalOpen(true);
+
+    // Fetch quiz questions
+    setIsLoadingStudioQuestions(true);
+    try {
+      const fullQuiz = await quizzesService.getQuizById(test.id);
+      if (fullQuiz && Array.isArray(fullQuiz.questions)) {
+        setStudioQuestions(fullQuiz.questions);
+      } else {
+        setStudioQuestions([]);
+      }
+    } catch {
+      setStudioQuestions([]);
+    } finally {
+      setIsLoadingStudioQuestions(false);
+    }
+  };
+
+  const handleSaveMockTest = async (e?: React.FormEvent, keepOpenAfterSave = false): Promise<string | null> => {
+    if (e) e.preventDefault();
     if (!testFormData.title.trim()) {
-      showNotice('❌ Vui lòng nhập tiêu đề bài Quiz/Test!');
-      return;
+      showNotice('❌ Vui lòng nhập tiêu đề bài thi!');
+      return null;
     }
     try {
+      const firstReadingPassage = testSections.find((s) => s.passage)?.passage || testFormData.passage;
+      const firstAudioUrl = testSections.find((s) => s.audioUrl)?.audioUrl || testFormData.audioUrl;
+
       const payload = {
         title: testFormData.title.trim(),
         description: testFormData.description?.trim() || undefined,
@@ -390,22 +598,30 @@ function AssessmentHubContent() {
         courseId: testFormData.courseId || undefined,
         skill: testFormData.skill,
         timeLimitMinutes: Number(testFormData.timeLimitMinutes),
-        passScore: Number(testFormData.passScore),
-        passage: testFormData.passage?.trim() || undefined,
-        audioUrl: testFormData.audioUrl?.trim() || undefined,
+        passScore: 80,
+        passage: firstReadingPassage?.trim() || undefined,
+        audioUrl: firstAudioUrl?.trim() || undefined,
+        sectionsPayload: testSections,
       };
 
+      let savedId = editingTestId;
       if (editingTestId) {
         await quizzesService.updateQuiz(editingTestId, payload);
         showNotice(`✅ Đã cập nhật đề thi "${testFormData.title}"!`);
       } else {
-        await quizzesService.createQuiz(payload);
-        showNotice(`✅ Đã tạo bài Quiz mới "${testFormData.title}" (${testFormData.category})!`);
+        const created = await quizzesService.createQuiz(payload);
+        savedId = created.id;
+        setEditingTestId(created.id);
+        showNotice(`🎉 Đã tạo đề thi "${testFormData.title}"! Bạn có thể thêm câu hỏi ngay.`);
       }
       await fetchQuizzesAndTests();
-      setIsTestModalOpen(false);
+      if (!keepOpenAfterSave) {
+        setIsTestModalOpen(false);
+      }
+      return savedId;
     } catch (err: unknown) {
       showNotice(`❌ Lỗi khi lưu đề thi: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+      return null;
     }
   };
 
@@ -420,17 +636,30 @@ function AssessmentHubContent() {
     }
   };
 
-  const handleOpenAddQuestion = (quizId?: string) => {
+  const handleOpenAddQuestion = (quizId?: string, defaultPart?: number) => {
+    const targetQuiz = mockTests.find((t) => t.id === quizId) || mockTests[0];
+    const targetSkill = targetQuiz?.skill || 'READING';
+    const initialPart = defaultPart || 1;
+
     setQFormData({
-      targetQuizId: quizId || mockTests[0]?.id || '',
-      skill: 'READING',
-      type: 'SINGLE_CHOICE',
+      targetQuizId: targetQuiz?.id || '',
+      part: initialPart,
+      skill: targetSkill,
+      type:
+        targetSkill === 'READING'
+          ? 'TRUE_FALSE_NOT_GIVEN'
+          : targetSkill === 'LISTENING' && initialPart === 2
+          ? 'MAP_DIAGRAM_LABELING'
+          : 'SINGLE_CHOICE',
+      groupPrompt: '',
+      imageUrl: '',
+      audioUrl: '',
       questionText: '',
       optionA: '',
       optionB: '',
       optionC: '',
       optionD: '',
-      correctAnswer: 'A',
+      correctAnswer: targetSkill === 'READING' ? 'TRUE' : 'A',
       fillBlankAnswers: '',
       explanation: '',
     });
@@ -459,7 +688,12 @@ function AssessmentHubContent() {
           { content: 'NO', isCorrect: qFormData.correctAnswer === 'NO' },
           { content: 'NOT GIVEN', isCorrect: qFormData.correctAnswer === 'NOT GIVEN' },
         ];
-      } else if (qFormData.type === 'FILL_BLANK' || qFormData.type === 'NOTE_COMPLETION') {
+      } else if (qFormData.type === 'MAP_DIAGRAM_LABELING') {
+        options = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((letter) => ({
+          content: letter,
+          isCorrect: qFormData.correctAnswer === letter,
+        }));
+      } else if (qFormData.type === 'FILL_BLANK' || qFormData.type === 'NOTE_COMPLETION' || qFormData.type === 'FORM_COMPLETION') {
         const parts = (qFormData.fillBlankAnswers || 'Đáp án mẫu').split('/').map((p) => p.trim()).filter(Boolean);
         options = parts.map((p) => ({ content: p, isCorrect: true }));
         if (options.length === 0) options = [{ content: 'Đáp án chuẩn', isCorrect: true }];
@@ -478,10 +712,14 @@ function AssessmentHubContent() {
         skillType: qFormData.skill,
         type: qFormData.type,
         explanation: qFormData.explanation,
+        part: Number(qFormData.part) || 1,
+        groupPrompt: qFormData.groupPrompt?.trim() || undefined,
+        imageUrl: qFormData.imageUrl?.trim() || undefined,
+        audioUrl: qFormData.audioUrl?.trim() || undefined,
         options,
       });
 
-      showNotice(`✅ Đã thêm câu hỏi (${qFormData.type}) mới thành công!`);
+      showNotice(`✅ Đã thêm câu hỏi (${qFormData.type} • Part ${qFormData.part}) thành công!`);
       await fetchQuizzesAndTests();
       setIsQuestionModalOpen(false);
     } catch (err: unknown) {
@@ -490,514 +728,121 @@ function AssessmentHubContent() {
   };
 
   // ==========================================
-  // SMART CAMBRIDGE IMPORTER LOGIC & PARSER
+  // ASSESSMENT STUDIO QUESTION AUTHORING LOGIC
   // ==========================================
-  const sampleCambridgeReadingText = `CAMBRIDGE IELTS 20 - ACADEMIC READING TEST 1
-
-READING PASSAGE 1
-You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1 below.
-
-URBAN MICROCLIMATES AND SUSTAINABLE ARCHITECTURE
-
-Paragraph A
-Over the past two decades, metropolitan hubs worldwide have experienced intensified microclimatic anomalies known as Urban Heat Islands (UHI). Dense concrete infrastructure, asphalt surfaces, and anthropogenic heat emissions cause metropolitan temperatures to exceed surrounding rural baselines by up to 5 to 8 degrees Celsius during peak summer seasons.
-
-Paragraph B
-To mitigate these climatic challenges, contemporary civil engineers and architects are pioneering "biophilic building engineering." A notable prototype is the vertical botanical facade, incorporating indigenous foliage directly onto cantilevered building balconies. Plants act as organic thermal insulators and evaporative cooling units, reducing ambient surface temperatures by absorbing solar radiation.
-
-Paragraph C
-Automated IoT sensor arrays placed across structural elevations continuously evaluate micro-environmental parameters, including relative humidity, particulate concentration, and ambient airflow. These sensors relay real-time telemetry to central municipal management platforms, dynamically controlling misting nozzles and solar louvers to stabilize local microclimates.
-
-Paragraph D
-Despite these demonstrated technological advantages, the broad-scale implementation of biophilic facades faces several hurdles. Chief among these is the ongoing maintenance cost associated with automated drip-irrigation networks, as well as structural considerations regarding the dynamic weight of hydrated soil and mature root networks.
-
-Questions 1-5
-Do the following statements agree with the information given in Reading Passage 1?
-In boxes 1-5 on your answer sheet, write:
-TRUE if the statement agrees with the information
-FALSE if the statement contradicts the information
-NOT GIVEN if there is no information on this
-
-1. Urban Heat Islands cause metropolitan centers to be warmer than surrounding rural areas.
-2. Vertical botanical facades utilize synthetic artificial foliage to reflect solar radiation.
-3. Automated IoT sensors adjust misting nozzles and solar louvers based on real-time climate data.
-4. The municipal government of Milan financed the entire vertical forest construction project.
-5. High maintenance costs of drip-irrigation systems present a challenge to widespread adoption.
-
-Questions 6-9
-Choose the correct letter, A, B, C or D.
-Write the correct letter in boxes 6-9 on your answer sheet.
-
-6. What is the primary cause of Urban Heat Islands mentioned in Paragraph A?
-A. Excessive use of residential air conditioning units
-B. Dense concrete, asphalt surfaces and anthropogenic heat emissions
-C. Increased rainfall in rural territories
-D. Absence of underground public transit networks
-
-7. How do biophilic facades achieve ambient cooling?
-A. By reflecting sunlight using mirrored glass tiles
-B. Through organic thermal insulation and evaporative plant cooling
-C. By circulating chilled water through underground pipes
-D. By blocking all natural air currents around the building
-
-8. According to Paragraph C, what do structural IoT sensors monitor?
-A. Pedestrian foot traffic and noise pollution
-B. Energy consumption of individual residential apartments
-C. Relative humidity, particulate concentration and ambient airflow
-D. Structural seismic vibrations during earthquakes
-
-9. What structural concern is noted regarding mature botanical installations?
-A. The dynamic weight of hydrated soil and root systems
-B. Fire risk posed by dry autumn leaves
-C. Electrical interference caused by dense plant cover
-D. High wind resistance during hurricane conditions
-
-Questions 10-13
-Complete the notes below.
-Choose ONE WORD ONLY from the passage for each answer.
-Write your answers in boxes 10-13 on your answer sheet.
-
-Innovations in Urban Climate Management:
-10. The temperature difference between cities and rural areas can reach up to 8 degrees ______ during peak periods.
-11. Plants absorb solar ______ to reduce the heating effect on exterior walls.
-12. Sensor networks transmit live ______ directly to municipal control platforms.
-13. Building designs must account for the added weight of hydrated ______ and root systems.
-
-ANSWER KEY
-1. TRUE
-2. FALSE
-3. TRUE
-4. NOT GIVEN
-5. TRUE
-6. B
-7. B
-8. C
-9. A
-10. Celsius
-11. radiation
-12. telemetry
-13. soil`;
-
-  const handleOpenImportModal = (quizId?: string) => {
-    if (quizId) {
-      setImportTargetQuizId(quizId);
-      setImportMode('existing');
-    } else {
-      setImportTargetQuizId(mockTests[0]?.id || '');
-      setImportMode('create_new');
-    }
-    setParsedQuestions([]);
-    setDetectedPassage('');
-    setDetectedKeyCount(0);
-    setIsImportModalOpen(true);
-  };
-
-  const parseCambridgeRawText = (rawText: string, forcedType = 'AUTO') => {
-    if (!rawText.trim()) {
-      return { title: '', passage: '', questions: [], detectedKeyCount: 0 };
-    }
-
-    // 1. Extract ANSWER KEY section if placed at the end of the file
-    const keyMap = new Map<number, string>();
-    let textBody = rawText;
-    const answerKeyRegex = /(?:^|\n)\s*(?:ANSWER\s*KEY|KEY|ĐÁP\s*ÁN|ANSWERS)[\s\:\r\n]+([\s\S]*)$/i;
-    const answerKeyMatch = rawText.match(answerKeyRegex);
-
-    if (answerKeyMatch) {
-      const keySection = answerKeyMatch[1];
-      textBody = rawText.slice(0, answerKeyMatch.index);
-      const keyLineRegex = /(?:^|\n)\s*(\d+)[\.\:\)]\s*([A-Za-z0-9\s\/\-_,\.\'\"]+)/g;
-      let m: RegExpExecArray | null;
-      while ((m = keyLineRegex.exec(keySection)) !== null) {
-        const qNum = parseInt(m[1], 10);
-        const val = m[2].trim();
-        if (!isNaN(qNum) && val) {
-          keyMap.set(qNum, val);
-        }
-      }
-    }
-
-    // 2. Extract Title and Reading Passage if present
-    let detectedTitle = '';
-    let detectedPassage = '';
-    const lines = textBody.split('\n').map((l) => l.trim()).filter(Boolean);
-
-    if (lines.length > 0 && /CAMBRIDGE|IELTS|READING|PRACTICE|MOCK/i.test(lines[0])) {
-      detectedTitle = lines[0];
-    }
-
-    let passageStartIndex = -1;
-    let questionsStartIndex = -1;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (passageStartIndex === -1 && /^(?:READING\s+PASSAGE|PASSAGE)\s*([0-9A-Z]*)/i.test(line)) {
-        passageStartIndex = i;
-      }
-      if (
-        questionsStartIndex === -1 &&
-        (/^Questions?\s+\d+/i.test(line) || /^(?:Question\s+|Q\s*)?1[\.\:\)]\s+/i.test(line))
-      ) {
-        questionsStartIndex = i;
-        break;
-      }
-    }
-
-    if (passageStartIndex !== -1 && questionsStartIndex > passageStartIndex) {
-      const passageLines = lines.slice(passageStartIndex, questionsStartIndex);
-      const contentLines: string[] = [];
-      for (const pLine of passageLines) {
-        if (/^(?:READING\s+PASSAGE|PASSAGE)\s*/i.test(pLine)) continue;
-        if (/^You should spend about/i.test(pLine)) continue;
-        contentLines.push(pLine);
-      }
-      if (contentLines.length > 0) {
-        if (!detectedTitle) {
-          detectedTitle = contentLines[0];
-        }
-        detectedPassage = contentLines.join('\n\n');
-      }
-    }
-
-    // 3. Parse questions starting from questionsStartIndex (or line 0 if no passage)
-    const questionLines = questionsStartIndex !== -1 ? lines.slice(questionsStartIndex) : lines;
-    const questions: {
-      orderIndex: number;
-      type: string;
-      content: string;
-      options: { content: string; isCorrect: boolean }[];
-      explanation?: string;
-    }[] = [];
-
-    const questionRegex = /^(?:Question\s+|Q\s*)?(\d+)[\.\:\)]\s*(.*)$/i;
-    let currentQ: {
-      number: number;
-      text: string;
-      options: { letter: string; text: string }[];
-      answer?: string;
-      explanation?: string;
-    } | null = null;
-
-    const processAndPush = (q: typeof currentQ) => {
-      if (!q) return;
-
-      // Map answer from Answer Key at end of file if not specified inline
-      if (!q.answer && keyMap.has(q.number)) {
-        q.answer = keyMap.get(q.number);
-      }
-
-      let type = forcedType !== 'AUTO' ? forcedType : 'SINGLE_CHOICE';
-      const rawAns = (q.answer || '').trim();
-      const ansUpper = rawAns.toUpperCase();
-
-      if (forcedType === 'AUTO') {
-        if (['TRUE', 'FALSE', 'NOT GIVEN'].includes(ansUpper) || q.text.toUpperCase().includes('TRUE/FALSE/NOT GIVEN')) {
-          type = 'TRUE_FALSE_NOT_GIVEN';
-        } else if (['YES', 'NO', 'NOT GIVEN'].includes(ansUpper) || q.text.toUpperCase().includes('YES/NO/NOT GIVEN')) {
-          type = 'YES_NO_NOT_GIVEN';
-        } else if (q.options.length >= 2) {
-          type = 'SINGLE_CHOICE';
-        } else if (/^[A-D]$/i.test(rawAns)) {
-          type = 'SINGLE_CHOICE';
-        } else {
-          type = 'FILL_BLANK';
-        }
-      }
-
-      let finalOptions: { content: string; isCorrect: boolean }[] = [];
-      if (type === 'TRUE_FALSE_NOT_GIVEN') {
-        finalOptions = [
-          { content: 'TRUE', isCorrect: ansUpper === 'TRUE' },
-          { content: 'FALSE', isCorrect: ansUpper === 'FALSE' },
-          { content: 'NOT GIVEN', isCorrect: ansUpper === 'NOT GIVEN' },
-        ];
-      } else if (type === 'YES_NO_NOT_GIVEN') {
-        finalOptions = [
-          { content: 'YES', isCorrect: ansUpper === 'YES' },
-          { content: 'NO', isCorrect: ansUpper === 'NO' },
-          { content: 'NOT GIVEN', isCorrect: ansUpper === 'NOT GIVEN' },
-        ];
-      } else if (type === 'FILL_BLANK' || type === 'NOTE_COMPLETION' || type === 'SENTENCE_COMPLETION') {
-        const parts = (rawAns || 'Đáp án mẫu').split('/');
-        finalOptions = parts.map((p) => ({ content: p.trim(), isCorrect: true }));
-      } else {
-        // SINGLE_CHOICE
-        finalOptions = q.options.map((opt) => ({
-          content: opt.text ? `${opt.letter}. ${opt.text}` : opt.letter,
-          isCorrect: opt.letter.toUpperCase() === ansUpper || opt.text.trim().toLowerCase() === rawAns.toLowerCase(),
-        }));
-        if (finalOptions.length === 0) {
-          finalOptions = [
-            { content: 'A', isCorrect: ansUpper === 'A' },
-            { content: 'B', isCorrect: ansUpper === 'B' },
-            { content: 'C', isCorrect: ansUpper === 'C' },
-            { content: 'D', isCorrect: ansUpper === 'D' },
-          ];
-        }
-      }
-
-      questions.push({
-        orderIndex: q.number,
-        type,
-        content: q.text,
-        options: finalOptions,
-        explanation:
-          q.explanation ||
-          (q.answer
-            ? `Đáp án chính xác: ${q.answer} theo tài liệu khảo thí Cambridge.`
-            : 'Theo bài đọc đề thi chuẩn Cambridge.'),
-      });
-    };
-
-    for (let i = 0; i < questionLines.length; i++) {
-      const line = questionLines[i];
-
-      // Ignore instruction lines
-      if (
-        /^Questions?\s+\d+/i.test(line) ||
-        /^Do the following/i.test(line) ||
-        /^In boxes/i.test(line) ||
-        /^Choose the correct/i.test(line) ||
-        /^Complete the/i.test(line) ||
-        /^Write your answers/i.test(line) ||
-        /^Choose ONE WORD/i.test(line) ||
-        /^Choose NO MORE/i.test(line)
-      ) {
-        continue;
-      }
-
-      const ansMatch = line.match(/^(?:Answer|Ans|Key|Đáp án)[\s\:\-]+([A-Za-z0-9\s\/\-_,\.\'\"]+)$/i);
-      if (ansMatch && currentQ) {
-        currentQ.answer = ansMatch[1].trim();
-        continue;
-      }
-
-      const expMatch = line.match(/^(?:Explanation|Exp|Giải thích)[\s\:\-]+(.*)$/i);
-      if (expMatch && currentQ) {
-        currentQ.explanation = expMatch[1].trim();
-        continue;
-      }
-
-      const optMatch = line.match(/^([A-D])[\.\:\)]\s*(.*)$/i);
-      if (optMatch && currentQ) {
-        currentQ.options.push({ letter: optMatch[1].toUpperCase(), text: optMatch[2].trim() });
-        continue;
-      }
-
-      const qMatch = line.match(questionRegex);
-      if (qMatch) {
-        if (currentQ) processAndPush(currentQ);
-        currentQ = { number: parseInt(qMatch[1], 10), text: qMatch[2].trim(), options: [] };
-        continue;
-      }
-
-      if (currentQ && currentQ.options.length === 0) {
-        currentQ.text += ' ' + line;
-      }
-    }
-
-    if (currentQ) processAndPush(currentQ);
-
-    return {
-      title: detectedTitle,
-      passage: detectedPassage,
-      questions,
-      detectedKeyCount: keyMap.size,
-    };
-  };
-
-  const handleParseImportText = () => {
-    if (!importText.trim()) {
-      showNotice('❌ Vui lòng dán nội dung văn bản đề thi Cambridge vào khung bên dưới!');
-      return;
-    }
-    const results = parseCambridgeRawText(importText, importForcedType);
-    if (results.questions.length === 0) {
-      showNotice('⚠️ Không tìm thấy câu hỏi nào hợp lệ. Vui lòng định dạng số thứ tự (ví dụ: 1. Câu hỏi...)');
-      return;
-    }
-    setParsedQuestions(results.questions);
-    if (results.title) setNewQuizTitle(results.title);
-    if (results.passage) setDetectedPassage(results.passage);
-    setDetectedKeyCount(results.detectedKeyCount);
-
-    const keyNotice = results.detectedKeyCount > 0 ? ` • ${results.detectedKeyCount} đáp án từ Answer Key` : '';
-    const passageNotice = results.passage ? ' • Bài đọc Passage tự động bóc tách' : '';
-    showNotice(`🎉 Đã bóc tách thành công ${results.questions.length} câu hỏi chuẩn Cambridge${keyNotice}${passageNotice}!`);
-  };
-
-  const handleExecuteImport = async () => {
-    if (parsedQuestions.length === 0) {
-      showNotice('❌ Chưa có câu hỏi nào được phân tích để import!');
+  const handleSaveStudioQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studioQuestionForm.questionText.trim()) {
+      showNotice('❌ Vui lòng nhập nội dung câu hỏi!');
       return;
     }
 
-    setIsSubmittingImport(true);
     try {
-      let targetQuizId = importTargetQuizId;
-      let targetSkill = 'READING';
-
-      if (importMode === 'create_new') {
-        const createdQuiz = await quizzesService.createQuiz({
-          title: newQuizTitle.trim() || 'Cambridge IELTS Practice Test',
-          skill: newQuizSkill,
-          passage: detectedPassage.trim() || undefined,
-          timeLimitMinutes: Number(newQuizTimeLimit) || 60,
-          passScore: Number(newQuizPassScore) || 80,
-          quizType: 'PRACTICE_TEST',
-          testType: 'FULL_MOCK_TEST',
-          category: 'IELTS',
-        });
-        targetQuizId = createdQuiz.id;
-        targetSkill = newQuizSkill;
-      } else {
-        if (!targetQuizId) {
-          showNotice('❌ Vui lòng chọn bài Quiz / Đề thi mục tiêu cần nạp câu hỏi!');
-          setIsSubmittingImport(false);
-          return;
-        }
-        const targetTest = mockTests.find((t) => t.id === targetQuizId);
-        targetSkill = targetTest?.skill || 'READING';
+      let targetQuizId = editingTestId;
+      if (!targetQuizId) {
+        targetQuizId = await handleSaveMockTest(undefined, true);
+        if (!targetQuizId) return;
       }
 
-      const payload = parsedQuestions.map((q) => ({
-        content: q.content,
-        skill: targetSkill,
-        type: q.type,
-        explanation: q.explanation,
-        orderIndex: q.orderIndex,
-        options: q.options,
-      }));
+      let options: { content: string; isCorrect: boolean }[] = [];
+      const qType = studioQuestionForm.type;
 
-      await quizzesService.addQuestionsBulk(targetQuizId, payload);
-      showNotice(
-        importMode === 'create_new'
-          ? `🎉 Đã tạo đề thi "${newQuizTitle}" và nạp thành công ${parsedQuestions.length} câu hỏi!`
-          : `🎉 Đã nạp thành công ${parsedQuestions.length} câu hỏi chuẩn Cambridge vào đề thi!`
-      );
+      if (qType === 'TRUE_FALSE_NOT_GIVEN') {
+        options = [
+          { content: 'TRUE', isCorrect: studioQuestionForm.correctAnswer === 'TRUE' },
+          { content: 'FALSE', isCorrect: studioQuestionForm.correctAnswer === 'FALSE' },
+          { content: 'NOT GIVEN', isCorrect: studioQuestionForm.correctAnswer === 'NOT GIVEN' },
+        ];
+      } else if (qType === 'YES_NO_NOT_GIVEN') {
+        options = [
+          { content: 'YES', isCorrect: studioQuestionForm.correctAnswer === 'YES' },
+          { content: 'NO', isCorrect: studioQuestionForm.correctAnswer === 'NO' },
+          { content: 'NOT GIVEN', isCorrect: studioQuestionForm.correctAnswer === 'NOT GIVEN' },
+        ];
+      } else if (qType === 'MAP_DIAGRAM_LABELING') {
+        options = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((letter) => ({
+          content: letter,
+          isCorrect: studioQuestionForm.correctAnswer === letter,
+        }));
+      } else if (
+        qType === 'FILL_BLANK' ||
+        qType === 'NOTE_COMPLETION' ||
+        qType === 'FORM_COMPLETION' ||
+        qType === 'SUMMARY_COMPLETION'
+      ) {
+        const parts = (studioQuestionForm.fillBlankAnswers || studioQuestionForm.correctAnswer || 'Đáp án')
+          .split('/')
+          .map((p) => p.trim())
+          .filter(Boolean);
+        options = parts.map((p) => ({ content: p, isCorrect: true }));
+        if (options.length === 0) options = [{ content: 'Đáp án chuẩn', isCorrect: true }];
+      } else if (qType === 'MATCHING_HEADINGS') {
+        const headings = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii'];
+        options = headings.map((h) => ({
+          content: h,
+          isCorrect: studioQuestionForm.correctAnswer === h,
+        }));
+      } else {
+        // SINGLE_CHOICE / MULTIPLE_CHOICE
+        options = [
+          { content: studioQuestionForm.optionA || 'Lựa chọn A', isCorrect: studioQuestionForm.correctAnswer === 'A' },
+          { content: studioQuestionForm.optionB || 'Lựa chọn B', isCorrect: studioQuestionForm.correctAnswer === 'B' },
+          { content: studioQuestionForm.optionC || 'Lựa chọn C', isCorrect: studioQuestionForm.correctAnswer === 'C' },
+          { content: studioQuestionForm.optionD || 'Lựa chọn D', isCorrect: studioQuestionForm.correctAnswer === 'D' },
+        ];
+      }
+
+      await quizzesService.createQuestion({
+        quizId: targetQuizId,
+        questionText: studioQuestionForm.questionText,
+        skillType: testFormData.skill,
+        type: qType,
+        explanation: studioQuestionForm.explanation?.trim() || undefined,
+        part: activeSectionPart,
+        groupPrompt: studioQuestionForm.groupPrompt?.trim() || undefined,
+        imageUrl: studioQuestionForm.imageUrl?.trim() || undefined,
+        audioUrl: studioQuestionForm.audioUrl?.trim() || undefined,
+        options,
+      });
+
+      showNotice('✅ Đã thêm câu hỏi vào Phần ' + activeSectionPart + ' thành công!');
+
+      const full = await quizzesService.getQuizById(targetQuizId);
+      if (full && Array.isArray(full.questions)) {
+        setStudioQuestions(full.questions);
+      }
       await fetchQuizzesAndTests();
-      setIsImportModalOpen(false);
-      setParsedQuestions([]);
-      setImportText('');
-      setDetectedPassage('');
-      setDetectedKeyCount(0);
-    } catch (err: unknown) {
-      showNotice(`❌ Lỗi khi import câu hỏi: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
-    } finally {
-      setIsSubmittingImport(false);
+
+      setStudioQuestionForm((prev) => ({
+        ...prev,
+        questionText: '',
+        explanation: '',
+        imageUrl: '',
+        fillBlankAnswers: '',
+      }));
+    } catch (err) {
+      showNotice('❌ Lỗi khi thêm câu hỏi: ' + extractErrorMessage(err, 'Thao tác thất bại'));
     }
   };
 
-  const handleDownloadJsonTemplate = () => {
-    const template = [
-      {
-        orderIndex: 1,
-        type: 'TRUE_FALSE_NOT_GIVEN',
-        content: 'The ancient Roman water supply system was built entirely above ground.',
-        options: [
-          { content: 'TRUE', isCorrect: false },
-          { content: 'FALSE', isCorrect: true },
-          { content: 'NOT GIVEN', isCorrect: false },
-        ],
-        explanation: 'Paragraph 1 states that majority was underground aqueducts.',
-      },
-      {
-        orderIndex: 2,
-        type: 'SINGLE_CHOICE',
-        content: 'What is the primary purpose of the automated traffic grid?',
-        options: [
-          { content: 'To decrease parking fines', isCorrect: false },
-          { content: 'To reduce carbon emissions during peak hours', isCorrect: true },
-          { content: 'To replace all human drivers', isCorrect: false },
-          { content: 'To encourage bike sharing programs', isCorrect: false },
-        ],
-        explanation: 'Paragraph 4 explains reduction of traffic jams and carbon emission.',
-      },
-      {
-        orderIndex: 3,
-        type: 'FILL_BLANK',
-        content: 'Smart power grids rely heavily on specialized ______ batteries.',
-        options: [
-          { content: 'lithium-ion', isCorrect: true },
-          { content: 'solar', isCorrect: true },
-        ],
-        explanation: 'Paragraph 6 mentions lithium-ion storage units.',
-      },
-    ];
-
-    const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'cambridge_ielts_questions_template.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const fileName = file.name.toLowerCase();
-    const reader = new FileReader();
-
-    if (fileName.endsWith('.json')) {
-      reader.onload = (event) => {
-        try {
-          const json = JSON.parse(event.target?.result as string);
-          if (Array.isArray(json)) {
-            const validated = json.map((item, idx) => ({
-              orderIndex: item.orderIndex || idx + 1,
-              type: item.type || 'SINGLE_CHOICE',
-              content: item.content || item.questionText || `Câu hỏi ${idx + 1}`,
-              options: Array.isArray(item.options)
-                ? item.options
-                : [
-                    { content: 'TRUE', isCorrect: true },
-                    { content: 'FALSE', isCorrect: false },
-                  ],
-              explanation: item.explanation || 'Theo bài đọc Cambridge.',
-            }));
-            setParsedQuestions(validated);
-            showNotice(`✅ Đã nạp thành công ${validated.length} câu hỏi từ file JSON!`);
-          } else {
-            showNotice('❌ Định dạng file JSON không hợp lệ (phải là danh sách mảng câu hỏi)');
-          }
-        } catch {
-          showNotice('❌ Lỗi đọc file JSON: Nội dung không đúng cú pháp JSON');
-        }
-      };
-      reader.readAsText(file);
-    } else {
-      // Handle .txt, .md, .csv Cambridge exam files
-      reader.onload = (event) => {
-        const text = (event.target?.result as string) || '';
-        setImportText(text);
-        const results = parseCambridgeRawText(text, importForcedType);
-        if (results.questions.length === 0) {
-          showNotice('⚠️ Không tìm thấy câu hỏi hợp lệ trong file. Vui lòng kiểm tra định dạng.');
-          return;
-        }
-        setParsedQuestions(results.questions);
-        if (results.title) setNewQuizTitle(results.title);
-        if (results.passage) setDetectedPassage(results.passage);
-        setDetectedKeyCount(results.detectedKeyCount);
-        setImportTab('text');
-
-        const keyNotice = results.detectedKeyCount > 0 ? ` • ${results.detectedKeyCount} đáp án từ Answer Key` : '';
-        const passageNotice = results.passage ? ' • Đã bóc tách bài đọc' : '';
-        showNotice(`🎉 Đã đọc file "${file.name}" và bóc tách ${results.questions.length} câu hỏi${keyNotice}${passageNotice}!`);
-      };
-      reader.readAsText(file);
+  const handleDeleteStudioQuestion = async (qId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa câu hỏi này khỏi đề thi?')) return;
+    try {
+      await quizzesService.deleteQuestion(qId);
+      setStudioQuestions((prev) => prev.filter((q) => q.id !== qId));
+      showNotice('✅ Đã xóa câu hỏi!');
+      await fetchQuizzesAndTests();
+    } catch (err) {
+      showNotice('❌ Lỗi khi xóa câu hỏi: ' + extractErrorMessage(err, 'Thất bại'));
     }
   };
 
   const filteredMockTests = useMemo(() => {
     return mockTests.filter((test) => {
+      // Phân hệ Khảo Thí thuần túy dành riêng cho IELTS & Tiếng Anh
       const isEng = ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(test.category || 'IELTS');
-      const testTrack = isEng ? 'ENGLISH' : 'PERSONAL_DEV';
+      if (!isEng) return false;
 
-      const matchTrack = filterTrack === 'ALL' || testTrack === filterTrack;
       const matchCat = filterCategory === 'ALL' || (test.category || 'IELTS') === filterCategory;
       const matchQuizType =
         filterQuizType === 'ALL' ||
@@ -1009,9 +854,9 @@ ANSWER KEY
         test.title.toLowerCase().includes(quizSearch.toLowerCase()) ||
         (test.description && test.description.toLowerCase().includes(quizSearch.toLowerCase()));
 
-      return matchTrack && matchCat && matchQuizType && matchSkill && matchSearch;
+      return matchCat && matchQuizType && matchSkill && matchSearch;
     });
-  }, [mockTests, filterTrack, filterCategory, filterQuizType, filterSkill, quizSearch]);
+  }, [mockTests, filterCategory, filterQuizType, filterSkill, quizSearch]);
 
   // =========================================================================
   // 2. IELTS WRITING AI REVIEW STATE
@@ -1275,15 +1120,16 @@ ANSWER KEY
     const actionParam = searchParams.get('action');
 
     if (actionParam === 'new_quiz' || courseIdParam) {
-      const isDev = ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(catParam?.toUpperCase() || '');
-      const initialCat = catParam?.toUpperCase() || (isDev ? 'PEDAGOGY' : 'IELTS');
+      const initialCat = ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(catParam?.toUpperCase() || '')
+        ? catParam!.toUpperCase()
+        : 'IELTS';
       const domainOpts = getDomainOptions(initialCat);
       setTestFormData((prev) => ({
         ...prev,
         courseId: courseIdParam || '',
-        track: isDev ? 'PERSONAL_DEV' : 'ENGLISH',
+        track: 'ENGLISH',
         category: initialCat,
-        quizType: isDev ? 'SITUATION_QUIZ' : 'FULL_MOCK_TEST',
+        quizType: 'FULL_MOCK_TEST',
         skill: domainOpts[0]?.value || 'READING',
       }));
       setIsTestModalOpen(true);
@@ -1318,17 +1164,6 @@ ANSWER KEY
           <p className="text-xs text-muted mt-0.5">
             Quản trị đề thi Mock Test, phê duyệt bài viết IELTS Writing AI và chấm điểm bài nói Speaking trực quan.
           </p>
-        </div>
-
-        {/* Global Quick Action */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => handleOpenCreateTestModal()}
-            className="px-4 py-2.5 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md shadow-primary/20 transition flex items-center gap-1.5"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Tạo Đề Thi Mock Test</span>
-          </button>
         </div>
       </div>
 
@@ -1426,74 +1261,41 @@ ANSWER KEY
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleOpenImportModal()}
-                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>⚡ Smart Import Cambridge</span>
-              </button>
-              <button
-                onClick={() => handleOpenAddQuestion()}
-                className="px-3.5 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-primary font-bold text-xs border border-sky-200 transition flex items-center gap-1.5"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ Thêm Câu Hỏi Mới</span>
-              </button>
-              <button
                 onClick={() => handleOpenCreateTestModal()}
-                className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-extrabold text-xs shadow-md shadow-primary/20 transition flex items-center gap-2"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ Tạo Bài Quiz / Đề Thi</span>
+                <Plus className="w-4 h-4" />
+                <span>+ Soạn Đề Thi Mới</span>
               </button>
             </div>
           </div>
 
-          {/* Filter Bar with Track Switcher & Category Pills */}
+          {/* Filter Bar with Skill Switcher & IELTS Category Pills */}
           <div className="bg-white p-4 rounded-3xl border border-line shadow-xs space-y-3">
-            {/* Primary Track Filter & Quiz Type */}
+            {/* Primary Skill Filter & Quiz Type */}
             <div className="flex items-center justify-between gap-3 flex-wrap border-b border-line pb-3">
               <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
                 <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">
-                  Lộ Trình:
+                  Kỹ Năng:
                 </span>
                 {[
-                  { id: 'ALL', label: `Tất Cả (${mockTests.length})`, icon: null },
-                  {
-                    id: 'ENGLISH',
-                    label: `Tiếng Anh & IELTS (${
-                      mockTests.filter((t) =>
-                        ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(t.category || 'IELTS'),
-                      ).length
-                    })`,
-                    icon: Globe,
-                  },
-                  {
-                    id: 'PERSONAL_DEV',
-                    label: `Kỹ Năng & Sư Phạm (${
-                      mockTests.filter((t) =>
-                        ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(
-                          t.category || '',
-                        ),
-                      ).length
-                    })`,
-                    icon: Compass,
-                  },
-                ].map((track) => (
+                  { id: 'ALL', label: 'Tất Cả Kỹ Năng', icon: Globe },
+                  { id: 'READING', label: 'Reading (Đọc)', icon: BookOpen },
+                  { id: 'LISTENING', label: 'Listening (Nghe)', icon: Headphones },
+                  { id: 'WRITING', label: 'Writing (Viết)', icon: FileEdit },
+                  { id: 'SPEAKING', label: 'Speaking (Nói)', icon: Mic },
+                ].map((sk) => (
                   <button
-                    key={track.id}
-                    onClick={() => {
-                      setFilterTrack(track.id as any);
-                      setFilterCategory('ALL');
-                    }}
+                    key={sk.id}
+                    onClick={() => setFilterSkill(sk.id)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
-                      filterTrack === track.id
+                      filterSkill === sk.id
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    {track.icon && <track.icon className="w-3.5 h-3.5 shrink-0" />}
-                    <span>{track.label}</span>
+                    {sk.icon && <sk.icon className="w-3.5 h-3.5 shrink-0" />}
+                    <span>{sk.label}</span>
                   </button>
                 ))}
               </div>
@@ -1506,9 +1308,9 @@ ANSWER KEY
                 {[
                   { id: 'ALL', label: 'Tất Cả Loại', icon: null },
                   { id: 'FULL_MOCK_TEST', label: 'Thi Thử (Mock)', icon: Trophy },
-                  { id: 'SITUATION_QUIZ', label: 'Tình Huống (Case)', icon: Target },
-                  { id: 'PRACTICE_TEST', label: 'Luyện Tập', icon: FileEdit },
+                  { id: 'PRACTICE_TEST', label: 'Luyện Tập (Practice)', icon: FileEdit },
                   { id: 'LESSON_QUIZ', label: 'Bài Học', icon: BookOpen },
+                  { id: 'DIAGNOSTIC_TEST', label: 'Chẩn Đoán', icon: Target },
                 ].map((tp) => (
                   <button
                     key={tp.id}
@@ -1532,42 +1334,22 @@ ANSWER KEY
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Tìm tiêu đề hoặc nội dung bài Quiz..."
+                  placeholder="Tìm tiêu đề hoặc nội dung bài thi IELTS..."
                   value={quizSearch}
                   onChange={(e) => setQuizSearch(e.target.value)}
                   className="w-full pl-8.5 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-primary"
                 />
               </div>
 
-              {/* Category Pills matching the active track */}
+              {/* IELTS & English Category Pills */}
               <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 text-xs">
-                {(filterTrack === 'PERSONAL_DEV'
-                  ? [
-                      { id: 'ALL', label: 'Tất cả Kỹ Năng' },
-                      { id: 'PEDAGOGY', label: 'Sư Phạm' },
-                      { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
-                      { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
-                      { id: 'PERSONAL_DEV', label: 'Bản Thân' },
-                    ]
-                  : filterTrack === 'ENGLISH'
-                  ? [
-                      { id: 'ALL', label: 'Tất cả Tiếng Anh' },
-                      { id: 'IELTS', label: 'IELTS 4 Kỹ Năng' },
-                      { id: 'ENGLISH', label: 'General English' },
-                      { id: 'BUSINESS', label: 'Business English' },
-                      { id: 'KIDS', label: 'Kids English' },
-                    ]
-                  : [
-                      { id: 'ALL', label: 'Tất cả danh mục' },
-                      { id: 'IELTS', label: 'IELTS' },
-                      { id: 'ENGLISH', label: 'General' },
-                      { id: 'BUSINESS', label: 'Business' },
-                      { id: 'PEDAGOGY', label: 'Sư Phạm' },
-                      { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
-                      { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
-                      { id: 'PERSONAL_DEV', label: 'Bản Thân' },
-                    ]
-                ).map((c) => (
+                {[
+                  { id: 'ALL', label: 'Tất cả IELTS & Tiếng Anh' },
+                  { id: 'IELTS', label: 'IELTS 4 Kỹ Năng' },
+                  { id: 'ENGLISH', label: 'General English' },
+                  { id: 'BUSINESS', label: 'Business English' },
+                  { id: 'KIDS', label: 'Kids English' },
+                ].map((c) => (
                   <button
                     key={c.id}
                     onClick={() => setFilterCategory(c.id)}
@@ -1596,7 +1378,7 @@ ANSWER KEY
                       <th className="py-3 px-4">Loại Quiz</th>
                       <th className="py-3 px-4">Lĩnh Vực / Kỹ Năng</th>
                       <th className="py-3 px-4">Thời Gian</th>
-                      <th className="py-3 px-4">Sàn Đạt</th>
+                      <th className="py-3 px-4">Cấu Trúc Đề</th>
                       <th className="py-3 px-4">Số Câu</th>
                       <th className="py-3 px-4 text-right">Thao Tác</th>
                     </tr>
@@ -1676,30 +1458,34 @@ ANSWER KEY
                             <td className="py-3.5 px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
                               {t.timeLimitMinutes} phút
                             </td>
-                            <td className="py-3.5 px-4 font-bold text-emerald-600 whitespace-nowrap">
-                              &ge; {t.passScore}%
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                {t.skill === 'READING'
+                                  ? '3 Passages'
+                                  : t.skill === 'LISTENING'
+                                  ? '4 Sections'
+                                  : t.skill === 'WRITING'
+                                  ? '2 Tasks'
+                                  : t.skill === 'SPEAKING'
+                                  ? '3 Parts'
+                                  : 'IELTS Standard'}
+                              </span>
                             </td>
                             <td className="py-3.5 px-4 font-bold text-slate-700 whitespace-nowrap">
                               {t.questionsCount} câu
                             </td>
-                            <td className="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
+                            <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
                               <button
-                                onClick={() => handleOpenImportModal(t.id)}
-                                className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-[11px] hover:bg-emerald-100 transition inline-flex items-center gap-1"
-                                title="Smart Import câu hỏi chuẩn Cambridge"
+                                onClick={() => handleEditMockTest(t)}
+                                className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-primary font-bold text-xs transition inline-flex items-center gap-1.5 border border-sky-200 shadow-xs"
+                                title="Soạn nội dung đề và quản lý câu hỏi trực tiếp"
                               >
-                                <Sparkles className="w-3 h-3" />
-                                <span>Import</span>
-                              </button>
-                              <button
-                                onClick={() => handleOpenAddQuestion(t.id)}
-                                className="px-2 py-1 rounded-lg bg-sky-50 text-primary font-bold text-[11px] hover:bg-sky-100 transition"
-                              >
-                                + Thêm câu
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Soạn Đề & Câu Hỏi</span>
                               </button>
                               <button
                                 onClick={() => handleDeleteMockTest(t.id)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 transition"
+                                className="p-1.5 text-slate-400 hover:text-red-600 transition rounded-lg hover:bg-red-50"
                                 title="Xóa đề thi"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -1724,7 +1510,8 @@ ANSWER KEY
                     <tr>
                       <th className="py-3 px-4">Câu Hỏi</th>
                       <th className="py-3 px-4">Đề Thi Trực Thuộc</th>
-                      <th className="py-3 px-4">Kỹ Năng</th>
+                      <th className="py-3 px-4">Phần (Part)</th>
+                      <th className="py-3 px-4">Dạng Bài</th>
                       <th className="py-3 px-4">Đáp Án Đúng</th>
                       <th className="py-3 px-4">Giải Thích Chi Tiết</th>
                     </tr>
@@ -1732,7 +1519,7 @@ ANSWER KEY
                   <tbody className="divide-y divide-line">
                     {quizQuestions.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-xs text-slate-400">
+                        <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
                           Chưa có câu hỏi nào trong ngân hàng đề.
                         </td>
                       </tr>
@@ -1740,16 +1527,38 @@ ANSWER KEY
                       quizQuestions.map((q) => (
                         <tr key={q.id} className="hover:bg-slate-50/60 transition">
                           <td className="py-3.5 px-4 font-bold text-slate-900 max-w-sm">
-                            {q.questionText}
+                            <div>{q.questionText}</div>
+                            {q.groupPrompt && (
+                              <div className="text-[10px] text-slate-400 font-normal italic mt-0.5 truncate">
+                                {q.groupPrompt}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {q.imageUrl && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] bg-purple-50 text-purple-700 border border-purple-200 font-semibold">
+                                  <ImageIcon className="w-2.5 h-2.5" /> Sơ đồ / Bản đồ
+                                </span>
+                              )}
+                              {q.audioUrl && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] bg-sky-50 text-primary border border-sky-200 font-semibold">
+                                  <Volume2 className="w-2.5 h-2.5" /> Âm thanh riêng
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="py-3.5 px-4 text-slate-700 font-semibold">{q.quizTitle}</td>
-                          <td className="py-3.5 px-4">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-50 text-primary">
-                              {q.skill}
+                          <td className="py-3.5 px-4 text-slate-700 font-semibold max-w-[140px] truncate">{q.quizTitle}</td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                              {q.part ? `Part ${q.part}` : 'Part 1'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-50 text-primary border border-sky-200">
+                              {q.type}
                             </span>
                           </td>
                           <td className="py-3.5 px-4">
-                            <span className="text-xs font-mono font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                            <span className="text-xs font-mono font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                               {q.correctAnswer}
                             </span>
                           </td>
@@ -2229,314 +2038,1063 @@ ANSWER KEY
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: CREATE / EDIT MOCK TEST                                            */}
+      {/* FULL-SCREEN CAMBRIDGE ASSESSMENT AUTHORING STUDIO                          */}
       {/* ========================================================================= */}
       {isTestModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl border border-line p-6 space-y-4 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-line pb-3">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">
-                  {editingTestId ? 'Sửa Đề Thi / Bài Quiz' : 'Tạo Bài Quiz / Đề Thi Mới'}
-                </h3>
-                <p className="text-xs text-muted">
-                  Thiết lập bài trắc nghiệm hoặc tình huống thực chiến cho mọi phân hệ đào tạo.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsTestModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveMockTest} className="space-y-4">
-              {/* 1. Track Switcher */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  1. Chọn Lộ Trình Đào Tạo <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const domainOpts = getDomainOptions('IELTS');
-                      setTestFormData({
-                        ...testFormData,
-                        track: 'ENGLISH',
-                        category: 'IELTS',
-                        quizType: 'FULL_MOCK_TEST',
-                        skill: domainOpts[0]?.value || 'READING',
-                      });
-                    }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-black transition flex items-center justify-center gap-1.5 ${
-                      testFormData.track === 'ENGLISH'
-                        ? 'bg-sky-50 border-primary text-primary shadow-xs'
-                        : 'border-line text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Globe className="w-3.5 h-3.5 shrink-0" />
-                    <span>Tiếng Anh & IELTS</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const domainOpts = getDomainOptions('PEDAGOGY');
-                      setTestFormData({
-                        ...testFormData,
-                        track: 'PERSONAL_DEV',
-                        category: 'PEDAGOGY',
-                        quizType: 'SITUATION_QUIZ',
-                        skill: domainOpts[0]?.value || 'TEACHING_METHOD',
-                      });
-                    }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-black transition flex items-center justify-center gap-1.5 ${
-                      testFormData.track === 'PERSONAL_DEV'
-                        ? 'bg-purple-50 border-purple-500 text-purple-700 shadow-xs'
-                        : 'border-line text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Compass className="w-3.5 h-3.5 shrink-0" />
-                    <span>Phát Triển Cá Nhân & Sư Phạm</span>
-                  </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-2 sm:p-4 md:p-6">
+          <div className="bg-white rounded-3xl w-full max-w-[96vw] h-[95vh] shadow-2xl border border-line flex flex-col overflow-hidden animate-in zoom-in-95">
+            {/* 1. FIXED STUDIO HEADER */}
+            <div className="flex items-center justify-between px-6 py-3.5 border-b border-line bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-100 text-primary flex items-center justify-center font-bold shrink-0">
+                  {testFormData.skill === 'READING' ? (
+                    <BookOpen className="w-5 h-5" />
+                  ) : testFormData.skill === 'LISTENING' ? (
+                    <Headphones className="w-5 h-5" />
+                  ) : testFormData.skill === 'WRITING' ? (
+                    <FileEdit className="w-5 h-5" />
+                  ) : (
+                    <Mic className="w-5 h-5" />
+                  )}
                 </div>
-              </div>
-
-              {/* 2. Category & Course Selector */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <CustomSelect
-                  label="2. Phân hệ khóa học *"
-                  value={testFormData.category}
-                  onChange={(val) => {
-                    const domainOpts = getDomainOptions(val);
-                    setTestFormData({
-                      ...testFormData,
-                      category: val,
-                      skill: domainOpts[0]?.value || 'READING',
-                    });
-                  }}
-                  options={
-                    testFormData.track === 'PERSONAL_DEV'
-                      ? [
-                          { value: 'PEDAGOGY', label: 'Năng Lực Sư Phạm & Giảng Dạy' },
-                          { value: 'LIFE_SKILLS', label: 'Kỹ Năng Sống & Thuyết Trình' },
-                          { value: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm Doanh Nghiệp' },
-                          { value: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân & Lãnh Đạo' },
-                        ]
-                      : [
-                          { value: 'IELTS', label: 'IELTS 4 Kỹ Năng Master' },
-                          { value: 'ENGLISH', label: 'General English' },
-                          { value: 'BUSINESS', label: 'Business English' },
-                          { value: 'KIDS', label: 'Kids English' },
-                        ]
-                  }
-                />
-
-                <CustomSelect
-                  label="3. Khóa học áp dụng (Tùy chọn)"
-                  value={testFormData.courseId}
-                  onChange={(val) => setTestFormData({ ...testFormData, courseId: val })}
-                  options={[
-                    { value: '', label: '-- Áp dụng chung cho phân hệ --' },
-                    ...coursesList
-                      .filter((c) => c.category === testFormData.category || (!c.category && testFormData.track === 'ENGLISH'))
-                      .map((c) => ({
-                        value: c.id,
-                        label: c.title,
-                      })),
-                  ]}
-                />
-              </div>
-
-              {/* 3. Quiz Type & Skill / Domain */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <CustomSelect
-                  label="4. Loại bài Quiz (Quiz Type) *"
-                  value={testFormData.quizType}
-                  onChange={(val) => setTestFormData({ ...testFormData, quizType: val })}
-                  options={[
-                    { value: 'SITUATION_QUIZ', label: 'Trắc nghiệm Tình huống (Case Study)' },
-                    { value: 'FULL_MOCK_TEST', label: 'Đề Thi Thử Hoàn Chỉnh (Full Mock Test)' },
-                    { value: 'PRACTICE_TEST', label: 'Mini-Test / Luyện tập chuyên đề' },
-                    { value: 'LESSON_QUIZ', label: 'Trắc nghiệm củng cố bài học' },
-                    { value: 'DIAGNOSTIC_TEST', label: 'Bài đánh giá chẩn đoán năng lực' },
-                  ]}
-                />
-
-                <CustomSelect
-                  label="5. Kỹ năng / Lĩnh vực khảo thí *"
-                  value={testFormData.skill}
-                  onChange={(val) => setTestFormData({ ...testFormData, skill: val })}
-                  options={getDomainOptions(testFormData.category)}
-                />
-              </div>
-
-              {/* 4. Title */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  6. Tiêu đề bài Quiz / Đề thi <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={testFormData.title}
-                  onChange={(e) => setTestFormData({ ...testFormData, title: e.target.value })}
-                  placeholder={
-                    testFormData.track === 'PERSONAL_DEV'
-                      ? 'Ví dụ: Tình huống Sư phạm: Kích hoạt tương tác học sinh thụ động'
-                      : 'Ví dụ: IELTS Reading Mock Test 01: Smart Cities'
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
-                />
-              </div>
-
-              {/* Description */}
-              <RichTextEditor
-                label="Mô tả mục tiêu bài kiểm tra & yêu cầu"
-                value={testFormData.description}
-                onChange={(val) => setTestFormData({ ...testFormData, description: val })}
-                placeholder="Mô tả bối cảnh, năng lực trọng tâm cần đánh giá, lưu ý khi làm bài..."
-                minHeight="min-h-[120px]"
-                helperText="Hỗ trợ in đậm, gạch đầu dòng, lưu ý quan trọng."
-              />
-
-              {/* Time Limit & Pass Score */}
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Thời lượng làm bài (Phút) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="5"
-                    max="180"
-                    required
-                    value={testFormData.timeLimitMinutes}
-                    onChange={(e) =>
-                      setTestFormData({ ...testFormData, timeLimitMinutes: Number(e.target.value) })
-                    }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Sàn điểm đạt (%) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="50"
-                    max="100"
-                    required
-                    value={testFormData.passScore}
-                    onChange={(e) =>
-                      setTestFormData({ ...testFormData, passScore: Number(e.target.value) })
-                    }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold"
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-100 text-primary border border-sky-200">
+                      Cambridge Assessment Studio
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Band 0 - 9.0 (Không điểm sàn %)
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                      {testSections.length} Phần thi chuẩn
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 truncate max-w-2xl mt-0.5">
+                    {editingTestId
+                      ? `Studio Chỉnh Sửa: ${testFormData.title || 'Đề Thi Cambridge'}`
+                      : 'Studio Soạn Thảo Đề Thi Chuẩn Cambridge IELTS Mới'}
+                  </h3>
                 </div>
               </div>
 
-              {/* Passage / Scenario Text */}
-              <RichTextEditor
-                label={
-                  testFormData.track === 'PERSONAL_DEV'
-                    ? 'Bối cảnh tình huống thực tế / Case Study (Scenario Text - Tùy chọn)'
-                    : 'Đoạn văn đọc hiểu (Passage - Tùy chọn)'
-                }
-                value={testFormData.passage}
-                onChange={(val) => setTestFormData({ ...testFormData, passage: val })}
-                placeholder={
-                  testFormData.track === 'PERSONAL_DEV'
-                    ? 'Mô tả chi tiết tình huống thực tế (ví dụ: Trong một lớp học trực tuyến tương tác, có 2 học viên liên tục mất tập trung...)'
-                    : 'Nhập đoạn văn cho bài đọc Reading Cambridge IELTS...'
-                }
-                minHeight="min-h-[160px]"
-                helperText="Hỗ trợ đầy đủ định dạng: In đậm, gạch đầu dòng, trích dẫn bối cảnh và bảng dữ liệu."
-              />
-
-              {/* Audio URL (Optional) */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  URL file Audio / File nghe (Tùy chọn)
-                </label>
-                <input
-                  type="text"
-                  value={testFormData.audioUrl}
-                  onChange={(e) => setTestFormData({ ...testFormData, audioUrl: e.target.value })}
-                  placeholder="https://.../audio.mp3 (Dành cho bài nghe Listening hoặc video phân tích)"
-                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end space-x-2">
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleSaveMockTest(undefined, true)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+                >
+                  Lưu Thông Tin Đề
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsTestModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition"
                 >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm"
-                >
-                  {editingTestId ? 'Lưu Thay Đổi' : 'Tạo Bài Quiz'}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+            </div>
+
+            {/* 2. SCROLLABLE STUDIO BODY */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-slate-50/60">
+              {/* BLOCK 1: TEST METADATA & CONFIGURATION */}
+              <div className="bg-white rounded-2xl border border-line p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-line pb-2.5">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    1. Cấu Hình Cơ Bản Đề Thi
+                  </h4>
+                  <span className="text-[11px] text-muted font-medium">
+                    Tùy chỉnh phân hệ và kỹ năng sẽ tự động thiết lập thời lượng và các phần thi tương ứng
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <CustomSelect
+                    label="Phân hệ đào tạo *"
+                    value={testFormData.category}
+                    onChange={(val) => {
+                      const domainOpts = getDomainOptions(val);
+                      const newSkill = domainOpts[0]?.value || 'READING';
+                      const newSecs = getDefaultSectionsForSkill(newSkill);
+                      setTestSections(newSecs);
+                      setActiveSectionPart(1);
+                      setTestFormData({
+                        ...testFormData,
+                        category: val,
+                        track: 'ENGLISH',
+                        skill: newSkill,
+                        timeLimitMinutes: newSkill === 'READING' ? 60 : newSkill === 'LISTENING' ? 40 : 60,
+                      });
+                    }}
+                    options={[
+                      { value: 'IELTS', label: 'IELTS Master (Academic & General)' },
+                      { value: 'ENGLISH', label: 'General English (Giao tiếp & Ngữ pháp)' },
+                      { value: 'BUSINESS', label: 'Business English (Thương mại)' },
+                      { value: 'KIDS', label: 'Kids English (Thiếu nhi)' },
+                    ]}
+                  />
+
+                  <CustomSelect
+                    label="Kỹ năng khảo thí (Skill) *"
+                    value={testFormData.skill}
+                    onChange={(val) => {
+                      const newSecs = getDefaultSectionsForSkill(val);
+                      setTestSections(newSecs);
+                      setActiveSectionPart(1);
+                      setTestFormData({
+                        ...testFormData,
+                        skill: val,
+                        timeLimitMinutes:
+                          val === 'READING' ? 60 : val === 'LISTENING' ? 40 : val === 'SPEAKING' ? 15 : 60,
+                      });
+                    }}
+                    options={getDomainOptions(testFormData.category)}
+                  />
+
+                  <CustomSelect
+                    label="Loại bài thi (Test Type) *"
+                    value={testFormData.quizType}
+                    onChange={(val) => setTestFormData({ ...testFormData, quizType: val })}
+                    options={[
+                      { value: 'FULL_MOCK_TEST', label: 'Đề Thi Thử Hoàn Chỉnh (Full Mock Test chuẩn Cambridge)' },
+                      { value: 'PRACTICE_TEST', label: 'Luyện tập chuyên đề / Mini-Test' },
+                      { value: 'LESSON_QUIZ', label: 'Trắc nghiệm củng cố bài học' },
+                      { value: 'DIAGNOSTIC_TEST', label: 'Bài đánh giá chẩn đoán năng lực đầu vào' },
+                    ]}
+                  />
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Thời lượng làm bài (Phút) *
+                    </label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="180"
+                      required
+                      value={testFormData.timeLimitMinutes}
+                      onChange={(e) =>
+                        setTestFormData({ ...testFormData, timeLimitMinutes: Number(e.target.value) })
+                      }
+                      className="w-full px-3 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Tiêu đề bài thi IELTS / Quiz <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={testFormData.title}
+                      onChange={(e) => setTestFormData({ ...testFormData, title: e.target.value })}
+                      placeholder={
+                        testFormData.skill === 'LISTENING'
+                          ? 'Ví dụ: Cambridge IELTS 20 - Listening Test 1: Brookside Farm'
+                          : testFormData.skill === 'WRITING'
+                          ? 'Ví dụ: Cambridge IELTS 20 - Academic Writing Test 1'
+                          : testFormData.skill === 'SPEAKING'
+                          ? 'Ví dụ: IELTS Speaking Full Test: Technology & Daily Life'
+                          : 'Ví dụ: Cambridge IELTS 20 - Academic Reading Test 1: Urban Microclimates'
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <CustomSelect
+                    label="Khóa học áp dụng (Tùy chọn)"
+                    value={testFormData.courseId}
+                    onChange={(val) => setTestFormData({ ...testFormData, courseId: val })}
+                    options={[
+                      { value: '', label: '-- Áp dụng chung toàn phân hệ --' },
+                      ...coursesList
+                        .filter((c) => c.category === testFormData.category || !c.category)
+                        .map((c) => ({
+                          value: c.id,
+                          label: c.title,
+                        })),
+                    ]}
+                  />
+                </div>
+              </div>
+
+              {/* BLOCK 2: SECTION ARCHITECTURE NAVIGATOR TABS */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {testSections.map((sec) => {
+                  const partCount = studioQuestions.filter(
+                    (q) => q.part === sec.part || (!q.part && sec.part === 1)
+                  ).length;
+                  const isActive = activeSectionPart === sec.part;
+
+                  return (
+                    <button
+                      key={sec.part}
+                      type="button"
+                      onClick={() => setActiveSectionPart(sec.part)}
+                      className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2.5 whitespace-nowrap border ${
+                        isActive
+                          ? 'bg-primary text-white border-primary shadow-sm'
+                          : 'bg-white text-slate-700 border-line hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{sec.title?.split(':')[0] || `Phần ${sec.part}`}</span>
+                      {sec.questionRange && (
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                            isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {sec.questionRange}
+                        </span>
+                      )}
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                          isActive ? 'bg-white text-primary' : 'bg-sky-100 text-primary'
+                        }`}
+                      >
+                        {partCount} câu
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* BLOCK 3: SIDE-BY-SIDE STUDIO WORKSPACE (CONTENT ON LEFT, QUESTIONS ON RIGHT) */}
+              {testSections
+                .filter((sec) => sec.part === activeSectionPart)
+                .map((sec) => {
+                  const partQuestions = studioQuestions.filter(
+                    (q) => q.part === sec.part || (!q.part && sec.part === 1)
+                  );
+
+                  return (
+                    <div key={sec.part} className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                      {/* LEFT COLUMN: DIGITAL LEARNING MATERIAL & SECTION MEDIA (7 Cols) */}
+                      <div className="lg:col-span-7 bg-white rounded-2xl border border-line p-5 space-y-4 shadow-xs">
+                        <div className="flex items-center justify-between border-b border-line pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-sky-100 text-primary flex items-center justify-center font-bold text-xs">
+                              {sec.part}
+                            </span>
+                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                              Nội Dung Học Liệu: {sec.title?.split(':')[0] || `Phần ${sec.part}`}
+                            </h4>
+                          </div>
+                          <span className="text-[11px] font-mono text-slate-500 font-bold">
+                            {sec.questionRange || `Part ${sec.part}`}
+                          </span>
+                        </div>
+
+                        {/* Section Title & Range */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-2">
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              Tiêu đề phần ({sec.questionRange || `Part ${sec.part}`}) *
+                            </label>
+                            <input
+                              type="text"
+                              value={sec.title}
+                              onChange={(e) => updateActiveSection('title', e.target.value)}
+                              placeholder="Ví dụ: Passage 1: Urban Microclimates and Resilient Cities"
+                              className="w-full px-3 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              Phạm vi câu hỏi
+                            </label>
+                            <input
+                              type="text"
+                              value={sec.questionRange || ''}
+                              onChange={(e) => updateActiveSection('questionRange', e.target.value)}
+                              placeholder="Ví dụ: Questions 1 - 13"
+                              className="w-full px-3 py-2 rounded-xl border border-line text-xs font-mono font-bold text-slate-700"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Instructions */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Chỉ dẫn làm bài của phần này (Instructions)
+                          </label>
+                          <input
+                            type="text"
+                            value={sec.instructions || ''}
+                            onChange={(e) => updateActiveSection('instructions', e.target.value)}
+                            placeholder="Ví dụ: Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer."
+                            className="w-full px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                          />
+                        </div>
+
+                        {/* SKILL: READING -> RichText Passage & Diagram Image */}
+                        {testFormData.skill === 'READING' && (
+                          <div className="space-y-3 pt-1 border-t border-line">
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                  <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                                  <span>Ảnh sơ đồ / biểu đồ minh họa đoạn đọc (Tùy chọn)</span>
+                                </label>
+                                {sec.imageUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => updateActiveSection('imageUrl', '')}
+                                    className="text-[11px] text-red-500 hover:underline"
+                                  >
+                                    Xóa ảnh
+                                  </button>
+                                )}
+                              </div>
+                              <input
+                                type="text"
+                                value={sec.imageUrl || ''}
+                                onChange={(e) => updateActiveSection('imageUrl', e.target.value)}
+                                placeholder="https://.../diagram.jpg (Sơ đồ kiến trúc, bản vẽ máy móc đi kèm bài đọc)"
+                                className="w-full px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                              />
+                              {sec.imageUrl && (
+                                <div className="mt-2 p-2 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3">
+                                  <img
+                                    src={sec.imageUrl}
+                                    alt="Diagram preview"
+                                    className="h-16 w-24 object-cover rounded-lg border border-line"
+                                  />
+                                  <div className="text-[11px] text-slate-600">
+                                    <span className="font-bold text-emerald-600">✓ Đã nạp ảnh sơ đồ</span>
+                                    <p className="text-slate-400 truncate max-w-sm">{sec.imageUrl}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <RichTextEditor
+                              label={`Nội dung đoạn văn đọc hiểu (${sec.title?.split(':')[0] || `Passage ${sec.part}`})`}
+                              value={sec.passage || ''}
+                              onChange={(val) => updateActiveSection('passage', val)}
+                              placeholder="Dán hoặc nhập nội dung bài đọc Cambridge IELTS (Paragraph A, B, C, D...)..."
+                              minHeight="min-h-[220px]"
+                              helperText="Định dạng rõ ràng các đoạn A, B, C, D để học viên dễ tra cứu và làm bài."
+                            />
+                          </div>
+                        )}
+
+                        {/* SKILL: LISTENING -> Audio URL Player & Map Diagram Image */}
+                        {testFormData.skill === 'LISTENING' && (
+                          <div className="space-y-3 pt-1 border-t border-line">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                                <Volume2 className="w-3.5 h-3.5 text-primary" />
+                                <span>URL File Audio / File nghe Section này *</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={sec.audioUrl || ''}
+                                onChange={(e) => updateActiveSection('audioUrl', e.target.value)}
+                                placeholder="https://res.cloudinary.com/.../listening_section.mp3"
+                                className="w-full px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                              />
+                              {sec.audioUrl && (
+                                <div className="mt-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center gap-3">
+                                  <audio controls src={sec.audioUrl} className="w-full sm:w-80 h-9 rounded-lg" />
+                                  <span className="text-[11px] text-emerald-700 font-bold">
+                                    ✓ Đã kết nối âm thanh Section {sec.part}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                  <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                                  <span>
+                                    Bản đồ sơ đồ (Map / Diagram Labeling - Đặc biệt quan trọng ở Section 2)
+                                  </span>
+                                </label>
+                                {sec.imageUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => updateActiveSection('imageUrl', '')}
+                                    className="text-[11px] text-red-500 hover:underline"
+                                  >
+                                    Xóa sơ đồ
+                                  </button>
+                                )}
+                              </div>
+                              <input
+                                type="text"
+                                value={sec.imageUrl || ''}
+                                onChange={(e) => updateActiveSection('imageUrl', e.target.value)}
+                                placeholder="https://.../map_layout.jpg (Bản đồ có các vị trí ký hiệu A-H để học viên nghe và chọn)"
+                                className="w-full px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                              />
+                              {sec.imageUrl && (
+                                <div className="mt-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3">
+                                  <img
+                                    src={sec.imageUrl}
+                                    alt="Map preview"
+                                    className="h-24 w-36 object-cover rounded-lg border border-line shadow-xs"
+                                  />
+                                  <div className="text-[11px] text-slate-600">
+                                    <span className="font-bold text-emerald-600">
+                                      ✓ Đã nạp sơ đồ bản đồ Section {sec.part}
+                                    </span>
+                                    <p className="text-slate-400 truncate max-w-sm">{sec.imageUrl}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* SKILL: WRITING -> Task 1 & 2 */}
+                        {testFormData.skill === 'WRITING' && (
+                          <div className="space-y-3 pt-1 border-t border-line">
+                            {sec.part === 1 && (
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                                    <span>Ảnh biểu đồ / bản đồ / quy trình Task 1 (Chart Image URL) *</span>
+                                  </label>
+                                  {sec.imageUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateActiveSection('imageUrl', '')}
+                                      className="text-[11px] text-red-500 hover:underline"
+                                    >
+                                      Xóa ảnh
+                                    </button>
+                                  )}
+                                </div>
+                                <input
+                                  type="text"
+                                  value={sec.imageUrl || ''}
+                                  onChange={(e) => updateActiveSection('imageUrl', e.target.value)}
+                                  placeholder="https://.../ielts_task1_chart.png"
+                                  className="w-full px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                                />
+                                {sec.imageUrl && (
+                                  <div className="mt-2 p-2 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3">
+                                    <img
+                                      src={sec.imageUrl}
+                                      alt="Task 1 Chart"
+                                      className="h-24 w-36 object-cover rounded-lg border border-line shadow-xs"
+                                    />
+                                    <span className="text-[11px] text-emerald-600 font-bold">
+                                      ✓ Đã nạp biểu đồ Task 1
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <RichTextEditor
+                              label={`Đề bài yêu cầu (${sec.title?.split(':')[0] || `Task ${sec.part}`})`}
+                              value={sec.passage || ''}
+                              onChange={(val) => updateActiveSection('passage', val)}
+                              placeholder="Nhập đề bài chi tiết (Ví dụ: The charts below show the percentage of...)"
+                              minHeight="min-h-[160px]"
+                            />
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                  Số từ tối thiểu quy định
+                                </label>
+                                <input
+                                  type="number"
+                                  value={sec.minWords || (sec.part === 1 ? 150 : 250)}
+                                  onChange={(e) => updateActiveSection('minWords', Number(e.target.value))}
+                                  className="w-full px-3 py-2 rounded-xl border border-line text-xs font-semibold"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                  Thời gian gợi ý (Phút)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={sec.suggestedMinutes || (sec.part === 1 ? 20 : 40)}
+                                  onChange={(e) => updateActiveSection('suggestedMinutes', Number(e.target.value))}
+                                  className="w-full px-3 py-2 rounded-xl border border-line text-xs font-semibold"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* SKILL: SPEAKING -> Part 1, 2, 3 */}
+                        {testFormData.skill === 'SPEAKING' && (
+                          <div className="space-y-3 pt-1 border-t border-line">
+                            {sec.part === 2 ? (
+                              <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                  Thẻ gợi ý (Cue Card Topics & Bullet Points) *
+                                </label>
+                                <textarea
+                                  rows={5}
+                                  value={sec.cueCard || ''}
+                                  onChange={(e) => updateActiveSection('cueCard', e.target.value)}
+                                  placeholder="Describe an ambitious project you completed successfully.&#10;You should say:&#10;- What it was&#10;- Why you did it&#10;- What challenges you faced&#10;and explain how you felt when you achieved it."
+                                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-mono font-medium focus:outline-none focus:border-primary"
+                                ></textarea>
+                                <p className="text-[11px] text-slate-400 mt-1">
+                                  Học viên sẽ có 60 giây chuẩn bị và 120 giây nói liên tục có ghi âm giọng nói.
+                                </p>
+                              </div>
+                            ) : (
+                              <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                  Danh sách câu hỏi gợi ý ({sec.part === 1 ? 'Part 1: Phỏng vấn' : 'Part 3: Thảo luận'})
+                                </label>
+                                <textarea
+                                  rows={4}
+                                  value={sec.instructions || ''}
+                                  onChange={(e) => updateActiveSection('instructions', e.target.value)}
+                                  placeholder="1. Do you prefer working individually or in a team?&#10;2. How has technology changed modern communication?"
+                                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                                ></textarea>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* RIGHT COLUMN: INTEGRATED QUESTIONS MANAGER FOR THIS PART (5 Cols) */}
+                      <div className="lg:col-span-5 space-y-4">
+                        {/* FORM: ADD QUESTION SPECIFICALLY FOR THIS PART */}
+                        <form
+                          onSubmit={handleSaveStudioQuestion}
+                          className="bg-white rounded-2xl border border-line p-5 shadow-xs space-y-3.5"
+                        >
+                          <div className="flex items-center justify-between border-b border-line pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <Plus className="w-4 h-4 text-primary" />
+                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                                Thêm Câu Hỏi Cho {sec.title?.split(':')[0] || `Phần ${sec.part}`}
+                              </h4>
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-50 text-primary font-bold">
+                              Part {sec.part}
+                            </span>
+                          </div>
+
+                          {/* Question Type Selector */}
+                          <CustomSelect
+                            label="Dạng bài khảo thí *"
+                            value={studioQuestionForm.type}
+                            onChange={(val) => {
+                              let defaultAns = 'TRUE';
+                              if (val === 'YES_NO_NOT_GIVEN') defaultAns = 'YES';
+                              if (val === 'MAP_DIAGRAM_LABELING') defaultAns = 'A';
+                              if (val === 'SINGLE_CHOICE') defaultAns = 'A';
+                              if (val === 'MATCHING_HEADINGS') defaultAns = 'i';
+                              setStudioQuestionForm({
+                                ...studioQuestionForm,
+                                type: val,
+                                correctAnswer: defaultAns,
+                              });
+                            }}
+                            options={
+                              testFormData.skill === 'READING'
+                                ? [
+                                    { value: 'TRUE_FALSE_NOT_GIVEN', label: 'True / False / Not Given' },
+                                    { value: 'YES_NO_NOT_GIVEN', label: 'Yes / No / Not Given' },
+                                    { value: 'MATCHING_HEADINGS', label: 'Matching Headings (Nối tiêu đề đoạn i-viii)' },
+                                    { value: 'FILL_BLANK', label: 'Summary / Sentence Completion (Điền từ)' },
+                                    { value: 'SINGLE_CHOICE', label: 'Trắc nghiệm đơn (Single Choice A-D)' },
+                                    { value: 'MULTIPLE_CHOICE', label: 'Trắc nghiệm nhiều đáp án (Multiple Choice)' },
+                                  ]
+                                : testFormData.skill === 'LISTENING'
+                                ? [
+                                    { value: 'MAP_DIAGRAM_LABELING', label: 'Gán nhãn sơ đồ / bản đồ (Map Labeling A-H)' },
+                                    { value: 'FILL_BLANK', label: 'Form / Note Completion (Điền từ)' },
+                                    { value: 'SINGLE_CHOICE', label: 'Trắc nghiệm đơn (Single Choice A-D)' },
+                                    { value: 'MULTIPLE_CHOICE', label: 'Trắc nghiệm nhiều đáp án (Multiple Choice)' },
+                                  ]
+                                : [
+                                    { value: 'SINGLE_CHOICE', label: 'Trắc nghiệm (Single Choice)' },
+                                    { value: 'FILL_BLANK', label: 'Điền từ / Tự luận ngắn' },
+                                  ]
+                            }
+                          />
+
+                          {/* Group Prompt (Optional) */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                              Chỉ dẫn nhóm câu hỏi (Group Prompt - Tùy chọn)
+                            </label>
+                            <input
+                              type="text"
+                              value={studioQuestionForm.groupPrompt}
+                              onChange={(e) =>
+                                setStudioQuestionForm({ ...studioQuestionForm, groupPrompt: e.target.value })
+                              }
+                              placeholder="Ví dụ: Questions 1 - 5: Do the following statements agree..."
+                              className="w-full px-3 py-1.5 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                            />
+                          </div>
+
+                          {/* Question Text */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Nội dung câu hỏi <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                              rows={2}
+                              required
+                              value={studioQuestionForm.questionText}
+                              onChange={(e) =>
+                                setStudioQuestionForm({ ...studioQuestionForm, questionText: e.target.value })
+                              }
+                              placeholder={
+                                studioQuestionForm.type === 'MAP_DIAGRAM_LABELING'
+                                  ? 'Ví dụ: Q11. Visitor Information Center'
+                                  : 'Ví dụ: The temperature in concrete surfaces exceeds rural baselines.'
+                              }
+                              className="w-full px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                            ></textarea>
+                          </div>
+
+                          {/* TAILORED ANSWER KEY INPUT ACCORDING TO QUESTION TYPE */}
+                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                            <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                              Đáp Án Đúng Chuẩn Xác
+                            </label>
+
+                            {/* DẠNG 1: TRUE_FALSE_NOT_GIVEN */}
+                            {studioQuestionForm.type === 'TRUE_FALSE_NOT_GIVEN' && (
+                              <div className="grid grid-cols-3 gap-2">
+                                {['TRUE', 'FALSE', 'NOT GIVEN'].map((ans) => (
+                                  <button
+                                    key={ans}
+                                    type="button"
+                                    onClick={() =>
+                                      setStudioQuestionForm({ ...studioQuestionForm, correctAnswer: ans })
+                                    }
+                                    className={`py-2 rounded-xl font-black text-xs transition border ${
+                                      studioQuestionForm.correctAnswer === ans
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                        : 'bg-white text-slate-700 border-line hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {ans}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* DẠNG 2: YES_NO_NOT_GIVEN */}
+                            {studioQuestionForm.type === 'YES_NO_NOT_GIVEN' && (
+                              <div className="grid grid-cols-3 gap-2">
+                                {['YES', 'NO', 'NOT GIVEN'].map((ans) => (
+                                  <button
+                                    key={ans}
+                                    type="button"
+                                    onClick={() =>
+                                      setStudioQuestionForm({ ...studioQuestionForm, correctAnswer: ans })
+                                    }
+                                    className={`py-2 rounded-xl font-black text-xs transition border ${
+                                      studioQuestionForm.correctAnswer === ans
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                        : 'bg-white text-slate-700 border-line hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {ans}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* DẠNG 3: MAP_DIAGRAM_LABELING (A to H) */}
+                            {studioQuestionForm.type === 'MAP_DIAGRAM_LABELING' && (
+                              <div>
+                                <p className="text-[11px] text-slate-500 mb-2">
+                                  Chọn chữ cái vị trí đúng trên bản đồ/sơ đồ cho câu hỏi này:
+                                </p>
+                                <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                                  {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((letter) => (
+                                    <button
+                                      key={letter}
+                                      type="button"
+                                      onClick={() =>
+                                        setStudioQuestionForm({ ...studioQuestionForm, correctAnswer: letter })
+                                      }
+                                      className={`py-2 rounded-xl font-black text-xs transition border ${
+                                        studioQuestionForm.correctAnswer === letter
+                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                          : 'bg-white text-slate-700 border-line hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      {letter}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* DẠNG 4: MATCHING_HEADINGS (i to viii) */}
+                            {studioQuestionForm.type === 'MATCHING_HEADINGS' && (
+                              <div>
+                                <p className="text-[11px] text-slate-500 mb-2">
+                                  Chọn số La Mã tiêu đề phù hợp (Heading):
+                                </p>
+                                <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                                  {['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii'].map((num) => (
+                                    <button
+                                      key={num}
+                                      type="button"
+                                      onClick={() =>
+                                        setStudioQuestionForm({ ...studioQuestionForm, correctAnswer: num })
+                                      }
+                                      className={`py-2 rounded-xl font-mono font-black text-xs transition border ${
+                                        studioQuestionForm.correctAnswer === num
+                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                          : 'bg-white text-slate-700 border-line hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      {num}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* DẠNG 5: FILL_BLANK */}
+                            {(studioQuestionForm.type === 'FILL_BLANK' ||
+                              studioQuestionForm.type === 'NOTE_COMPLETION' ||
+                              studioQuestionForm.type === 'FORM_COMPLETION') && (
+                              <div>
+                                <input
+                                  type="text"
+                                  value={studioQuestionForm.fillBlankAnswers}
+                                  onChange={(e) =>
+                                    setStudioQuestionForm({ ...studioQuestionForm, fillBlankAnswers: e.target.value })
+                                  }
+                                  placeholder="Ví dụ: solar panels / solar energy (Dùng dấu / nếu có nhiều đáp án)"
+                                  className="w-full px-3 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                  Hệ thống tự động bỏ qua viết hoa/thường khi chấm điểm.
+                                </p>
+                              </div>
+                            )}
+
+                            {/* DẠNG 6: SINGLE_CHOICE / ABCD */}
+                            {studioQuestionForm.type === 'SINGLE_CHOICE' && (
+                              <div className="space-y-2">
+                                {[
+                                  { key: 'A', field: 'optionA' },
+                                  { key: 'B', field: 'optionB' },
+                                  { key: 'C', field: 'optionC' },
+                                  { key: 'D', field: 'optionD' },
+                                ].map((opt) => (
+                                  <div key={opt.key} className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setStudioQuestionForm({ ...studioQuestionForm, correctAnswer: opt.key })
+                                      }
+                                      className={`w-7 h-7 rounded-lg text-xs font-black shrink-0 transition border ${
+                                        studioQuestionForm.correctAnswer === opt.key
+                                          ? 'bg-emerald-600 text-white border-emerald-600'
+                                          : 'bg-white text-slate-600 border-line hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      {opt.key}
+                                    </button>
+                                    <input
+                                      type="text"
+                                      value={(studioQuestionForm as any)[opt.field]}
+                                      onChange={(e) =>
+                                        setStudioQuestionForm({
+                                          ...studioQuestionForm,
+                                          [opt.field]: e.target.value,
+                                        })
+                                      }
+                                      placeholder={`Nội dung lựa chọn ${opt.key}`}
+                                      className="flex-1 px-3 py-1.5 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Submit Add Question Button */}
+                          <button
+                            type="submit"
+                            className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-extrabold text-xs shadow-md shadow-primary/20 transition flex items-center justify-center gap-1.5"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>+ Thêm Câu Hỏi Này Vào Phần {sec.part}</span>
+                          </button>
+                        </form>
+
+                        {/* LIST: EXISTING QUESTIONS IN THIS PART */}
+                        <div className="bg-white rounded-2xl border border-line p-5 shadow-xs space-y-3">
+                          <div className="flex items-center justify-between border-b border-line pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <ListChecks className="w-4 h-4 text-slate-500" />
+                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                                Danh Sách Câu Hỏi Đã Tạo ({partQuestions.length})
+                              </h4>
+                            </div>
+                            <span className="text-[11px] text-muted font-mono font-bold">
+                              Part {sec.part}
+                            </span>
+                          </div>
+
+                          {isLoadingStudioQuestions ? (
+                            <div className="py-6 text-center text-xs text-muted">
+                              Đang tải danh sách câu hỏi...
+                            </div>
+                          ) : partQuestions.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-slate-400">
+                              Chưa có câu hỏi nào trong phần này. Sử dụng form phía trên để thêm câu hỏi đầu tiên!
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                              {partQuestions.map((q: any, idx: number) => {
+                                const correctAns = Array.isArray(q.options)
+                                  ? q.options
+                                      .filter((o: any) => o.isCorrect)
+                                      .map((o: any) => o.content)
+                                      .join(' / ') || 'A'
+                                  : 'A';
+
+                                return (
+                                  <div
+                                    key={q.id || idx}
+                                    className="p-3 rounded-xl border border-line bg-slate-50 hover:bg-white hover:border-slate-300 transition space-y-1.5 group"
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-5 h-5 rounded-md bg-slate-200 text-slate-700 font-mono font-black text-[10px] flex items-center justify-center">
+                                          #{idx + 1}
+                                        </span>
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-primary">
+                                          {q.type}
+                                        </span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteStudioQuestion(q.id)}
+                                        className="text-slate-300 hover:text-red-500 transition p-1 rounded-md"
+                                        title="Xóa câu hỏi"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+
+                                    {q.groupPrompt && (
+                                      <p className="text-[10.5px] font-medium text-slate-500 italic truncate">
+                                        {q.groupPrompt}
+                                      </p>
+                                    )}
+
+                                    <p className="text-xs font-bold text-slate-800 line-clamp-2">
+                                      {q.content || q.questionText}
+                                    </p>
+
+                                    <div className="pt-1 flex items-center gap-2">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">
+                                        Đáp án đúng:
+                                      </span>
+                                      <span className="px-2 py-0.5 rounded-md font-mono font-black text-[11px] bg-emerald-100 text-emerald-800">
+                                        ✓ {correctAns}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* 3. FIXED STUDIO FOOTER */}
+            <div className="px-6 py-3.5 border-t border-line bg-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Mọi thay đổi câu hỏi được lưu trực tiếp vào cơ sở dữ liệu</span>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsTestModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+                >
+                  Đóng Studio
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleSaveMockTest(e, false)}
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-black text-xs shadow-md shadow-primary/20 transition flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{editingTestId ? 'Lưu Thay Đổi Đề Thi' : 'Hoàn Tất Tạo Đề Thi'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD QUESTION TO MOCK TEST                                          */}
+      {/* MODAL: ADD / EDIT QUESTION TO MOCK TEST (CAMBRIDGE ACCURATE TYPES)        */}
       {/* ========================================================================= */}
       {isQuestionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-line p-6 space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl border border-line p-6 space-y-4 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
-              <h3 className="text-base font-extrabold text-slate-900">
-                Thêm Câu Hỏi Đề Thi
-              </h3>
+              <div>
+                <span className="text-[10px] font-black uppercase text-primary tracking-wider">
+                  Ngân hàng câu hỏi
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Thêm Câu Hỏi Chuẩn Cambridge IELTS
+                </h3>
+              </div>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveQuestion} className="space-y-3.5">
-              <CustomSelect
-                label="Đề thi áp dụng *"
-                value={qFormData.targetQuizId}
-                onChange={(val) => setQFormData({ ...qFormData, targetQuizId: val })}
-                options={mockTests.map((t) => ({
-                  value: t.id,
-                  label: t.title,
-                  sublabel: `${t.skill} • ${t.timeLimitMinutes}m`,
-                }))}
-              />
+            <form onSubmit={handleSaveQuestion} className="space-y-4">
+              {/* Target Quiz & Part Selector */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <CustomSelect
+                  label="1. Đề thi áp dụng *"
+                  value={qFormData.targetQuizId}
+                  onChange={(val) => {
+                    const selectedQuiz = mockTests.find((t) => t.id === val);
+                    const qSkill = selectedQuiz?.skill || 'READING';
+                    setQFormData({
+                      ...qFormData,
+                      targetQuizId: val,
+                      skill: qSkill,
+                      type: qSkill === 'READING' ? 'TRUE_FALSE_NOT_GIVEN' : 'SINGLE_CHOICE',
+                    });
+                  }}
+                  options={mockTests.map((t) => ({
+                    value: t.id,
+                    label: t.title,
+                    sublabel: `${t.skill} • ${t.timeLimitMinutes}m`,
+                  }))}
+                />
 
+                <CustomSelect
+                  label="2. Phần / Đoạn văn (Part) *"
+                  value={String(qFormData.part)}
+                  onChange={(val) => setQFormData({ ...qFormData, part: Number(val) })}
+                  options={
+                    qFormData.skill === 'READING'
+                      ? [
+                          { value: '1', label: 'Passage 1 (Questions 1 - 13)' },
+                          { value: '2', label: 'Passage 2 (Questions 14 - 26)' },
+                          { value: '3', label: 'Passage 3 (Questions 27 - 40)' },
+                        ]
+                      : qFormData.skill === 'LISTENING'
+                      ? [
+                          { value: '1', label: 'Section 1: Đàm thoại xã hội (Q1 - 10)' },
+                          { value: '2', label: 'Section 2: Độc thoại & Bản đồ Map (Q11 - 20)' },
+                          { value: '3', label: 'Section 3: Thảo luận học thuật (Q21 - 30)' },
+                          { value: '4', label: 'Section 4: Bài giảng đại học (Q31 - 40)' },
+                        ]
+                      : [
+                          { value: '1', label: 'Phần 1' },
+                          { value: '2', label: 'Phần 2' },
+                          { value: '3', label: 'Phần 3' },
+                        ]
+                  }
+                />
+              </div>
+
+              {/* Question Type */}
               <CustomSelect
-                label="Dạng bài câu hỏi (Question Type) *"
+                label="3. Dạng bài câu hỏi (Question Type) *"
                 value={qFormData.type}
                 onChange={(val) => {
                   let defaultAns = 'A';
                   if (val === 'TRUE_FALSE_NOT_GIVEN') defaultAns = 'TRUE';
                   else if (val === 'YES_NO_NOT_GIVEN') defaultAns = 'YES';
+                  else if (val === 'MAP_DIAGRAM_LABELING') defaultAns = 'A';
                   setQFormData({ ...qFormData, type: val, correctAnswer: defaultAns });
                 }}
                 options={[
+                  { value: 'TRUE_FALSE_NOT_GIVEN', label: 'True / False / Not Given (Reading Cambridge)' },
+                  { value: 'YES_NO_NOT_GIVEN', label: 'Yes / No / Not Given (Reading Cambridge)' },
                   { value: 'SINGLE_CHOICE', label: 'Trắc nghiệm 4 lựa chọn (A, B, C, D)' },
-                  { value: 'TRUE_FALSE_NOT_GIVEN', label: 'True / False / Not Given (Cambridge Reading)' },
-                  { value: 'YES_NO_NOT_GIVEN', label: 'Yes / No / Not Given (Cambridge Reading)' },
-                  { value: 'FILL_BLANK', label: 'Điền từ vào chỗ trống (Sentence / Note Completion)' },
+                  { value: 'MAP_DIAGRAM_LABELING', label: 'Gán nhãn bản đồ / sơ đồ (Map & Plan Labeling A - H)' },
+                  { value: 'FILL_BLANK', label: 'Điền từ vào chỗ trống (Sentence / Note / Form Completion)' },
                 ]}
               />
 
+              {/* Group Prompt (Optional) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Chỉ dẫn nhóm câu hỏi (Group Prompt - Tùy chọn)
+                </label>
+                <input
+                  type="text"
+                  value={qFormData.groupPrompt}
+                  onChange={(e) => setQFormData({ ...qFormData, groupPrompt: e.target.value })}
+                  placeholder="Ví dụ: Questions 1-5: Do the following statements agree with the information given in Passage 1?"
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Image URL & Preview (for Map / Diagram) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                    <span>Ảnh sơ đồ / Bản đồ Map Labeling (Tùy chọn)</span>
+                  </label>
+                  {qFormData.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setQFormData({ ...qFormData, imageUrl: '' })}
+                      className="text-[11px] text-red-500 hover:underline"
+                    >
+                      Xóa ảnh
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={qFormData.imageUrl}
+                  onChange={(e) => setQFormData({ ...qFormData, imageUrl: e.target.value })}
+                  placeholder="https://.../map_image.jpg (Hiển thị bản đồ để học viên nhìn và chọn vị trí A-H)"
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-primary"
+                />
+                {qFormData.imageUrl && (
+                  <div className="mt-2 p-2 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3">
+                    <img
+                      src={qFormData.imageUrl}
+                      alt="Question map preview"
+                      className="h-16 w-24 object-cover rounded-lg border border-line"
+                    />
+                    <span className="text-[11px] text-emerald-600 font-bold">✓ Đã nạp ảnh câu hỏi</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Question Text */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Nội dung câu hỏi <span className="text-red-500">*</span>
@@ -2549,13 +3107,15 @@ ANSWER KEY
                   placeholder={
                     qFormData.type === 'FILL_BLANK'
                       ? 'Ví dụ: Sustainable smart buildings utilize specialized ______ windows for insulation.'
+                      : qFormData.type === 'MAP_DIAGRAM_LABELING'
+                      ? 'Ví dụ: 11. Visitor Information Center'
                       : 'Ví dụ: According to paragraph 2, what is the main reason for...'
                   }
-                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs font-semibold"
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
                 ></textarea>
               </div>
 
-              {/* Conditional Options Input according to Question Type */}
+              {/* Dynamic Answer Key Selector according to Type */}
               {qFormData.type === 'TRUE_FALSE_NOT_GIVEN' ? (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -2600,6 +3160,31 @@ ANSWER KEY
                     ))}
                   </div>
                 </div>
+              ) : qFormData.type === 'MAP_DIAGRAM_LABELING' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Chọn ký hiệu vị trí đúng trên bản đồ (A - H) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                    {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((letter) => (
+                      <button
+                        key={letter}
+                        type="button"
+                        onClick={() => setQFormData({ ...qFormData, correctAnswer: letter })}
+                        className={`py-2 px-1 rounded-xl border text-xs font-black transition text-center ${
+                          qFormData.correctAnswer === letter
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm scale-105'
+                            : 'bg-slate-50 text-slate-700 border-line hover:bg-slate-100'
+                        }`}
+                      >
+                        Vị trí {letter}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Học viên sẽ đối chiếu chữ cái này với các điểm mốc được in trên sơ đồ bản đồ.
+                  </p>
+                </div>
               ) : qFormData.type === 'FILL_BLANK' ? (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -2614,7 +3199,7 @@ ANSWER KEY
                     className="w-full px-3.5 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Hệ thống sẽ đối chiếu không phân biệt chữ hoa/thường khi học viên làm bài.
+                    Hệ thống sẽ đối chiếu tự động không phân biệt chữ hoa/thường khi học viên nộp bài.
                   </p>
                 </div>
               ) : (
@@ -2648,14 +3233,14 @@ ANSWER KEY
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Đáp án chuẩn xác <span className="text-red-500">*</span>
                     </label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       {(['A', 'B', 'C', 'D'] as const).map((letter) => (
                         <label
                           key={letter}
                           className={`flex-1 p-2 rounded-xl border text-center font-bold text-xs cursor-pointer transition ${
                             qFormData.correctAnswer === letter
-                              ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs'
-                              : 'bg-white border-line text-slate-600'
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs font-black'
+                              : 'bg-white border-line text-slate-600 hover:bg-slate-50'
                           }`}
                         >
                           <input
@@ -2674,6 +3259,7 @@ ANSWER KEY
                 </div>
               )}
 
+              {/* Explanation */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Giải thích chi tiết (Hiện sau khi nộp bài)
@@ -2682,449 +3268,29 @@ ANSWER KEY
                   rows={2}
                   value={qFormData.explanation}
                   onChange={(e) => setQFormData({ ...qFormData, explanation: e.target.value })}
-                  placeholder="Dẫn chứng từ đoạn văn chứng minh đáp án..."
-                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs"
+                  placeholder="Trích dẫn câu/đoạn chứng minh hoặc giải thích bối cảnh đáp án..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs font-medium"
                 ></textarea>
               </div>
 
-              <div className="pt-2 flex items-center justify-end space-x-2">
+              {/* Actions */}
+              <div className="pt-2 border-t border-line flex items-center justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsQuestionModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-sm"
+                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-black text-xs shadow-md shadow-primary/20 transition flex items-center gap-1.5"
                 >
-                  Lưu Câu Hỏi
+                  <Check className="w-4 h-4" />
+                  <span>Lưu Câu Hỏi</span>
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: SMART CAMBRIDGE IELTS IMPORTER                                     */}
-      {/* ========================================================================= */}
-      {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl border border-line p-6 sm:p-7 space-y-5 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-line pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/20 shrink-0">
-                  <Zap className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                    <span>⚡ Smart Import Đề Thi Cambridge IELTS</span>
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      Reading & Listening
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Tự động nhận diện dạng bài, bóc tách câu hỏi và nạp 40 câu hỏi chỉ trong vài giây.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsImportModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Import Mode Selector: Create New vs Existing Quiz */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl">
-                <button
-                  type="button"
-                  onClick={() => setImportMode('create_new')}
-                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
-                    importMode === 'create_new'
-                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-500" />
-                  <span>⚡ Tự động tạo Đề thi Cambridge mới (Khuyên dùng)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImportMode('existing')}
-                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
-                    importMode === 'existing'
-                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Nạp vào Đề thi có sẵn trong kho</span>
-                </button>
-              </div>
-
-              {/* Mode 1: Create New Quiz Fields */}
-              {importMode === 'create_new' && (
-                <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/80 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2 space-y-1">
-                      <label className="block text-xs font-extrabold text-slate-800">
-                        Tiêu đề Đề thi mới *
-                      </label>
-                      <input
-                        type="text"
-                        value={newQuizTitle}
-                        onChange={(e) => setNewQuizTitle(e.target.value)}
-                        placeholder="VD: Cambridge IELTS 20 - Academic Reading Test 1"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-extrabold text-slate-800">
-                        Kỹ năng bài thi *
-                      </label>
-                      <select
-                        value={newQuizSkill}
-                        onChange={(e) => setNewQuizSkill(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:border-emerald-500"
-                      >
-                        <option value="READING">READING (Đọc hiểu)</option>
-                        <option value="LISTENING">LISTENING (Nghe hiểu)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Thời gian làm bài (Phút)
-                      </label>
-                      <input
-                        type="number"
-                        min={5}
-                        max={180}
-                        value={newQuizTimeLimit}
-                        onChange={(e) => setNewQuizTimeLimit(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Điểm sàn đạt (%)
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={newQuizPassScore}
-                        onChange={(e) => setNewQuizPassScore(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Detected Passage Preview / Editor */}
-                  {detectedPassage && (
-                    <div className="pt-2 border-t border-emerald-200/60 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-900">
-                          <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>
-                            Đã bóc tách Bài đọc Passage ({detectedPassage.split(/\s+/).filter(Boolean).length} từ)
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowPassageEditor(!showPassageEditor)}
-                          className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline"
-                        >
-                          {showPassageEditor ? 'Thu gọn bài đọc' : 'Xem & Chỉnh sửa bài đọc'}
-                        </button>
-                      </div>
-
-                      {showPassageEditor && (
-                        <textarea
-                          rows={6}
-                          value={detectedPassage}
-                          onChange={(e) => setDetectedPassage(e.target.value)}
-                          placeholder="Nội dung bài đọc Reading Passage..."
-                          className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs font-sans leading-relaxed bg-white focus:outline-none focus:border-emerald-600"
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Mode 2: Existing Quiz Selector */}
-              {importMode === 'existing' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                  <CustomSelect
-                    label="1. Chọn Đề thi / Quiz cần nạp câu hỏi *"
-                    value={importTargetQuizId}
-                    onChange={(val) => setImportTargetQuizId(val)}
-                    options={mockTests.map((t) => ({
-                      value: t.id,
-                      label: t.title,
-                      sublabel: `${t.category} • ${t.skill} • ${t.questionsCount || 0} câu hiện có`,
-                    }))}
-                  />
-
-                  <CustomSelect
-                    label="2. Định dạng câu hỏi (Auto / Chỉ định) *"
-                    value={importForcedType}
-                    onChange={(val) => setImportForcedType(val)}
-                    options={[
-                      { value: 'AUTO', label: 'Tự động nhận diện thông minh (Khuyên dùng)' },
-                      { value: 'TRUE_FALSE_NOT_GIVEN', label: 'Ép dạng: True / False / Not Given' },
-                      { value: 'YES_NO_NOT_GIVEN', label: 'Ép dạng: Yes / No / Not Given' },
-                      { value: 'SINGLE_CHOICE', label: 'Ép dạng: Trắc nghiệm 4 lựa chọn (A, B, C, D)' },
-                      { value: 'FILL_BLANK', label: 'Ép dạng: Điền từ vào chỗ trống' },
-                    ]}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Tab switch: Raw Text Parser vs JSON File Upload */}
-            <div className="flex items-center gap-2 border-b border-line pb-2">
-              <button
-                type="button"
-                onClick={() => setImportTab('text')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-                  importTab === 'text'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Dán Văn Bản Thô (Cambridge Text Parser)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setImportTab('file')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-                  importTab === 'file'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                <FileCode className="w-3.5 h-3.5" />
-                <span>Tải File Đề Thi (.txt, .md, .json, .csv)</span>
-              </button>
-            </div>
-
-            {/* TAB 1: RAW TEXT PARSER */}
-            {importTab === 'text' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Dán đề bài từ sách Cambridge (PDF / Word) vào đây:
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImportText(sampleCambridgeReadingText);
-                      showNotice('📋 Đã nạp đề mẫu Cambridge 20 Full Test (Passage + 13 câu + Answer Key)!');
-                    }}
-                    className="text-xs font-extrabold text-emerald-700 hover:text-emerald-800 underline flex items-center gap-1"
-                  >
-                    <span>Dán đề mẫu Cambridge 20 thử nghiệm</span>
-                  </button>
-                </div>
-
-                <textarea
-                  rows={8}
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                  placeholder="Dán nguyên vẹn nội dung đề thi Cambridge (bao gồm tiêu đề, Reading Passage, câu hỏi và Answer Key ở cuối file). Hệ thống sẽ tự động bóc tách toàn bộ!"
-                  className="w-full px-4 py-3 rounded-2xl border border-line text-xs font-mono focus:outline-none focus:border-emerald-500 bg-slate-50 focus:bg-white leading-relaxed"
-                ></textarea>
-
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[11px] text-slate-500">
-                    Hỗ trợ tự động: Bóc tách Reading Passage, TFNG/YNNG, Trắc nghiệm ABCD, Điền từ & Khớp Answer Key ở cuối sách!
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleParseImportText}
-                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-sm transition flex items-center gap-1.5"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-amber-400" />
-                    <span>⚡ Phân Tích & Bóc Tách Đề Thi</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: JSON/TXT/MD FILE UPLOAD & TEMPLATE */}
-            {importTab === 'file' && (
-              <div className="space-y-4 p-5 rounded-2xl bg-slate-50 border border-slate-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900">
-                      Tải File Đề Thi Hoặc Mẫu Template Cấu Trúc
-                    </h4>
-                    <p className="text-[11px] text-slate-500">
-                      Hỗ trợ tệp văn bản Cambridge thô (.txt, .md) hoặc tệp JSON câu hỏi chuẩn hóa.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleDownloadJsonTemplate}
-                    className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 font-extrabold text-xs shadow-2xs transition flex items-center gap-1.5 shrink-0"
-                  >
-                    <Download className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Tải File Template .JSON</span>
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2">
-                    Tải lên file đề thi của bạn:
-                  </label>
-                  <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-white transition group">
-                    <Upload className="w-8 h-8 text-slate-400 group-hover:text-emerald-600 transition" />
-                    <span className="text-xs font-extrabold text-slate-700 mt-2">
-                      Nhấp để chọn file hoặc kéo thả file đề thi vào đây
-                    </span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">
-                      Định dạng hỗ trợ: .txt, .md (Văn bản Cambridge), .json (Mảng câu hỏi), .csv
-                    </span>
-                    <input
-                      type="file"
-                      accept=".json,.txt,.md,.csv"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {/* LIVE PREVIEW SECTION */}
-            {parsedQuestions.length > 0 && (
-              <div className="space-y-3 pt-3 border-t border-line">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-black text-slate-900">
-                      Kết Quả Bóc Tách (Live Preview):
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs">
-                      {parsedQuestions.length} câu hỏi hợp lệ
-                    </span>
-                    {detectedKeyCount > 0 && (
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-black text-xs">
-                        {detectedKeyCount} đáp án Answer Key
-                      </span>
-                    )}
-                    {detectedPassage && (
-                      <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 font-black text-xs">
-                        Bài đọc {detectedPassage.split(/\s+/).filter(Boolean).length} từ
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setParsedQuestions([]);
-                      setDetectedPassage('');
-                      setDetectedKeyCount(0);
-                    }}
-                    className="text-xs text-slate-400 hover:text-red-500"
-                  >
-                    Xóa kết quả
-                  </button>
-                </div>
-
-                <div className="max-h-56 overflow-y-auto space-y-2 border border-slate-200 rounded-2xl p-3 bg-slate-50">
-                  {parsedQuestions.map((q, idx) => {
-                    const correctOpt = q.options.find((o) => o.isCorrect);
-                    return (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5 shadow-2xs"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-mono font-black flex items-center justify-center text-[11px]">
-                              {q.orderIndex || idx + 1}
-                            </span>
-                            <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-100">
-                              {q.type}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-slate-400">Đáp án:</span>
-                            <span className="px-2 py-0.5 rounded font-mono font-black text-emerald-700 bg-emerald-50 border border-emerald-200">
-                              {correctOpt?.content || 'Chưa nhận diện'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <p className="font-semibold text-slate-800 line-clamp-2">
-                          {q.content}
-                        </p>
-
-                        {q.options && q.options.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            {q.options.map((opt, optIdx) => (
-                              <span
-                                key={optIdx}
-                                className={`text-[10.5px] px-2 py-0.5 rounded border ${
-                                  opt.isCorrect
-                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
-                                    : 'bg-slate-50 border-slate-200 text-slate-600'
-                                }`}
-                              >
-                                {opt.content}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
-              <button
-                type="button"
-                onClick={() => setIsImportModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
-              >
-                Hủy bỏ
-              </button>
-
-              <button
-                type="button"
-                disabled={parsedQuestions.length === 0 || isSubmittingImport}
-                onClick={handleExecuteImport}
-                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-2"
-              >
-                {isSubmittingImport ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4" />
-                )}
-                <span>
-                  {isSubmittingImport
-                    ? 'Đang import...'
-                    : importMode === 'create_new'
-                    ? `⚡ Tạo Đề Thi & Import ${parsedQuestions.length} Câu Hỏi`
-                    : `Xác Nhận Lưu ${parsedQuestions.length} Câu Hỏi Vào Đề`}
-                </span>
-              </button>
-            </div>
           </div>
         </div>
       )}

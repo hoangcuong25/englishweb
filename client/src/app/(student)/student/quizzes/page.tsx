@@ -46,14 +46,20 @@ export type QuestionType =
   | 'SINGLE_CHOICE'
   | 'MULTIPLE_CHOICE'
   | 'TRUE_FALSE_NOT_GIVEN'
+  | 'YES_NO_NOT_GIVEN'
   | 'MATCHING_HEADINGS'
+  | 'MAP_DIAGRAM_LABELING'
   | 'FILL_BLANK'
   | 'NOTE_COMPLETION';
 
 export interface QuizQuestionData {
   id: string;
-  type: QuestionType;
+  type: QuestionType | string;
   typeLabel: string;
+  part?: number;
+  groupPrompt?: string;
+  imageUrl?: string;
+  audioUrl?: string;
   text: string;
   options?: { key: string; text: string }[];
   matchingHeadingsList?: { id: string; title: string }[];
@@ -72,6 +78,7 @@ export interface QuizTestData {
   passScore: number;
   passage?: string;
   audioUrl?: string;
+  sectionsPayload?: any;
   audioDurationSeconds?: number;
   questions: QuizQuestionData[];
 }
@@ -92,6 +99,7 @@ export default function StudentQuizPage() {
   // Test Selection State
   const [selectedQuizIndex, setSelectedQuizIndex] = useState<number>(0);
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [activePassagePart, setActivePassagePart] = useState<number>(1);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -522,7 +530,18 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
         const tests = await quizzesService.getSkillsTests();
         if (Array.isArray(tests) && tests.length > 0) {
           type RemoteOption = { id: string; content: string; isCorrect?: boolean };
-          type RemoteQuestion = { id: string; content: string; type?: string; subCategory?: string; explanation?: string; options?: RemoteOption[] };
+          type RemoteQuestion = {
+            id: string;
+            content: string;
+            type?: string;
+            subCategory?: string;
+            part?: number;
+            groupPrompt?: string;
+            imageUrl?: string;
+            audioUrl?: string;
+            explanation?: string;
+            options?: RemoteOption[];
+          };
           type RemoteQuizItem = {
             id: string;
             title: string;
@@ -534,6 +553,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
             passScore?: number;
             passage?: string;
             audioUrl?: string;
+            sectionsPayload?: any;
             questions?: RemoteQuestion[];
           };
 
@@ -549,6 +569,8 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
               let typeLabel = 'Multiple Choice';
               if (qType === 'MATCHING_HEADINGS') typeLabel = 'Matching Headings';
               else if (qType === 'TRUE_FALSE_NOT_GIVEN') typeLabel = 'True / False / Not Given';
+              else if (qType === 'YES_NO_NOT_GIVEN') typeLabel = 'Yes / No / Not Given';
+              else if (qType === 'MAP_DIAGRAM_LABELING') typeLabel = 'Map & Diagram Labeling';
               else if (qType === 'NOTE_COMPLETION') typeLabel = 'Note Completion';
               else if (qType === 'FILL_BLANK') typeLabel = 'Fill In The Blank';
 
@@ -556,6 +578,10 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
                 id: q.id,
                 type: qType,
                 typeLabel,
+                part: q.part ?? 1,
+                groupPrompt: q.groupPrompt,
+                imageUrl: q.imageUrl,
+                audioUrl: q.audioUrl,
                 text: q.content,
                 passageSnippet: q.subCategory,
                 options: q.options?.map((o, oIdx: number) => ({
@@ -593,6 +619,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
               passScore: t.passScore || defaultTemplate.passScore || 80,
               passage: t.passage || defaultPassage,
               audioUrl: t.audioUrl || defaultAudio,
+              sectionsPayload: t.sectionsPayload,
               questions: mappedQuestions.length > 0 ? mappedQuestions : defaultTemplate.questions,
             };
           });
@@ -624,6 +651,14 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
       audioRef.current.currentTime = 0;
     }
   }, [selectedQuizIndex, activeQuiz?.id, activeQuiz?.timeLimitMinutes]);
+
+  // Sync active section / passage with current question's part
+  useEffect(() => {
+    const curQ = questions[currentIdx];
+    if (curQ && curQ.part) {
+      setActivePassagePart(curQ.part);
+    }
+  }, [currentIdx, questions]);
 
   // Exam Countdown Timer
   useEffect(() => {
@@ -1231,292 +1266,419 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
       {/* ========================================================= */}
       {/* EXAM WORKSPACE (SPLIT-VIEW FOR READING / FULL FOR OTHERS) */}
       {/* ========================================================= */}
-      <div className={`grid gap-6 ${isReadingSplitView ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1'}`}>
-        {/* Left Column: Interactive Reading Passage with Persistent Highlighter */}
-        {isReadingSplitView && (
-          <div className="lg:col-span-7 bg-white rounded-3xl border border-line shadow-sm flex flex-col h-[650px] overflow-hidden">
-            {/* Passage Toolbar */}
-            <div className="p-3.5 border-b border-line bg-slate-50 flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-xs font-bold text-slate-800">
-                <BookOpen className="w-4 h-4 text-primary" />
-                <span>
-                  {activeQuiz?.quizType === 'SITUATION_QUIZ'
-                    ? 'Bối Cảnh Tình Huống Thực Tế (Case Study - Cuộn độc lập)'
-                    : 'Reading Passage (Cuộn độc lập)'}
-                </span>
-              </div>
+      {(() => {
+        const hasSections = Array.isArray(activeQuiz?.sectionsPayload) && activeQuiz.sectionsPayload.length > 0;
+        const activeSecData = hasSections
+          ? activeQuiz.sectionsPayload.find((s: any) => s.part === activePassagePart) || activeQuiz.sectionsPayload[0]
+          : null;
+        const displayedPassage = activeSecData?.passage || activeQuiz?.passage;
+        const displayedDiagram = activeSecData?.imageUrl;
 
-              {/* Highlighter Tool Palette */}
-              <div className="flex items-center space-x-2">
-                <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">Chọn màu:</span>
-                <button
-                  type="button"
-                  onClick={() => setHighlightColor('#fef08a')}
-                  className={`w-5 h-5 rounded-full bg-yellow-300 border transition ${
-                    highlightColor === '#fef08a' ? 'border-primary ring-2 ring-primary/40' : 'border-slate-300'
-                  }`}
-                  title="Vàng dạ quang"
-                />
-                <button
-                  type="button"
-                  onClick={() => setHighlightColor('#a7f3d0')}
-                  className={`w-5 h-5 rounded-full bg-emerald-300 border transition ${
-                    highlightColor === '#a7f3d0' ? 'border-primary ring-2 ring-primary/40' : 'border-slate-300'
-                  }`}
-                  title="Xanh dạ quang"
-                />
-                <button
-                  type="button"
-                  onClick={() => setHighlightColor('#fbcfe8')}
-                  className={`w-5 h-5 rounded-full bg-pink-300 border transition ${
-                    highlightColor === '#fbcfe8' ? 'border-primary ring-2 ring-primary/40' : 'border-slate-300'
-                  }`}
-                  title="Hồng dạ quang"
-                />
+        return (
+          <div className={`grid gap-6 ${isReadingSplitView ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1'}`}>
+            {/* Left Column: Interactive Reading Passage with Persistent Highlighter */}
+            {isReadingSplitView && (
+              <div className="lg:col-span-7 bg-white rounded-3xl border border-line shadow-sm flex flex-col h-[650px] overflow-hidden">
+                {/* Section / Passage Selector Tabs if multiple passages exist */}
+                {hasSections && (
+                  <div className="flex items-center gap-1.5 p-2 bg-slate-100 border-b border-line overflow-x-auto">
+                    {activeQuiz.sectionsPayload.map((sec: any) => (
+                      <button
+                        key={sec.part}
+                        type="button"
+                        onClick={() => setActivePassagePart(sec.part)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                          activePassagePart === sec.part
+                            ? 'bg-sky-500 text-white shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span>{sec.title?.split(':')[0] || `Passage ${sec.part}`}</span>
+                        {sec.questionRange && (
+                          <span
+                            className={`text-[9.5px] px-1 py-0.2 rounded font-mono ${
+                              activePassagePart === sec.part ? 'bg-white/20 text-white font-bold' : 'text-slate-400'
+                            }`}
+                          >
+                            {sec.questionRange}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                <button
-                  type="button"
-                  onClick={handleApplyHighlight}
-                  className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-dark text-white text-[11px] font-bold transition flex items-center space-x-1 shadow-sm"
-                  title="Bôi màu cụm từ đang được chọn"
+                {/* Passage Toolbar */}
+                <div className="p-3.5 border-b border-line bg-slate-50 flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-800">
+                    <BookOpen className="w-4 h-4 text-primary" />
+                    <span>
+                      {activeSecData?.title ||
+                        (activeQuiz?.quizType === 'SITUATION_QUIZ'
+                          ? 'Bối Cảnh Tình Huống Thực Tế (Case Study - Cuộn độc lập)'
+                          : 'Reading Passage (Cuộn độc lập)')}
+                    </span>
+                  </div>
+
+                  {/* Highlighter Tool Palette */}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">Chọn màu:</span>
+                    <button
+                      type="button"
+                      onClick={() => setHighlightColor('#fef08a')}
+                      className={`w-5 h-5 rounded-full bg-yellow-300 border transition ${
+                        highlightColor === '#fef08a' ? 'border-primary ring-2 ring-primary/40' : 'border-slate-300'
+                      }`}
+                      title="Vàng dạ quang"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setHighlightColor('#a7f3d0')}
+                      className={`w-5 h-5 rounded-full bg-emerald-300 border transition ${
+                        highlightColor === '#a7f3d0' ? 'border-primary ring-2 ring-primary/40' : 'border-slate-300'
+                      }`}
+                      title="Xanh dạ quang"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setHighlightColor('#fbcfe8')}
+                      className={`w-5 h-5 rounded-full bg-pink-300 border transition ${
+                        highlightColor === '#fbcfe8' ? 'border-primary ring-2 ring-primary/40' : 'border-slate-300'
+                      }`}
+                      title="Hồng dạ quang"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={handleApplyHighlight}
+                      className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-dark text-white text-[11px] font-bold transition flex items-center space-x-1 shadow-sm"
+                      title="Bôi màu cụm từ đang được chọn"
+                    >
+                      <Highlighter className="w-3.5 h-3.5" />
+                      <span>Bôi từ khóa</span>
+                    </button>
+
+                    {activeHighlightsCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearAllHighlights}
+                        className="p-1 text-slate-400 hover:text-rose-600 transition"
+                        title="Xóa tất cả từ khóa đã bôi"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Scrollable Reading Content */}
+                <div
+                  ref={passageContainerRef}
+                  className="flex-1 overflow-y-auto p-6 space-y-4 text-xs sm:text-sm text-slate-800 leading-relaxed font-sans select-text"
                 >
-                  <Highlighter className="w-3.5 h-3.5" />
-                  <span>Bôi từ khóa</span>
-                </button>
+                  {/* Diagram / Illustration image if present */}
+                  {displayedDiagram && (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                      <span className="text-[11px] font-bold text-slate-600 block mb-1.5">
+                        Sơ đồ minh họa bài đọc:
+                      </span>
+                      <img
+                        src={displayedDiagram}
+                        alt="Diagram"
+                        className="max-h-64 rounded-xl mx-auto object-contain border border-line shadow-xs"
+                      />
+                    </div>
+                  )}
 
-                {activeHighlightsCount > 0 && (
+                  {activeQuiz.quizType === 'SITUATION_QUIZ' && (
+                    <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+                      <div className="flex items-center gap-1.5 font-black text-amber-800 uppercase tracking-wide">
+                        <Sparkles className="w-4 h-4 text-amber-600" />
+                        <span>Kịch Bản Nghiên Cứu Tình Huống (Case Study)</span>
+                      </div>
+                      <p className="text-slate-700 leading-relaxed text-[11px]">
+                        Hãy đọc kỹ diễn biến tình huống, xung đột lợi ích và tâm lý nhân vật bên dưới. Sử dụng công cụ dạ quang để đánh dấu từ khóa dữ kiện trước khi đưa ra quyết định xử lý ở cột câu hỏi bên phải.
+                      </p>
+                    </div>
+                  )}
+                  {displayedPassage?.split('\n\n').map((paragraph: string, pIdx: number) => (
+                    <p key={pIdx} className="leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Right Column (or Center): Interactive Questions Pane */}
+            <div className={`${isReadingSplitView ? 'lg:col-span-5' : 'max-w-3xl mx-auto w-full'} space-y-5`}>
+              <div className="bg-white rounded-3xl border border-line shadow-sm p-6 space-y-5">
+                {/* Question Header & Type Tag */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {activeQuiz.quizType === 'SITUATION_QUIZ' && (
+                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-600" />
+                        <span>Tình Huống</span>
+                      </span>
+                    )}
+                    {currentQuestion.part && (
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                        Part {currentQuestion.part}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-sky-100 text-primary border border-sky-200">
+                      {currentQuestion.typeLabel}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 font-mono">
+                    Câu #{currentIdx + 1} / {questions.length}
+                  </span>
+                </div>
+
+                {/* Group Prompt Callout if present */}
+                {currentQuestion.groupPrompt && (
+                  <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-900 text-xs font-medium leading-relaxed">
+                    {currentQuestion.groupPrompt}
+                  </div>
+                )}
+
+                {/* Question Diagram / Map Image if present */}
+                {currentQuestion.imageUrl && (
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <img
+                      src={currentQuestion.imageUrl}
+                      alt="Question Map"
+                      className="max-h-56 rounded-xl mx-auto object-contain border border-line shadow-xs"
+                    />
+                  </div>
+                )}
+
+                {/* Question Text */}
+                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
+                  {currentQuestion.text}
+                </h2>
+
+                {/* Render Specific IELTS Question Type Interface */}
+                {currentQuestion.type === 'MATCHING_HEADINGS' ? (
+                  /* Dạng MATCHING HEADINGS */
+                  <div className="space-y-2 pt-2">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Chọn tiêu đề đoạn văn tương ứng:
+                    </label>
+                    <div className="space-y-2">
+                      {currentQuestion.matchingHeadingsList?.map((heading) => {
+                        const isSelected = selectedAnswers[currentQuestion.id] === heading.id;
+                        return (
+                          <button
+                            key={heading.id}
+                            disabled={isSubmitted}
+                            onClick={() => handleSelectOption(currentQuestion.id, heading.id)}
+                            className={`w-full text-left p-3 rounded-2xl border text-xs font-semibold transition flex items-center space-x-2.5 ${
+                              isSelected
+                                ? 'bg-sky-50 border-primary text-primary font-bold shadow-sm'
+                                : 'bg-slate-50/60 border-line text-slate-700 hover:bg-white hover:border-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`w-6 h-6 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 ${
+                                isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-700'
+                              }`}
+                            >
+                              {heading.id}
+                            </span>
+                            <span>{heading.title}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : currentQuestion.type === 'TRUE_FALSE_NOT_GIVEN' ? (
+                  /* Dạng TRUE / FALSE / NOT GIVEN */
+                  <div className="grid grid-cols-3 gap-2.5 pt-2">
+                    {['TRUE', 'FALSE', 'NOT GIVEN'].map((optKey) => {
+                      const isSelected = selectedAnswers[currentQuestion.id] === optKey;
+                      return (
+                        <button
+                          key={optKey}
+                          disabled={isSubmitted}
+                          onClick={() => handleSelectOption(currentQuestion.id, optKey)}
+                          className={`py-3 px-2 rounded-2xl text-xs font-extrabold border transition ${
+                            isSelected
+                              ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 scale-[1.02]'
+                              : 'bg-slate-50 text-slate-700 border-line hover:bg-slate-100'
+                          }`}
+                        >
+                          {optKey}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : currentQuestion.type === 'YES_NO_NOT_GIVEN' ? (
+                  /* Dạng YES / NO / NOT GIVEN */
+                  <div className="grid grid-cols-3 gap-2.5 pt-2">
+                    {['YES', 'NO', 'NOT GIVEN'].map((optKey) => {
+                      const isSelected = selectedAnswers[currentQuestion.id] === optKey;
+                      return (
+                        <button
+                          key={optKey}
+                          disabled={isSubmitted}
+                          onClick={() => handleSelectOption(currentQuestion.id, optKey)}
+                          className={`py-3 px-2 rounded-2xl text-xs font-extrabold border transition ${
+                            isSelected
+                              ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 scale-[1.02]'
+                              : 'bg-slate-50 text-slate-700 border-line hover:bg-slate-100'
+                          }`}
+                        >
+                          {optKey}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : currentQuestion.type === 'MAP_DIAGRAM_LABELING' ? (
+                  /* Dạng MAP & DIAGRAM LABELING (Choices A - H) */
+                  <div className="space-y-2 pt-2">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Chọn ký hiệu vị trí đúng trên bản đồ (A - H):
+                    </label>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                      {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((letter) => {
+                        const isSelected = selectedAnswers[currentQuestion.id] === letter;
+                        return (
+                          <button
+                            key={letter}
+                            disabled={isSubmitted}
+                            onClick={() => handleSelectOption(currentQuestion.id, letter)}
+                            className={`py-3 px-1 rounded-2xl text-xs font-black border transition text-center ${
+                              isSelected
+                                ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 scale-105'
+                                : 'bg-slate-50 text-slate-700 border-line hover:bg-slate-100'
+                            }`}
+                          >
+                            {letter}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : currentQuestion.type === 'FILL_BLANK' || currentQuestion.type === 'NOTE_COMPLETION' ? (
+                  /* Dạng FILL IN BLANKS & NOTE COMPLETION */
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <label className="font-bold text-slate-700">Điền từ cần điền vào ô trống:</label>
+                      <span className="text-[10px] text-muted font-bold uppercase">NO MORE THAN TWO WORDS</span>
+                    </div>
+                    <input
+                      type="text"
+                      disabled={isSubmitted}
+                      value={selectedAnswers[currentQuestion.id] || ''}
+                      onChange={(e) => handleSelectOption(currentQuestion.id, e.target.value)}
+                      placeholder="Gõ từ khóa chính xác vào đây..."
+                      className="w-full px-4 py-3 rounded-xl border border-line text-sm font-semibold focus:outline-none focus:border-primary bg-slate-50 focus:bg-white transition"
+                    />
+                  </div>
+                ) : (
+                  /* Dạng MULTIPLE CHOICE */
+                  <div className="space-y-2.5 pt-2">
+                    {currentQuestion.options?.map((opt) => {
+                      const isSelected = selectedAnswers[currentQuestion.id] === opt.key;
+                      return (
+                        <button
+                          key={opt.key}
+                          disabled={isSubmitted}
+                          onClick={() => handleSelectOption(currentQuestion.id, opt.key)}
+                          className={`w-full text-left p-3.5 rounded-2xl border text-xs sm:text-sm font-medium transition flex items-start space-x-3 ${
+                            isSelected
+                              ? 'bg-sky-50 border-primary text-primary font-bold shadow-sm'
+                              : 'bg-slate-50/60 border-line text-slate-700 hover:bg-white hover:border-slate-300'
+                          }`}
+                        >
+                          <span
+                            className={`w-6 h-6 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 ${
+                              isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {opt.key}
+                          </span>
+                          <span className="pt-0.5 leading-relaxed">{opt.text}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* In-depth Answer Key & Explanation after Submission */}
+                {isSubmitted && (
+                  <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs space-y-1.5 animate-fadeIn">
+                    <div className="flex items-center space-x-2 font-bold text-amber-900">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>
+                        Đáp án chuẩn:{' '}
+                        <span className="font-mono underline font-extrabold text-emerald-700">
+                          {currentQuestion.correctAnswer}
+                        </span>
+                      </span>
+                    </div>
+                    <p className="text-amber-800 leading-relaxed">{currentQuestion.explanation}</p>
+                  </div>
+                )}
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between pt-4 border-t border-line">
                   <button
                     type="button"
-                    onClick={handleClearAllHighlights}
-                    className="p-1 text-slate-400 hover:text-rose-600 transition"
-                    title="Xóa tất cả từ khóa đã bôi"
+                    disabled={currentIdx === 0}
+                    onClick={() => setCurrentIdx((prev) => prev - 1)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold border border-line bg-slate-50 hover:bg-slate-100 disabled:opacity-30 transition flex items-center space-x-1"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Câu trước</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={currentIdx === questions.length - 1}
+                    onClick={() => setCurrentIdx((prev) => prev + 1)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold border border-line bg-slate-50 hover:bg-slate-100 disabled:opacity-30 transition flex items-center space-x-1"
+                  >
+                    <span>Câu tiếp</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Submission Action Bar */}
+              <div className="bg-white rounded-3xl border border-line shadow-sm p-5 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-muted font-medium">Tiến độ bài làm:</span>
+                  <p className="text-sm font-extrabold text-slate-800">
+                    {Object.keys(selectedAnswers).length} / {questions.length} câu
+                  </p>
+                </div>
+
+                {!isSubmitted ? (
+                  <button
+                    onClick={handleSubmitQuiz}
+                    disabled={submitting || Object.keys(selectedAnswers).length === 0}
+                    className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold text-xs transition shadow-md shadow-primary/20 flex items-center space-x-1.5"
+                  >
+                    {submitting && <RefreshCw className="w-4 h-4 animate-spin" />}
+                    <span>Nộp Bài Chấm Tự Động</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleResetQuiz}
+                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition flex items-center space-x-1.5"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Làm Lại Đề Này</span>
                   </button>
                 )}
               </div>
             </div>
-
-            {/* Scrollable Reading Content */}
-            <div
-              ref={passageContainerRef}
-              className="flex-1 overflow-y-auto p-6 space-y-4 text-xs sm:text-sm text-slate-800 leading-relaxed font-sans select-text"
-            >
-              {activeQuiz.quizType === 'SITUATION_QUIZ' && (
-                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 font-black text-amber-800 uppercase tracking-wide">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
-                    <span>Kịch Bản Nghiên Cứu Tình Huống (Case Study)</span>
-                  </div>
-                  <p className="text-slate-700 leading-relaxed text-[11px]">
-                    Hãy đọc kỹ diễn biến tình huống, xung đột lợi ích và tâm lý nhân vật bên dưới. Sử dụng công cụ dạ quang để đánh dấu từ khóa dữ kiện trước khi đưa ra quyết định xử lý ở cột câu hỏi bên phải.
-                  </p>
-                </div>
-              )}
-              {activeQuiz.passage?.split('\n\n').map((paragraph, pIdx) => (
-                <p key={pIdx} className="leading-relaxed">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
           </div>
-        )}
-
-        {/* Right Column (or Center): Interactive Questions Pane */}
-        <div className={`${isReadingSplitView ? 'lg:col-span-5' : 'max-w-3xl mx-auto w-full'} space-y-5`}>
-          <div className="bg-white rounded-3xl border border-line shadow-sm p-6 space-y-5">
-            {/* Question Header & Type Tag */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {activeQuiz.quizType === 'SITUATION_QUIZ' && (
-                  <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-600" />
-                    <span>Tình Huống</span>
-                  </span>
-                )}
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-sky-100 text-primary border border-sky-200">
-                  {currentQuestion.typeLabel}
-                </span>
-              </div>
-              <span className="text-xs font-bold text-slate-400 font-mono">Câu #{currentIdx + 1} / {questions.length}</span>
-            </div>
-
-            {/* Question Text */}
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
-              {currentQuestion.text}
-            </h2>
-
-            {/* Render Specific IELTS Question Type Interface */}
-            {currentQuestion.type === 'MATCHING_HEADINGS' ? (
-              /* Dạng MATCHING HEADINGS */
-              <div className="space-y-2 pt-2">
-                <label className="block text-xs font-bold text-slate-700">
-                  Chọn tiêu đề đoạn văn tương ứng:
-                </label>
-                <div className="space-y-2">
-                  {currentQuestion.matchingHeadingsList?.map((heading) => {
-                    const isSelected = selectedAnswers[currentQuestion.id] === heading.id;
-                    return (
-                      <button
-                        key={heading.id}
-                        disabled={isSubmitted}
-                        onClick={() => handleSelectOption(currentQuestion.id, heading.id)}
-                        className={`w-full text-left p-3 rounded-2xl border text-xs font-semibold transition flex items-center space-x-2.5 ${
-                          isSelected
-                            ? 'bg-sky-50 border-primary text-primary font-bold shadow-sm'
-                            : 'bg-slate-50/60 border-line text-slate-700 hover:bg-white hover:border-slate-300'
-                        }`}
-                      >
-                        <span
-                          className={`w-6 h-6 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 ${
-                            isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          {heading.id}
-                        </span>
-                        <span>{heading.title}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : currentQuestion.type === 'TRUE_FALSE_NOT_GIVEN' ? (
-              /* Dạng TRUE / FALSE / NOT GIVEN */
-              <div className="grid grid-cols-3 gap-2.5 pt-2">
-                {['TRUE', 'FALSE', 'NOT GIVEN'].map((optKey) => {
-                  const isSelected = selectedAnswers[currentQuestion.id] === optKey;
-                  return (
-                    <button
-                      key={optKey}
-                      disabled={isSubmitted}
-                      onClick={() => handleSelectOption(currentQuestion.id, optKey)}
-                      className={`py-3 px-2 rounded-2xl text-xs font-extrabold border transition ${
-                        isSelected
-                          ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 scale-[1.02]'
-                          : 'bg-slate-50 text-slate-700 border-line hover:bg-slate-100'
-                      }`}
-                    >
-                      {optKey}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : currentQuestion.type === 'FILL_BLANK' || currentQuestion.type === 'NOTE_COMPLETION' ? (
-              /* Dạng FILL IN BLANKS & NOTE COMPLETION */
-              <div className="space-y-2 pt-2">
-                <div className="flex items-center justify-between text-xs">
-                  <label className="font-bold text-slate-700">Điền từ cần điền vào ô trống:</label>
-                  <span className="text-[10px] text-muted font-bold uppercase">NO MORE THAN TWO WORDS</span>
-                </div>
-                <input
-                  type="text"
-                  disabled={isSubmitted}
-                  value={selectedAnswers[currentQuestion.id] || ''}
-                  onChange={(e) => handleSelectOption(currentQuestion.id, e.target.value)}
-                  placeholder="Gõ từ khóa chính xác vào đây..."
-                  className="w-full px-4 py-3 rounded-xl border border-line text-sm font-semibold focus:outline-none focus:border-primary bg-slate-50 focus:bg-white transition"
-                />
-              </div>
-            ) : (
-              /* Dạng MULTIPLE CHOICE */
-              <div className="space-y-2.5 pt-2">
-                {currentQuestion.options?.map((opt) => {
-                  const isSelected = selectedAnswers[currentQuestion.id] === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      disabled={isSubmitted}
-                      onClick={() => handleSelectOption(currentQuestion.id, opt.key)}
-                      className={`w-full text-left p-3.5 rounded-2xl border text-xs sm:text-sm font-medium transition flex items-start space-x-3 ${
-                        isSelected
-                          ? 'bg-sky-50 border-primary text-primary font-bold shadow-sm'
-                          : 'bg-slate-50/60 border-line text-slate-700 hover:bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <span
-                        className={`w-6 h-6 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 ${
-                          isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-700'
-                        }`}
-                      >
-                        {opt.key}
-                      </span>
-                      <span className="pt-0.5 leading-relaxed">{opt.text}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* In-depth Answer Key & Explanation after Submission */}
-            {isSubmitted && (
-              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs space-y-1.5 animate-fadeIn">
-                <div className="flex items-center space-x-2 font-bold text-amber-900">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>
-                    Đáp án chuẩn:{' '}
-                    <span className="font-mono underline font-extrabold text-emerald-700">
-                      {currentQuestion.correctAnswer}
-                    </span>
-                  </span>
-                </div>
-                <p className="text-amber-800 leading-relaxed">{currentQuestion.explanation}</p>
-              </div>
-            )}
-
-            {/* Pagination Controls */}
-            <div className="flex items-center justify-between pt-4 border-t border-line">
-              <button
-                type="button"
-                disabled={currentIdx === 0}
-                onClick={() => setCurrentIdx((prev) => prev - 1)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold border border-line bg-slate-50 hover:bg-slate-100 disabled:opacity-30 transition flex items-center space-x-1"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Câu trước</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={currentIdx === questions.length - 1}
-                onClick={() => setCurrentIdx((prev) => prev - 1)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold border border-line bg-slate-50 hover:bg-slate-100 disabled:opacity-30 transition flex items-center space-x-1"
-              >
-                <span>Câu tiếp</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Submission Action Bar */}
-          <div className="bg-white rounded-3xl border border-line shadow-sm p-5 flex items-center justify-between">
-            <div>
-              <span className="text-xs text-muted font-medium">Tiến độ bài làm:</span>
-              <p className="text-sm font-extrabold text-slate-800">
-                {Object.keys(selectedAnswers).length} / {questions.length} câu
-              </p>
-            </div>
-
-            {!isSubmitted ? (
-              <button
-                onClick={handleSubmitQuiz}
-                disabled={submitting || Object.keys(selectedAnswers).length === 0}
-                className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold text-xs transition shadow-md shadow-primary/20 flex items-center space-x-1.5"
-              >
-                {submitting && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>Nộp Bài Chấm Tự Động</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleResetQuiz}
-                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition flex items-center space-x-1.5"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>Làm Lại Đề Này</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* ========================================================= */}
       {/* POST-SUBMISSION DETAILED DIAGNOSTIC & SPIDER/RADAR REPORT */}

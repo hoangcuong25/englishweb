@@ -12,6 +12,10 @@ export interface QuizQuestion {
   questionText?: string;
   type: string;
   skillType?: string;
+  part?: number;
+  groupPrompt?: string;
+  imageUrl?: string;
+  audioUrl?: string;
   order: number;
   options: QuizQuestionOption[];
   explanation?: string;
@@ -23,6 +27,7 @@ export interface Quiz {
   description?: string;
   passage?: string;
   audioUrl?: string;
+  sectionsPayload?: any;
   skill?: string;
   category?: string;
   quizType?: string;
@@ -109,6 +114,7 @@ export const quizzesService = {
     courseId?: string;
     passage?: string;
     audioUrl?: string;
+    sectionsPayload?: any;
     timeLimitMinutes?: number;
     passScore?: number;
     lessonId?: string;
@@ -126,6 +132,10 @@ export const quizzesService = {
       points?: number;
       explanation?: string;
       orderIndex?: number;
+      part?: number;
+      groupPrompt?: string;
+      imageUrl?: string;
+      audioUrl?: string;
       options: { content: string; isCorrect: boolean }[];
     }
   ) {
@@ -140,6 +150,10 @@ export const quizzesService = {
     skillType?: string;
     type?: string;
     explanation?: string;
+    part?: number;
+    groupPrompt?: string;
+    imageUrl?: string;
+    audioUrl?: string;
     options: { content: string; isCorrect: boolean }[];
   }) {
     return this.addQuestion(data.quizId, {
@@ -147,6 +161,10 @@ export const quizzesService = {
       skill: data.skillType,
       type: data.type,
       explanation: data.explanation,
+      part: data.part,
+      groupPrompt: data.groupPrompt,
+      imageUrl: data.imageUrl,
+      audioUrl: data.audioUrl,
       options: data.options,
     });
   },
@@ -154,6 +172,11 @@ export const quizzesService = {
   async deleteQuiz(id: string) {
     const response = await api.delete(`/quizzes/${id}`);
     return response.data;
+  },
+
+  async deleteQuestion(id: string) {
+    const response = await api.delete(`/quizzes/questions/${id}`);
+    return response.data?.data || response.data;
   },
 
   async getAllQuizzes(params?: {
