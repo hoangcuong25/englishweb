@@ -69,6 +69,7 @@ export interface CourseEnrollment {
     thumbnailUrl?: string;
     thumbnail?: string;
     category?: string;
+    level?: string;
     price?: number;
   };
 }
