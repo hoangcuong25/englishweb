@@ -31,10 +31,12 @@ import RichTextEditor from '@/components/shared/rich-text-editor';
 import { toast } from '@/components/ui/toast';
 import { coursesService, Course, getCourseCoverUrl, DEFAULT_COVERS } from '@/services/courses.service';
 import { extractErrorMessage } from '@/lib/api-error';
+import { useCurrency } from '@/lib/currency-context';
 
 function AdminCoursesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { formatPrice, convertToUsd, formatUsd, formatVnd, currency } = useCurrency();
 
   // Courses state
   const [courses, setCourses] = useState<Course[]>([]);
@@ -535,9 +537,16 @@ function AdminCoursesContent() {
 
                   {/* Price & Level bottom tags */}
                   <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white text-xs font-bold">
-                    <span className="font-extrabold text-amber-300 drop-shadow-sm">
-                      {c.price ? `${Number(c.price).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-amber-300 drop-shadow-sm">
+                        {c.price ? formatPrice(c.price) : 'Miễn phí'}
+                      </span>
+                      {c.price ? (
+                        <span className="text-[10px] text-amber-100/90 font-medium">
+                          {currency === 'USD' ? `≈ ${formatVnd(c.price)}` : `≈ ${formatUsd(convertToUsd(c.price))}`}
+                        </span>
+                      ) : null}
+                    </div>
                     <span className="text-[11px] font-semibold text-slate-200 bg-slate-900/40 px-2 py-0.5 rounded-md backdrop-blur-xs">
                       {c.level || 'Intermediate'}
                     </span>
@@ -675,8 +684,15 @@ function AdminCoursesContent() {
                         {c.level || 'Intermediate'}
                       </td>
 
-                      <td className="py-3.5 px-4 whitespace-nowrap font-bold text-slate-900">
-                        {c.price ? `${Number(c.price).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="font-bold text-slate-900">
+                          {c.price ? formatPrice(c.price) : 'Miễn phí'}
+                        </div>
+                        {c.price ? (
+                          <div className="text-[11px] text-slate-400 font-medium">
+                            {currency === 'USD' ? `≈ ${formatVnd(c.price)}` : `≈ ${formatUsd(convertToUsd(c.price))}`}
+                          </div>
+                        ) : null}
                       </td>
 
                       <td className="py-3.5 px-4 text-center font-bold text-primary whitespace-nowrap">
@@ -794,9 +810,16 @@ function AdminCoursesContent() {
               {/* Price & Published Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Học phí (VNĐ)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Học phí (VNĐ)
+                    </label>
+                    {formData.price > 0 && (
+                      <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        ≈ {formatUsd(convertToUsd(formData.price))} USD
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -806,6 +829,11 @@ function AdminCoursesContent() {
                     placeholder="0 = Miễn phí"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
                   />
+                  {formData.price > 0 && (
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Tỷ giá quy đổi quốc tế tham chiếu: 1 USD ≈ 25.400 VND
+                    </p>
+                  )}
                 </div>
 
                 <div className="p-3 rounded-xl border border-line bg-slate-50 flex items-center justify-between">

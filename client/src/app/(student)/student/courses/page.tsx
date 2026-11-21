@@ -8,6 +8,7 @@ import { lessonsService } from '@/services/lessons.service';
 import { materialsService, Material } from '@/services/materials.service';
 import { homeworkService, Homework } from '@/services/homework.service';
 import { authService, User } from '@/services/auth.service';
+import { useCurrency } from '@/lib/currency-context';
 import {
   BookOpen,
   GraduationCap,
@@ -96,9 +97,13 @@ function StudentCoursesContent() {
     }
   }, [urlTrack]);
 
-  // User and VietQR Payment states
+  // Currency conversion hook
+  const { formatPrice, convertToUsd, formatUsd, formatVnd, currency, exchangeRate } = useCurrency();
+
+  // User and Payment states (VietQR Domestic & International USD)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [qrModalCourse, setQrModalCourse] = useState<Course | null>(null);
+  const [paymentMethodTab, setPaymentMethodTab] = useState<'vietqr' | 'international'>('vietqr');
   const [paymentNote, setPaymentNote] = useState<string>('');
   const [isSubmittingPayment, setIsSubmittingPayment] = useState<boolean>(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -290,9 +295,10 @@ function StudentCoursesContent() {
     }
   };
 
-  // Handle Opening VietQR Payment Modal for Course
+  // Handle Opening Payment Modal for Course (Domestic VietQR or International USD)
   const handleOpenPaymentModal = (course: Course) => {
     setQrModalCourse(course);
+    setPaymentMethodTab(currency === 'USD' ? 'international' : 'vietqr');
     setPaymentNote(currentUser?.phone ? `SĐT: ${currentUser.phone}` : '');
   };
 
@@ -610,7 +616,9 @@ function StudentCoursesContent() {
                               </div>
                               <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
                                 <span>Ghi danh: {course.enrolledAt || 'Hôm nay'}</span>
-                                <span className="font-bold text-sky-700">Học phí: {(course.price || 2490000).toLocaleString('vi-VN')} đ</span>
+                                <span className="font-bold text-sky-700">
+                                  Học phí: {formatPrice(course.price || 2490000)} <span className="text-slate-400 font-normal">({currency === 'USD' ? formatVnd(course.price || 2490000) : formatUsd(convertToUsd(course.price || 2490000))})</span>
+                                </span>
                               </div>
                               <div className="pt-2">
                                 <button
@@ -796,8 +804,11 @@ function StudentCoursesContent() {
                       </div>
 
                       {/* Floating Price Tag Bottom-Right */}
-                      <div className="absolute bottom-2.5 right-3 px-3 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/10 text-amber-300 font-black text-xs sm:text-sm">
-                        {(course.price || 2490000).toLocaleString('vi-VN')} đ
+                      <div className="absolute bottom-2.5 right-3 px-3 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/10 text-amber-300 font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-sm">
+                        <span>{formatPrice(course.price || 2490000)}</span>
+                        <span className="text-[10px] text-slate-300 font-semibold border-l border-white/20 pl-1.5">
+                          {currency === 'USD' ? formatVnd(course.price || 2490000) : formatUsd(convertToUsd(course.price || 2490000))}
+                        </span>
                       </div>
                     </div>
 
@@ -1325,6 +1336,34 @@ function StudentCoursesContent() {
                 </button>
               </div>
 
+              {/* Payment Method Switcher (Domestic VND vs International USD) */}
+              <div className="flex items-center p-1 bg-slate-100 rounded-2xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethodTab('vietqr')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    paymentMethodTab === 'vietqr'
+                      ? 'bg-white text-sky-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="text-sm">🇻🇳</span>
+                  <span>VietQR (Ngân hàng VNĐ)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethodTab('international')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    paymentMethodTab === 'international'
+                      ? 'bg-white text-emerald-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="text-sm">🇺🇸</span>
+                  <span>Quốc tế / USD (SWIFT & Wire)</span>
+                </button>
+              </div>
+
               {/* Course Card Preview */}
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between gap-3">
                 <div className="space-y-1">
@@ -1336,104 +1375,245 @@ function StudentCoursesContent() {
                 </div>
                 <div className="text-right shrink-0">
                   <span className="text-[11px] font-bold text-slate-400 block">Học phí</span>
-                  <span className="text-base font-black text-sky-600">{price.toLocaleString('vi-VN')} đ</span>
+                  <span className="text-base font-black text-sky-600">
+                    {paymentMethodTab === 'international'
+                      ? `${formatUsd(convertToUsd(price))} USD`
+                      : `${price.toLocaleString('vi-VN')} đ`}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-medium">
+                    {paymentMethodTab === 'international'
+                      ? `≈ ${price.toLocaleString('vi-VN')} đ (1$ ≈ ${exchangeRate.toLocaleString('vi-VN')}₫)`
+                      : `≈ ${formatUsd(convertToUsd(price))} USD`}
+                  </span>
                 </div>
               </div>
 
-              {/* QR Code Container */}
-              <div className="bg-gradient-to-b from-sky-50/50 to-white rounded-2xl p-4 border border-sky-100 flex flex-col items-center text-center space-y-2.5">
-                <p className="text-xs font-bold text-slate-700">Mở App Ngân hàng bất kỳ & Quét mã QR thanh toán</p>
-                <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-200">
-                  <img
-                    src={qrUrl}
-                    alt="VietQR Code"
-                    className="w-52 h-auto rounded-xl mx-auto object-contain"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Số tiền và nội dung chuyển khoản đã được gán sẵn tự động
-                </p>
-              </div>
-
-              {/* Bank Details Table with 1-click Copy */}
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-semibold">Ngân hàng:</span>
-                  <span className="font-extrabold text-slate-800">MB Bank (Ngân Hàng TMCP Quân Đội)</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-semibold">Số tài khoản:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-slate-900 font-mono tracking-wider">0987654321</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard('0987654321', 'accountNo')}
-                      className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
-                    >
-                      {copiedField === 'accountNo' ? (
-                        <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
-                      ) : (
-                        <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
-                      )}
-                    </button>
+              {/* Conditional Content: VietQR for Domestic VND vs SWIFT / Wire Transfer for International USD */}
+              {paymentMethodTab === 'vietqr' ? (
+                <>
+                  {/* QR Code Container */}
+                  <div className="bg-gradient-to-b from-sky-50/50 to-white rounded-2xl p-4 border border-sky-100 flex flex-col items-center text-center space-y-2.5">
+                    <p className="text-xs font-bold text-slate-700">Mở App Ngân hàng bất kỳ & Quét mã QR thanh toán</p>
+                    <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-200">
+                      <img
+                        src={qrUrl}
+                        alt="VietQR Code"
+                        className="w-52 h-auto rounded-xl mx-auto object-contain"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Số tiền và nội dung chuyển khoản đã được gán sẵn tự động
+                    </p>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-semibold">Chủ tài khoản:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-slate-900">NGUYEN VAN DONG</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard('NGUYEN VAN DONG', 'accountName')}
-                      className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
-                    >
-                      {copiedField === 'accountName' ? (
-                        <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
-                      ) : (
-                        <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
+                  {/* Bank Details Table with 1-click Copy */}
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-500 font-semibold">Ngân hàng:</span>
+                      <span className="font-extrabold text-slate-800">MB Bank (Ngân Hàng TMCP Quân Đội)</span>
+                    </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-semibold">Số tiền:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-sky-600 font-mono">{price.toLocaleString('vi-VN')} đ</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(String(price), 'amount')}
-                      className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
-                    >
-                      {copiedField === 'amount' ? (
-                        <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
-                      ) : (
-                        <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-500 font-semibold">Số tài khoản:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-slate-900 font-mono tracking-wider">0987654321</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('0987654321', 'accountNo')}
+                          className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                        >
+                          {copiedField === 'accountNo' ? (
+                            <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                          ) : (
+                            <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-sky-50 border border-sky-100">
-                  <span className="text-sky-900 font-semibold">Cú pháp CK:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-sky-900 font-mono">{transferSyntax}</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(transferSyntax, 'syntax')}
-                      className="text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1 text-[11px]"
-                    >
-                      {copiedField === 'syntax' ? (
-                        <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
-                      ) : (
-                        <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
-                      )}
-                    </button>
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-500 font-semibold">Chủ tài khoản:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-slate-900">NGUYEN VAN DONG</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('NGUYEN VAN DONG', 'accountName')}
+                          className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                        >
+                          {copiedField === 'accountName' ? (
+                            <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                          ) : (
+                            <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-500 font-semibold">Số tiền:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-sky-600 font-mono">{price.toLocaleString('vi-VN')} đ</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(String(price), 'amount')}
+                          className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                        >
+                          {copiedField === 'amount' ? (
+                            <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                          ) : (
+                            <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-sky-50 border border-sky-100">
+                      <span className="text-sky-900 font-semibold">Cú pháp CK:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-sky-900 font-mono">{transferSyntax}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(transferSyntax, 'syntax')}
+                          className="text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1 text-[11px]"
+                        >
+                          {copiedField === 'syntax' ? (
+                            <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                          ) : (
+                            <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              ) : (
+                <>
+                  {/* International USD Wire Transfer Container */}
+                  <div className="bg-gradient-to-b from-emerald-50/70 to-white rounded-2xl p-4 border border-emerald-200/70 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-900">
+                        <Globe className="w-5 h-5 text-emerald-600 shrink-0" />
+                        <div>
+                          <h4 className="text-xs font-black">Điện Chuyển Tiền Quốc Tế (SWIFT Wire)</h4>
+                          <p className="text-[10.5px] text-slate-500">Thanh toán bằng USD từ mọi quốc gia</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
+                        USD ACCOUNT
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-white rounded-xl border border-emerald-200 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="text-[10.5px] font-bold text-slate-400 block">Số tiền quy đổi (USD)</span>
+                        <span className="text-lg font-black text-emerald-700">{formatUsd(convertToUsd(price))} USD</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(String(convertToUsd(price)), 'usdAmount')}
+                        className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center gap-1 transition"
+                      >
+                        {copiedField === 'usdAmount' ? (
+                          <span className="flex items-center gap-1 text-emerald-700"><Check className="w-3 h-3" /> Đã chép</span>
+                        ) : (
+                          <span className="flex items-center gap-1"><Copy className="w-3 h-3" /> Chép số tiền</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* International SWIFT Transfer Details */}
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-500 font-semibold">Beneficiary Bank:</span>
+                      <span className="font-extrabold text-slate-800 text-right">Military Commercial Joint Stock Bank (MB Bank)</span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-500 font-semibold">SWIFT / BIC Code:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-emerald-700 font-mono tracking-wider">MSBVNVX</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('MSBVNVX', 'swiftCode')}
+                          className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                        >
+                          {copiedField === 'swiftCode' ? (
+                            <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                          ) : (
+                            <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-500 font-semibold">Beneficiary Name:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-slate-900">NGUYEN VAN DONG</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('NGUYEN VAN DONG', 'intAccountName')}
+                          className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                        >
+                          {copiedField === 'intAccountName' ? (
+                            <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                          ) : (
+                            <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-500 font-semibold">Account Number (USD):</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-slate-900 font-mono tracking-wider">0987654321</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('0987654321', 'intAccountNo')}
+                          className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 text-[11px]"
+                        >
+                          {copiedField === 'intAccountNo' ? (
+                            <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                          ) : (
+                            <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-sky-50 border border-sky-100">
+                      <span className="text-sky-900 font-semibold">Payment Reference:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-sky-900 font-mono">{transferSyntax}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(transferSyntax, 'intSyntax')}
+                          className="text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1 text-[11px]"
+                        >
+                          {copiedField === 'intSyntax' ? (
+                            <span className="text-emerald-600 flex items-center gap-0.5"><Check className="w-3 h-3" /> Đã chép</span>
+                          ) : (
+                            <span className="flex items-center gap-0.5"><Copy className="w-3 h-3" /> Sao chép</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* PayPal & International Cards Assistance */}
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-[11px] space-y-1">
+                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5 text-sky-600" />
+                        <span>Hỗ trợ PayPal / Thẻ Visa / Mastercard quốc tế:</span>
+                      </div>
+                      <p className="leading-relaxed">
+                        Học viên quốc tế có thể thanh toán trực tiếp qua PayPal hoặc thẻ quốc tế. Vui lòng liên hệ WhatsApp/Telegram/Zalo: <strong className="text-slate-900">(+84) 987 654 321</strong> hoặc điền ghi chú bên dưới để nhận link thanh toán trực tuyến bảo mật.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Student Note Input */}
               <div className="space-y-1.5">
@@ -1453,7 +1633,11 @@ function StudentCoursesContent() {
               <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
                 <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
-                  Sau khi bạn chuyển khoản thành công trên app ngân hàng, hãy bấm nút <strong className="text-amber-950 font-black">&ldquo;Tôi đã chuyển khoản thành công&rdquo;</strong>. Admin Thầy Đông sẽ đối soát sao kê và kích hoạt khóa học vào tài khoản của bạn ngay!
+                  {paymentMethodTab === 'international' ? (
+                    <>Sau khi hoàn tất điện chuyển tiền quốc tế (SWIFT) hoặc thanh toán PayPal, bấm nút <strong className="text-amber-950 font-black">&ldquo;Xác nhận đã thanh toán (USD)&rdquo;</strong>. Ban quản trị sẽ đối soát và kích hoạt khóa học cho bạn ngay!</>
+                  ) : (
+                    <>Sau khi bạn chuyển khoản thành công trên app ngân hàng, hãy bấm nút <strong className="text-amber-950 font-black">&ldquo;Tôi đã chuyển khoản thành công&rdquo;</strong>. Admin Thầy Đông sẽ đối soát sao kê và kích hoạt khóa học vào tài khoản của bạn ngay!</>
+                  )}
                 </p>
               </div>
 
@@ -1462,7 +1646,7 @@ function StudentCoursesContent() {
                 <button
                   type="button"
                   onClick={() => setQrModalCourse(null)}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer"
                 >
                   Để sau / Đóng
                 </button>
@@ -1470,7 +1654,7 @@ function StudentCoursesContent() {
                   type="button"
                   disabled={isSubmittingPayment}
                   onClick={handleConfirmPayment}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs shadow-md shadow-sky-600/20 transition disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs shadow-md shadow-sky-600/20 transition disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmittingPayment ? (
                     <>
@@ -1480,7 +1664,7 @@ function StudentCoursesContent() {
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Tôi đã chuyển khoản thành công</span>
+                      <span>{paymentMethodTab === 'international' ? 'Xác nhận đã chuyển tiền (USD)' : 'Tôi đã chuyển khoản thành công'}</span>
                     </>
                   )}
                 </button>

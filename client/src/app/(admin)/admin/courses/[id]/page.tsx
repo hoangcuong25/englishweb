@@ -41,6 +41,7 @@ import { lessonsService } from '@/services/lessons.service';
 import { usersService, UserProfile } from '@/services/users.service';
 import { materialsService, Material, SignedUrlResponse } from '@/services/materials.service';
 import { extractErrorMessage } from '@/lib/api-error';
+import { useCurrency } from '@/lib/currency-context';
 
 interface AttachedMaterial {
   id: string;
@@ -76,6 +77,7 @@ function CourseDetailContent() {
   const params = useParams();
   const router = useRouter();
   const courseId = params?.id as string;
+  const { formatPrice, convertToUsd, formatUsd, formatVnd, currency } = useCurrency();
 
   // Course Details State
   const [course, setCourse] = useState<Course | null>(null);
@@ -811,8 +813,13 @@ function CourseDetailContent() {
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
                   {course.level || 'Intermediate'}
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
-                  {course.price ? `${Number(course.price).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5">
+                  <span>{course.price ? formatPrice(course.price) : 'Miễn phí'}</span>
+                  {course.price ? (
+                    <span className="text-amber-600/70 font-semibold border-l border-amber-300 pl-1.5">
+                      {currency === 'USD' ? `≈ ${formatVnd(course.price)}` : `≈ ${formatUsd(convertToUsd(course.price))}`}
+                    </span>
+                  ) : null}
                 </span>
               </div>
               <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight">
@@ -1762,9 +1769,16 @@ function CourseDetailContent() {
                 />
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Học phí (VND) <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Học phí (VND) <span className="text-red-500">*</span>
+                    </label>
+                    {courseFormData.price > 0 && (
+                      <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        ≈ {formatUsd(convertToUsd(courseFormData.price))} USD
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -1774,6 +1788,11 @@ function CourseDetailContent() {
                     placeholder="0 = Miễn phí"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
                   />
+                  {courseFormData.price > 0 && (
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Tỷ giá quy đổi quốc tế tham chiếu: 1 USD ≈ 25.400 VND
+                    </p>
+                  )}
                 </div>
 
                 <div className="p-3 rounded-xl border border-line bg-slate-50 flex items-center justify-between">

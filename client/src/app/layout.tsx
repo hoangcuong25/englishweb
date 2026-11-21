@@ -3,6 +3,7 @@ import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { I18nProvider } from '@/lib/i18n-context';
+import { CurrencyProvider } from '@/lib/currency-context';
 import { ToastProvider } from '@/components/ui/toast';
 import { SidebarProvider } from '@/lib/sidebar-context';
 
@@ -28,11 +29,13 @@ export default function RootLayout({
       <body className="min-h-screen bg-bg text-text antialiased font-sans overflow-x-hidden max-w-full">
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <I18nProvider>
-          <AuthProvider>
-            <SidebarProvider>
-              <ToastProvider>{children}</ToastProvider>
-            </SidebarProvider>
-          </AuthProvider>
+          <CurrencyProvider>
+            <AuthProvider>
+              <SidebarProvider>
+                <ToastProvider>{children}</ToastProvider>
+              </SidebarProvider>
+            </AuthProvider>
+          </CurrencyProvider>
         </I18nProvider>
       </body>
     </html>

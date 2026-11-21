@@ -40,6 +40,7 @@ import {
   Heart,
 } from 'lucide-react';
 import HeroOpenBook from '@/components/shared/hero-open-book';
+import CurrencySwitcher from '@/components/shared/currency-switcher';
 
 interface ProgramDetail {
   category: string;
@@ -702,8 +703,11 @@ export default function HomePage() {
             </nav>
           )}
 
-          {/* Zone 3: Right Controls (Language Selector, Login / User Profile) */}
-          <div className="flex items-center justify-end gap-2 sm:gap-4 shrink-0">
+          {/* Zone 3: Right Controls (Currency Switcher, Language Selector, Login / User Profile) */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-3 shrink-0">
+            {/* Currency Switcher */}
+            <CurrencySwitcher />
+
             {/* Language Selector Pill with matching popup width */}
             <div className="relative w-auto sm:w-[160px]" ref={langDropdownRef}>
               <button

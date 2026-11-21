@@ -8,6 +8,7 @@ import { useI18n, Language } from '@/lib/i18n-context';
 import { notificationsService } from '@/services/notifications.service';
 import { toast } from '@/components/ui/toast';
 import SessionManagerDrawer from '../modals/session-manager-drawer';
+import CurrencySwitcher from './currency-switcher';
 import {
   Globe,
   Shield,
@@ -323,7 +324,10 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Currency Switcher (VND ₫ / USD $) */}
+          <CurrencySwitcher showRateHint={true} />
+
           {/* Language Switcher with exact matching popup width */}
           <div className="relative w-38 sm:w-44" ref={langRef}>
             <button
