@@ -31,6 +31,7 @@ import {
   Search,
   ExternalLink,
   Image as ImageIcon,
+  Headphones,
 } from 'lucide-react';
 import { toast } from '@/components/ui/toast';
 import CustomSelect from '@/components/ui/custom-select';
@@ -45,7 +46,11 @@ interface AttachedMaterial {
   id: string;
   title: string;
   type: string;
+  fileKey?: string;
   fileSize?: number;
+  lessonId?: string;
+  createdAt?: string;
+  children?: any[];
 }
 
 interface LessonItem {
@@ -138,6 +143,16 @@ function CourseDetailContent() {
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  // Material Upload Modal State
+  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
+  const [materialTitle, setMaterialTitle] = useState('');
+  const [materialLessonId, setMaterialLessonId] = useState('');
+  const [materialFile, setMaterialFile] = useState<File | null>(null);
+  const [materialAudioFile, setMaterialAudioFile] = useState<File | null>(null);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+  const materialFileInputRef = useRef<HTMLInputElement>(null);
+  const materialAudioInputRef = useRef<HTMLInputElement>(null);
+
   // Fetch Course Details & Curriculum
   const fetchCourseData = useCallback(async () => {
     if (!courseId) return;
@@ -154,16 +169,51 @@ function CourseDetailContent() {
         });
 
         // Map materials
+        const materialsList: AttachedMaterial[] = [];
+        const seenIds = new Set<string>();
+
         if (Array.isArray((data as any).materials)) {
-          setCourseMaterials(
-            (data as any).materials.map((m: any) => ({
-              id: m.id || '',
-              title: m.title || 'Tài liệu học tập',
-              type: m.type || 'DOCUMENT',
-              fileSize: m.fileSize,
-            }))
-          );
+          (data as any).materials.forEach((m: any) => {
+            if (m.id && !seenIds.has(m.id)) {
+              seenIds.add(m.id);
+              materialsList.push({
+                id: m.id,
+                title: m.title || 'Tài liệu học tập',
+                type: m.type || 'DOCUMENT',
+                fileKey: m.fileKey,
+                fileSize: m.fileSize,
+                lessonId: m.lessonId,
+                createdAt: m.createdAt,
+                children: m.children,
+              });
+            }
+          });
         }
+
+        try {
+          const directMaterials = await materialsService.getAll({ courseId: data.id });
+          if (directMaterials && Array.isArray(directMaterials.items)) {
+            directMaterials.items.forEach((m: any) => {
+              if (m.id && !seenIds.has(m.id)) {
+                seenIds.add(m.id);
+                materialsList.push({
+                  id: m.id,
+                  title: m.title || 'Tài liệu học tập',
+                  type: m.type || 'DOCUMENT',
+                  fileKey: (m as any).fileKey,
+                  fileSize: m.fileSize,
+                  lessonId: m.lessonId,
+                  createdAt: m.createdAt,
+                  children: m.children,
+                });
+              }
+            });
+          }
+        } catch {
+          // ignore fallback
+        }
+
+        setCourseMaterials(materialsList);
 
         // Map modules & lessons
         if (Array.isArray(data.modules)) {
@@ -575,6 +625,99 @@ function CourseDetailContent() {
     }
   };
 
+  // =========================================================================
+  // MATERIALS MANAGEMENT HANDLERS (CLOUDINARY & SIGNED ACCESS)
+  // =========================================================================
+  const allLessons = useMemo(() => {
+    const list: { id: string; title: string; moduleTitle: string }[] = [];
+    modules.forEach((mod) => {
+      mod.lessons.forEach((les) => {
+        list.push({ id: les.id, title: les.title, moduleTitle: mod.title });
+      });
+    });
+    return list;
+  }, [modules]);
+
+  const handleOpenAddMaterial = () => {
+    setMaterialTitle('');
+    setMaterialLessonId('');
+    setMaterialFile(null);
+    setMaterialAudioFile(null);
+    setIsMaterialModalOpen(true);
+  };
+
+  const handleSelectMaterialFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMaterialFile(file);
+      if (!materialTitle) {
+        const baseName = file.name.replace(/\.[^/.]+$/, '');
+        setMaterialTitle(baseName);
+      }
+    }
+  };
+
+  const handleUploadMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!materialFile) {
+      toast.error('Vui lòng chọn tệp tài liệu để tải lên!');
+      return;
+    }
+    if (!course?.id) {
+      toast.error('Không tìm thấy thông tin khóa học!');
+      return;
+    }
+
+    setIsUploadingMaterial(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', materialFile);
+      if (materialAudioFile) {
+        formData.append('audio', materialAudioFile);
+      }
+      formData.append('title', materialTitle.trim() || materialFile.name);
+      formData.append('courseId', course.id);
+      if (materialLessonId) {
+        formData.append('lessonId', materialLessonId);
+      }
+      formData.append('isPrivate', 'true');
+
+      await materialsService.uploadWithFile(formData);
+      toast.success('🎉 Đã tải lên và gán tài liệu cho khóa học thành công!');
+      setIsMaterialModalOpen(false);
+      await fetchCourseData();
+    } catch (err: any) {
+      toast.error(`Lỗi tải lên tài liệu: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+    } finally {
+      setIsUploadingMaterial(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: string, title: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa tài liệu "${title}"?`)) return;
+    try {
+      await materialsService.delete(materialId);
+      toast.success('Đã xóa tài liệu khỏi khóa học!');
+      await fetchCourseData();
+    } catch (err: any) {
+      toast.error(`Lỗi khi xóa tài liệu: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+    }
+  };
+
+  const handlePreviewMaterial = async (materialId: string) => {
+    try {
+      toast.info('Đang tạo liên kết bảo mật có Dynamic Watermark...');
+      const res = await materialsService.getSignedUrl(materialId);
+      if (res.signedUrl) {
+        window.open(res.signedUrl, '_blank');
+      } else {
+        toast.error('Không thể mở liên kết tài liệu');
+      }
+    } catch (err: any) {
+      toast.error(`Lỗi mở tài liệu: ${extractErrorMessage(err, 'Không thể truy cập')}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-24 text-center text-muted">
@@ -966,40 +1109,134 @@ function CourseDetailContent() {
       {/* TAB 2: COURSE MATERIALS (TÀI LIỆU KHÓA HỌC)                               */}
       {/* ========================================================================= */}
       {activeTab === 'materials' && (
-        <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-line pb-4">
+        <div className="bg-white rounded-3xl border border-line p-6 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
             <div>
-              <h3 className="text-sm font-black text-slate-900">Kho Tài Liệu Đính Kèm Của Khóa Học</h3>
-              <p className="text-xs text-muted">
-                Tài liệu PDF, file nghe hoặc giáo trình bảo mật số có Dynamic Watermark.
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-slate-900">Kho Tài Liệu & Học Liệu Của Khóa Học</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-sky-100 text-primary border border-sky-200">
+                  {courseMaterials.length} Học liệu
+                </span>
+              </div>
+              <p className="text-xs text-muted mt-0.5">
+                Quản lý giáo trình PDF, slide bài giảng, file âm thanh nghe (MP3) lưu trữ Cloudinary, bảo mật Dynamic Watermark chỉ dành riêng cho học viên đã đăng ký.
               </p>
             </div>
-            <Link
-              href="/admin/materials"
-              className="px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary-dark transition inline-flex items-center gap-1.5"
+            <button
+              type="button"
+              onClick={handleOpenAddMaterial}
+              className="px-4 py-2.5 rounded-xl bg-primary text-white font-extrabold text-xs hover:bg-primary-dark transition inline-flex items-center gap-2 shadow-sm shrink-0"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Đến Kho Học Liệu Số ➔</span>
-            </Link>
+              <Plus className="w-4 h-4" />
+              <span>Tải Lên Tài Liệu Mới (Cloudinary)</span>
+            </button>
           </div>
 
           {courseMaterials.length === 0 ? (
-            <div className="py-12 text-center text-xs text-muted">
-              Chưa có tài liệu số nào được gán cho khóa học này. Bạn có thể gán tài liệu tại phân hệ Thư Viện Học Liệu.
+            <div className="py-16 text-center border-2 border-dashed border-line rounded-2xl bg-slate-50/50">
+              <FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h4 className="text-sm font-bold text-slate-700">Chưa có tài liệu nào cho khóa học này</h4>
+              <p className="text-xs text-muted mt-1 max-w-md mx-auto">
+                Nhấn vào nút &quot;Tải Lên Tài Liệu Mới&quot; ở trên để tải file PDF, slide bài giảng hoặc file nghe MP3 lên Cloudinary cho học viên khóa học này.
+              </p>
+              <button
+                type="button"
+                onClick={handleOpenAddMaterial}
+                className="mt-4 px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary-dark transition inline-flex items-center gap-1.5"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Tải Lên Tài Liệu Đầu Tiên</span>
+              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {courseMaterials.map((mat) => (
-                <div key={mat.id} className="p-3.5 rounded-2xl border border-line bg-slate-50 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-100 text-primary flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {courseMaterials.map((mat) => {
+                const isAudio = mat.type === 'AUDIO' || mat.fileKey?.endsWith('.mp3');
+                const isPdf = mat.type === 'PDF' || mat.fileKey?.endsWith('.pdf');
+                const formattedSize = mat.fileSize
+                  ? `${(mat.fileSize / (1024 * 1024)).toFixed(1)} MB`
+                  : undefined;
+                const assignedLesson = mat.lessonId
+                  ? allLessons.find((l) => l.id === mat.lessonId)
+                  : null;
+
+                return (
+                  <div
+                    key={mat.id}
+                    className="p-4 rounded-2xl border border-line bg-slate-50/70 hover:bg-white hover:border-sky-300 hover:shadow-md transition-all flex flex-col justify-between group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                          isAudio
+                            ? 'bg-amber-100 text-amber-700'
+                            : isPdf
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-sky-100 text-primary'
+                        }`}
+                      >
+                        {isAudio ? <Headphones className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase tracking-wider ${
+                              isAudio
+                                ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                : 'bg-rose-50 text-rose-800 border border-rose-200'
+                            }`}
+                          >
+                            {mat.type}
+                          </span>
+                          {mat.fileKey?.includes('cloudinary') && (
+                            <span className="px-2 py-0.5 rounded-md text-[9.5px] font-bold bg-sky-50 text-primary border border-sky-200">
+                              ☁️ Cloudinary
+                            </span>
+                          )}
+                          {formattedSize && (
+                            <span className="text-[10px] text-muted font-mono">{formattedSize}</span>
+                          )}
+                        </div>
+
+                        <h4 className="text-xs font-bold text-slate-900 line-clamp-2 leading-relaxed">
+                          {mat.title}
+                        </h4>
+
+                        {assignedLesson ? (
+                          <span className="text-[10.5px] text-slate-500 line-clamp-1 mt-1 block">
+                            📌 Gán cho: <strong className="text-slate-700">{assignedLesson.title}</strong>
+                          </span>
+                        ) : (
+                          <span className="text-[10.5px] text-slate-400 block mt-1">
+                            🌐 Tài liệu chung cho toàn khóa học
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 mt-3 border-t border-line/60 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewMaterial(mat.id)}
+                        className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-50 text-primary border border-line hover:border-sky-300 font-bold text-[11px] transition flex items-center gap-1.5 shadow-2xs"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Xem Bảo Mật</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMaterial(mat.id, mat.title)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition"
+                        title="Xóa tài liệu khỏi khóa học"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-xs font-bold text-slate-900 truncate">{mat.title}</h4>
-                    <span className="text-[10px] text-muted block uppercase font-mono">{mat.type}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1627,6 +1864,165 @@ function CourseDetailContent() {
                   {submittingCourseEdit && <RefreshCw className="w-4 h-4 animate-spin" />}
                   <Check className="w-4 h-4" />
                   <span>Lưu Thay Đổi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: UPLOAD COURSE MATERIAL (CLOUDINARY)                                */}
+      {/* ========================================================================= */}
+      {isMaterialModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl border border-line p-6 my-8 space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-sky-100 text-primary flex items-center justify-center font-bold">
+                  <Upload className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Tải Lên Tài Liệu Khóa Học</h3>
+                  <p className="text-[11px] text-muted">Lưu trữ trên Cloudinary, bảo vệ bản quyền cho học viên đã đăng ký</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMaterialModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadMaterial} className="space-y-4">
+              {/* Primary Material File Picker */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Tệp tài liệu chính (PDF, Word, Excel, Slide...) <span className="text-red-500">*</span>
+                </label>
+                <div
+                  onClick={() => materialFileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition ${
+                    materialFile
+                      ? 'border-emerald-300 bg-emerald-50/50'
+                      : 'border-line hover:border-primary hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    ref={materialFileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp3,.wav,.m4a"
+                    onChange={handleSelectMaterialFile}
+                    className="hidden"
+                  />
+                  {materialFile ? (
+                    <div className="space-y-1">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+                        <Check className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-bold text-slate-900 truncate max-w-sm mx-auto">{materialFile.name}</p>
+                      <span className="text-[11px] text-muted font-mono">
+                        {(materialFile.size / (1024 * 1024)).toFixed(2)} MB • Nhấn để đổi tệp khác
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Upload className="w-8 h-8 text-slate-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-700">Nhấn để chọn tệp từ máy tính</p>
+                      <p className="text-[10.5px] text-muted">
+                        Hỗ trợ PDF, DOCX, PPTX, XLSX, MP3 (Tối đa 50MB)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Title input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tiêu đề tài liệu hiển thị cho học viên <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={materialTitle}
+                  onChange={(e) => setMaterialTitle(e.target.value)}
+                  placeholder="Ví dụ: Cambridge IELTS 19 Academic Test 1 Guide..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Scope: Assign to course or specific lesson */}
+              <div>
+                <CustomSelect
+                  label="Phạm vi áp dụng trong khóa học"
+                  value={materialLessonId}
+                  onChange={(val) => setMaterialLessonId(val)}
+                  options={[
+                    { value: '', label: '🌐 Toàn bộ khóa học (Tài liệu học tập chung)' },
+                    ...allLessons.map((l) => ({
+                      value: l.id,
+                      label: `📖 [${l.moduleTitle}] ${l.title}`,
+                    })),
+                  ]}
+                />
+              </div>
+
+              {/* Optional Audio File Picker */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Headphones className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Tệp âm thanh đính kèm (Tùy chọn - Dành cho IELTS Listening)</span>
+                  </label>
+                  {materialAudioFile && (
+                    <button
+                      type="button"
+                      onClick={() => setMaterialAudioFile(null)}
+                      className="text-[10px] text-red-500 hover:underline"
+                    >
+                      Xóa file âm thanh
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={materialAudioInputRef}
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => setMaterialAudioFile(e.target.files?.[0] || null)}
+                  className="w-full px-3 py-2 rounded-xl border border-line text-xs bg-slate-50 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer"
+                />
+              </div>
+
+              {/* Watermark & Security Notice */}
+              <div className="p-3 rounded-2xl bg-sky-50/70 border border-sky-100 text-[11px] text-slate-600 space-y-1">
+                <span className="font-bold text-primary flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Bảo Mật Dynamic Watermark & Quyền Riêng Tư
+                </span>
+                <p className="leading-relaxed">
+                  Tài liệu sẽ tự động chèn Watermark họ tên & SĐT của từng học viên khi mở, ngăn chặn quay chụp màn hình và chỉ học viên có đăng ký mới được cấp link truy cập.
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-line flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsMaterialModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploadingMaterial || !materialFile}
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-extrabold text-xs shadow-md shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isUploadingMaterial && <RefreshCw className="w-4 h-4 animate-spin" />}
+                  <Upload className="w-4 h-4" />
+                  <span>{isUploadingMaterial ? 'Đang tải lên Cloudinary...' : 'Tải Lên & Lưu Tài Liệu'}</span>
                 </button>
               </div>
             </form>

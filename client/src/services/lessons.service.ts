@@ -76,5 +76,20 @@ export const lessonsService = {
     const response = await api.post('/lessons/reorder', { items });
     return response.data;
   },
+
+  async uploadVideo(file: File): Promise<{ url: string; secureUrl: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/media/upload/video', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    const data = response.data?.data || response.data;
+    return {
+      url: data.secureUrl || data.url,
+      secureUrl: data.secureUrl || data.url,
+    };
+  },
 };
 

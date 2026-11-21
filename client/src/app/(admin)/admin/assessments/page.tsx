@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CustomSelect from '@/components/ui/custom-select';
 import RichTextEditor from '@/components/shared/rich-text-editor';
@@ -99,6 +99,7 @@ interface MockTestItem {
   testType?: string;
   courseId?: string;
   courseTitle?: string;
+  course?: { id: string; title: string };
   timeLimitMinutes?: number;
   passScore?: number;
   passage?: string;
@@ -138,19 +139,30 @@ function AssessmentHubContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Active Main Tab: 'mocktest' | 'writing' | 'speaking'
+  // Active Main Tab: 'mocktest' | 'personal_dev' | 'writing' | 'speaking'
   const tabParam = searchParams.get('tab');
-  const [activeHubTab, setActiveHubTab] = useState<'mocktest' | 'writing' | 'speaking'>(
-    tabParam === 'writing' ? 'writing' : tabParam === 'speaking' ? 'speaking' : 'mocktest',
+  const [activeHubTab, setActiveHubTab] = useState<'mocktest' | 'personal_dev' | 'writing' | 'speaking'>(
+    tabParam === 'personal_dev'
+      ? 'personal_dev'
+      : tabParam === 'writing'
+      ? 'writing'
+      : tabParam === 'speaking'
+      ? 'speaking'
+      : 'mocktest',
   );
 
   useEffect(() => {
-    if (tabParam === 'writing' || tabParam === 'speaking' || tabParam === 'mocktest') {
+    if (
+      tabParam === 'writing' ||
+      tabParam === 'speaking' ||
+      tabParam === 'mocktest' ||
+      tabParam === 'personal_dev'
+    ) {
       setActiveHubTab(tabParam);
     }
   }, [tabParam]);
 
-  const handleTabChange = (tab: 'mocktest' | 'writing' | 'speaking') => {
+  const handleTabChange = (tab: 'mocktest' | 'personal_dev' | 'writing' | 'speaking') => {
     setActiveHubTab(tab);
     router.replace(`/admin/assessments?tab=${tab}`);
   };
@@ -160,6 +172,197 @@ function AssessmentHubContent() {
     setNotice(msg);
     setTimeout(() => setNotice(''), 4000);
   };
+  // =========================================================================
+  // PERSONAL DEVELOPMENT ASSESSMENT & SITUATIONAL QUIZ STATE
+  // =========================================================================
+  const [pdevTests, setPdevTests] = useState<MockTestItem[]>([]);
+  const [loadingPdev, setLoadingPdev] = useState(false);
+  const [pdevSearch, setPdevSearch] = useState('');
+  const [pdevCategoryFilter, setPdevCategoryFilter] = useState<'ALL' | 'PEDAGOGY' | 'LIFE_SKILLS' | 'SOFT_SKILLS' | 'PERSONAL_DEV'>('ALL');
+
+  // Modal: Create/Edit Pdev Test
+  const [isPdevModalOpen, setIsPdevModalOpen] = useState(false);
+  const [editingPdevTestId, setEditingPdevTestId] = useState<string | null>(null);
+  const [pdevFormData, setPdevFormData] = useState({
+    title: '',
+    category: 'PEDAGOGY' as 'PEDAGOGY' | 'LIFE_SKILLS' | 'SOFT_SKILLS' | 'PERSONAL_DEV',
+    courseId: '',
+    timeLimitMinutes: 30,
+    passScore: 80,
+    scenarioContext: '',
+    description: '',
+  });
+  const [submittingPdev, setSubmittingPdev] = useState(false);
+
+  // Modal: Add Scenario Question to Pdev Test
+  const [isPdevQuestionModalOpen, setIsPdevQuestionModalOpen] = useState(false);
+  const [targetPdevQuizId, setTargetPdevQuizId] = useState('');
+  const [targetPdevQuizTitle, setTargetPdevQuizTitle] = useState('');
+  const [pdevQuestionForm, setPdevQuestionForm] = useState({
+    questionText: '',
+    optA: '',
+    optB: '',
+    optC: '',
+    optD: '',
+    correctOpt: 'A' as 'A' | 'B' | 'C' | 'D',
+    explanation: '',
+  });
+  const [submittingPdevQuestion, setSubmittingPdevQuestion] = useState(false);
+
+  const fetchPdevTests = useCallback(async () => {
+    try {
+      setLoadingPdev(true);
+      const res = await quizzesService.getAllQuizzes({ limit: 100 });
+      if (Array.isArray(res)) {
+        const filtered = res.filter((t: any) =>
+          ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(t.category)
+        );
+        setPdevTests(filtered);
+      }
+    } catch {
+      setPdevTests([]);
+    } finally {
+      setLoadingPdev(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeHubTab === 'personal_dev') {
+      fetchPdevTests();
+    }
+  }, [activeHubTab, fetchPdevTests]);
+
+  const handleOpenCreatePdevTest = () => {
+    setEditingPdevTestId(null);
+    setPdevFormData({
+      title: '',
+      category: 'PEDAGOGY',
+      courseId: '',
+      timeLimitMinutes: 30,
+      passScore: 80,
+      scenarioContext: '',
+      description: '',
+    });
+    setIsPdevModalOpen(true);
+  };
+
+  const handleOpenEditPdevTest = (test: MockTestItem) => {
+    setEditingPdevTestId(test.id);
+    setPdevFormData({
+      title: test.title || '',
+      category: (test.category as any) || 'PEDAGOGY',
+      courseId: test.courseId || '',
+      timeLimitMinutes: test.timeLimitMinutes || 30,
+      passScore: test.passScore || 80,
+      scenarioContext: test.passage || '',
+      description: test.description || '',
+    });
+    setIsPdevModalOpen(true);
+  };
+
+  const handleSavePdevTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pdevFormData.title.trim()) {
+      showNotice('❌ Vui lòng nhập tiêu đề bài kiểm tra tình huống!');
+      return;
+    }
+    try {
+      setSubmittingPdev(true);
+      const payload = {
+        title: pdevFormData.title.trim(),
+        category: pdevFormData.category,
+        courseId: pdevFormData.courseId || undefined,
+        quizType: 'SITUATION_QUIZ',
+        testType: 'SITUATION_QUIZ',
+        timeLimitMinutes: Number(pdevFormData.timeLimitMinutes) || 30,
+        passScore: Number(pdevFormData.passScore) || 80,
+        passage: pdevFormData.scenarioContext || undefined,
+        description: pdevFormData.description || undefined,
+      };
+
+      if (editingPdevTestId) {
+        await quizzesService.updateQuiz(editingPdevTestId, payload);
+        showNotice('✓ Đã cập nhật đề thi tình huống năng lực thành công!');
+      } else {
+        await quizzesService.createQuiz(payload);
+        showNotice('✓ Đã tạo đề thi tình huống năng lực sư phạm mới!');
+      }
+      setIsPdevModalOpen(false);
+      await fetchPdevTests();
+    } catch (err: any) {
+      showNotice(`❌ Lỗi lưu đề: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+    } finally {
+      setSubmittingPdev(false);
+    }
+  };
+
+  const handleDeletePdevTest = async (id: string, title: string) => {
+    if (!confirm(`Bạn có chắc muốn xóa đề tình huống "${title}"?`)) return;
+    try {
+      await quizzesService.deleteQuiz(id);
+      showNotice('✓ Đã xóa đề thi tình huống thành công!');
+      await fetchPdevTests();
+    } catch (err: any) {
+      showNotice(`❌ Lỗi xóa đề: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+    }
+  };
+
+  const handleOpenAddPdevQuestion = (test: MockTestItem) => {
+    setTargetPdevQuizId(test.id);
+    setTargetPdevQuizTitle(test.title);
+    setPdevQuestionForm({
+      questionText: '',
+      optA: '',
+      optB: '',
+      optC: '',
+      optD: '',
+      correctOpt: 'A',
+      explanation: '',
+    });
+    setIsPdevQuestionModalOpen(true);
+  };
+
+  const handleSavePdevQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pdevQuestionForm.questionText.trim()) {
+      showNotice('❌ Vui lòng nhập câu hỏi tình huống!');
+      return;
+    }
+    if (!pdevQuestionForm.optA.trim() || !pdevQuestionForm.optB.trim()) {
+      showNotice('❌ Vui lòng nhập ít nhất phương án A và B!');
+      return;
+    }
+
+    try {
+      setSubmittingPdevQuestion(true);
+      const options = [
+        { content: pdevQuestionForm.optA.trim(), isCorrect: pdevQuestionForm.correctOpt === 'A' },
+        { content: pdevQuestionForm.optB.trim(), isCorrect: pdevQuestionForm.correctOpt === 'B' },
+      ];
+      if (pdevQuestionForm.optC.trim()) {
+        options.push({ content: pdevQuestionForm.optC.trim(), isCorrect: pdevQuestionForm.correctOpt === 'C' });
+      }
+      if (pdevQuestionForm.optD.trim()) {
+        options.push({ content: pdevQuestionForm.optD.trim(), isCorrect: pdevQuestionForm.correctOpt === 'D' });
+      }
+
+      await quizzesService.addQuestion(targetPdevQuizId, {
+        content: pdevQuestionForm.questionText.trim(),
+        type: 'MULTIPLE_CHOICE',
+        explanation: pdevQuestionForm.explanation.trim() || undefined,
+        options,
+      });
+
+      showNotice('✓ Đã thêm câu hỏi tình huống thành công!');
+      setIsPdevQuestionModalOpen(false);
+      await fetchPdevTests();
+    } catch (err: any) {
+      showNotice(`❌ Lỗi thêm câu hỏi: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+    } finally {
+      setSubmittingPdevQuestion(false);
+    }
+  };
+
 
   // =========================================================================
   // 1. MOCK TEST & QUIZ STATE
@@ -1576,8 +1779,243 @@ function AssessmentHubContent() {
         </div>
       )}
 
+
       {/* ========================================================================= */}
-      {/* TAB CONTENT 2: IELTS WRITING AI REVIEW WORKFLOW                           */}
+      {/* TAB CONTENT: PERSONAL DEVELOPMENT & PEDAGOGY SITUATIONAL ASSESSMENTS      */}
+      {/* ========================================================================= */}
+      {activeHubTab === 'personal_dev' && (
+        <div className="space-y-6">
+          {/* Header Action & Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-4 rounded-2xl bg-white border border-line shadow-xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Tổng Đề Tình Huống</span>
+              <span className="text-xl sm:text-2xl font-black text-slate-900">{pdevTests.length}</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white border border-line shadow-xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Nghiệp Vụ Sư Phạm</span>
+              <span className="text-xl sm:text-2xl font-black text-emerald-600">
+                {pdevTests.filter((t) => t.category === 'PEDAGOGY').length}
+              </span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white border border-line shadow-xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Kỹ Năng Mềm & Đàm Phán</span>
+              <span className="text-xl sm:text-2xl font-black text-sky-600">
+                {pdevTests.filter((t) => t.category === 'SOFT_SKILLS').length}
+              </span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white border border-line shadow-xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Kỹ Năng Sống & Lãnh Đạo</span>
+              <span className="text-xl sm:text-2xl font-black text-amber-600">
+                {pdevTests.filter((t) => t.category === 'LIFE_SKILLS' || t.category === 'PERSONAL_DEV').length}
+              </span>
+            </div>
+          </div>
+
+          {/* Action Bar & Filters */}
+          <div className="bg-white rounded-3xl border border-line p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line pb-4">
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-slate-900">
+                  Phân Hệ Khảo Thí Năng Lực & Tình Huống Sư Phạm Thực Chiến
+                </h3>
+                <p className="text-xs text-muted">
+                  Đánh giá năng lực giải quyết vấn đề, xử lý tình huống lớp học và ứng xử lãnh đạo dành riêng cho phân hệ Phát Triển Cá Nhân.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenCreatePdevTest}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tạo Đề Tình Huống Năng Lực Mới</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="relative w-full sm:w-80">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={pdevSearch}
+                  onChange={(e) => setPdevSearch(e.target.value)}
+                  placeholder="Tìm đề theo tiêu đề tình huống..."
+                  className="w-full pl-10 pr-3.5 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setPdevCategoryFilter('ALL')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                    pdevCategoryFilter === 'ALL'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-slate-50 text-slate-600 border-line hover:bg-slate-100'
+                  }`}
+                >
+                  Tất cả ({pdevTests.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPdevCategoryFilter('PEDAGOGY')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                    pdevCategoryFilter === 'PEDAGOGY'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-600 border-line hover:bg-slate-100'
+                  }`}
+                >
+                  Sư phạm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPdevCategoryFilter('SOFT_SKILLS')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                    pdevCategoryFilter === 'SOFT_SKILLS'
+                      ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-600 border-line hover:bg-slate-100'
+                  }`}
+                >
+                  Kỹ năng mềm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPdevCategoryFilter('LIFE_SKILLS')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                    pdevCategoryFilter === 'LIFE_SKILLS'
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-600 border-line hover:bg-slate-100'
+                  }`}
+                >
+                  Kỹ năng sống
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPdevCategoryFilter('PERSONAL_DEV')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                    pdevCategoryFilter === 'PERSONAL_DEV'
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-600 border-line hover:bg-slate-100'
+                  }`}
+                >
+                  Lãnh đạo
+                </button>
+              </div>
+            </div>
+
+            {/* Tests List */}
+            {loadingPdev ? (
+              <div className="py-16 text-center text-xs text-muted">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary mb-2" />
+                <span>Đang nạp danh sách đề thi tình huống năng lực...</span>
+              </div>
+            ) : pdevTests.length === 0 ? (
+              <div className="py-16 text-center border-2 border-dashed border-slate-200 rounded-3xl p-8 space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-black text-slate-800">Chưa có đề thi tình huống nào</h4>
+                  <p className="text-xs text-muted max-w-md mx-auto">
+                    Thiết lập các bài tập tình huống thực tế, câu hỏi phán đoán và đánh giá phản xạ sư phạm cho học viên phân hệ Phát triển cá nhân.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenCreatePdevTest}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs inline-flex items-center gap-1.5 hover:bg-emerald-700 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tạo Đề Tình Huống Đầu Tiên</span>
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-line border border-line rounded-2xl overflow-hidden bg-white">
+                {pdevTests
+                  .filter((t) => {
+                    const matchSearch =
+                      !pdevSearch.trim() || t.title.toLowerCase().includes(pdevSearch.toLowerCase());
+                    const matchCat =
+                      pdevCategoryFilter === 'ALL' || t.category === pdevCategoryFilter;
+                    return matchSearch && matchCat;
+                  })
+                  .map((t) => (
+                    <div
+                      key={t.id}
+                      className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition"
+                    >
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {t.category === 'PEDAGOGY'
+                              ? 'Sư phạm'
+                              : t.category === 'SOFT_SKILLS'
+                              ? 'Kỹ năng mềm'
+                              : t.category === 'LIFE_SKILLS'
+                              ? 'Kỹ năng sống'
+                              : 'Lãnh đạo'}
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                            ⏱️ {t.timeLimitMinutes || 30} phút
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            Sàn đạt &ge; {t.passScore || 80}%
+                          </span>
+                          {t.course && (
+                            <span className="text-[11px] font-bold text-primary truncate max-w-xs">
+                              Khóa: {t.course.title}
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-sm font-black text-slate-900 truncate">
+                          {t.title}
+                        </h4>
+
+                        {t.description && (
+                          <p className="text-xs text-muted line-clamp-2">
+                            {t.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddPdevQuestion(t)}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-xs transition flex items-center gap-1.5 border border-emerald-200"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Câu Hỏi</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditPdevTest(t)}
+                          className="p-2 text-slate-400 hover:text-primary rounded-xl hover:bg-slate-100 transition"
+                          title="Sửa đề thi"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePdevTest(t.id, t.title)}
+                          className="p-2 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition"
+                          title="Xóa đề thi"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB CONTENT 3: IELTS WRITING AI REVIEW WORKFLOW                           */}
       {/* ========================================================================= */}
       {activeHubTab === 'writing' && (
         <div className="space-y-5">
@@ -3288,6 +3726,260 @@ function AssessmentHubContent() {
                 >
                   <Check className="w-4 h-4" />
                   <span>Lưu Câu Hỏi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+
+      {/* ========================================================================= */}
+      {/* MODAL: CREATE / EDIT PERSONAL DEVELOPMENT ASSESSMENT                      */}
+      {/* ========================================================================= */}
+      {isPdevModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-line p-6 my-8 space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <span>{editingPdevTestId ? 'Sửa Đề Tình Huống Năng Lực' : 'Tạo Đề Tình Huống Sư Phạm & Năng Lực Mới'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsPdevModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePdevTest} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tiêu đề đề thi / tình huống đánh giá <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={pdevFormData.title}
+                  onChange={(e) => setPdevFormData({ ...pdevFormData, title: e.target.value })}
+                  placeholder="Ví dụ: Xử lý Tình Huống Lớp Học: Học Viên Mất Tập Trung & Xung Đột Nhóm"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <CustomSelect
+                  label="Chuyên mục đánh giá *"
+                  value={pdevFormData.category}
+                  onChange={(val) => setPdevFormData({ ...pdevFormData, category: val as any })}
+                  options={[
+                    { value: 'PEDAGOGY', label: '🧑‍🏫 Nghiệp vụ Sư phạm & Giảng dạy' },
+                    { value: 'SOFT_SKILLS', label: '🤝 Kỹ năng Mềm (Đàm phán, Làm việc nhóm)' },
+                    { value: 'LIFE_SKILLS', label: '🌱 Kỹ năng Sống & Ứng xử xã hội' },
+                    { value: 'PERSONAL_DEV', label: '🚀 Phát triển Bản thân & Lãnh đạo' },
+                  ]}
+                />
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Khóa học áp dụng (Tùy chọn)
+                  </label>
+                  <select
+                    value={pdevFormData.courseId}
+                    onChange={(e) => setPdevFormData({ ...pdevFormData, courseId: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-line text-xs font-semibold bg-white focus:outline-none focus:border-emerald-600"
+                  >
+                    <option value="">-- Đề thi đánh giá độc lập (Không ràng buộc) --</option>
+                    {coursesList
+                      .filter((c: any) =>
+                        ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(c.category)
+                      )
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.title}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Thời lượng làm bài (Phút) *
+                  </label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="180"
+                    required
+                    value={pdevFormData.timeLimitMinutes}
+                    onChange={(e) => setPdevFormData({ ...pdevFormData, timeLimitMinutes: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Điểm sàn đạt (%) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    required
+                    value={pdevFormData.passScore}
+                    onChange={(e) => setPdevFormData({ ...pdevFormData, passScore: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <RichTextEditor
+                  label="Bối cảnh tình huống thực tế / Case Scenario Context"
+                  value={pdevFormData.scenarioContext}
+                  onChange={(val) => setPdevFormData({ ...pdevFormData, scenarioContext: val })}
+                  placeholder="Mô tả bối cảnh tình huống giả định: Diễn biến sự việc, tâm lý học viên, mâu thuẫn nảy sinh..."
+                  minHeight="min-h-[140px]"
+                  helperText="Cung cấp đầy đủ dữ kiện để người tham gia đánh giá và đưa ra giải pháp ứng xử chuẩn sư phạm."
+                />
+              </div>
+
+              <div className="pt-2 border-t border-line flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsPdevModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingPdev}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+                >
+                  {submittingPdev && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{editingPdevTestId ? 'Cập Nhật Đề Tình Huống' : 'Hoàn Tất Tạo Đề'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD SCENARIO QUESTION TO PERSONAL DEV ASSESSMENT                   */}
+      {/* ========================================================================= */}
+      {isPdevQuestionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl border border-line p-6 my-8 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">
+                  Thêm câu hỏi tình huống
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900 truncate max-w-md">
+                  {targetPdevQuizTitle}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPdevQuestionModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePdevQuestion} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Câu hỏi / Yêu cầu xử lý tình huống <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={pdevQuestionForm.questionText}
+                  onChange={(e) => setPdevQuestionForm({ ...pdevQuestionForm, questionText: e.target.value })}
+                  placeholder="Ví dụ: Trong tình huống này, hành động sư phạm đầu tiên người giảng viên nên thực hiện là gì?"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              {/* 4 Options */}
+              <div className="space-y-2.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Các phương án giải quyết (A, B, C, D) & Phương án tối ưu nhất:
+                </label>
+
+                {[
+                  { key: 'A', field: 'optA', label: 'Phương án A' },
+                  { key: 'B', field: 'optB', label: 'Phương án B' },
+                  { key: 'C', field: 'optC', label: 'Phương án C' },
+                  { key: 'D', field: 'optD', label: 'Phương án D' },
+                ].map((item) => (
+                  <div key={item.key} className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                      <input
+                        type="radio"
+                        name="correctPdevOpt"
+                        checked={pdevQuestionForm.correctOpt === item.key}
+                        onChange={() => setPdevQuestionForm({ ...pdevQuestionForm, correctOpt: item.key as any })}
+                        className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-mono font-black text-xs flex items-center justify-center">
+                        {item.key}
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      required={item.key === 'A' || item.key === 'B'}
+                      value={(pdevQuestionForm as any)[item.field]}
+                      onChange={(e) => setPdevQuestionForm({ ...pdevQuestionForm, [item.field]: e.target.value })}
+                      placeholder={`Nhập nội dung ${item.label}...`}
+                      className="flex-1 px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                ))}
+                <span className="text-[10.5px] text-muted block italic">
+                  * Tích chọn nút tròn radio ở phương án đúng/tối ưu nhất.
+                </span>
+              </div>
+
+              {/* Pedagogical Rationale */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Căn cứ lý luận & Phân tích giải pháp tối ưu
+                </label>
+                <textarea
+                  rows={2}
+                  value={pdevQuestionForm.explanation}
+                  onChange={(e) => setPdevQuestionForm({ ...pdevQuestionForm, explanation: e.target.value })}
+                  placeholder="Giải thích vì sao phương án này giúp giải tỏa xung đột và xây dựng môi trường học tập tích cực..."
+                  className="w-full px-3 py-2 rounded-xl border border-line text-xs font-medium focus:outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-line flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsPdevQuestionModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingPdevQuestion}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+                >
+                  {submittingPdevQuestion && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Lưu Câu Hỏi Tình Huống</span>
                 </button>
               </div>
             </form>

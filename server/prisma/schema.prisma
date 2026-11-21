@@ -249,6 +249,8 @@ model Course {
   category        CourseCategory @default(IELTS)
   isEnglishCourse Boolean        @default(true)
   thumbnail       String?
+  level           String?        @default("BEGINNER")
+  price           Int            @default(0)
   isPublished     Boolean        @default(false)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

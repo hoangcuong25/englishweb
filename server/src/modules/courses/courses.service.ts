@@ -355,6 +355,8 @@ export class CoursesService {
         category: dto.category,
         isEnglishCourse,
         thumbnail: dto.thumbnail || null,
+        level: dto.level || 'BEGINNER',
+        price: dto.price !== undefined ? Number(dto.price) : 0,
         isPublished: dto.isPublished !== undefined ? dto.isPublished : true,
       },
     });
@@ -364,16 +366,19 @@ export class CoursesService {
   }
 
   async updateCourse(id: string, dto: UpdateCourseDto) {
-    const course = await this.prisma.course.findUnique({ where: { id } });
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const course = await this.prisma.course.findFirst({
+      where: isUuid ? { id } : { slug: id },
+    });
     if (!course) {
-      throw new NotFoundException(`Không tìm thấy khóa học ID: ${id}`);
+      throw new NotFoundException(`Không tìm thấy khóa học: ${id}`);
     }
 
     if (dto.slug && dto.slug !== course.slug) {
       const existing = await this.prisma.course.findUnique({
         where: { slug: dto.slug },
       });
-      if (existing) {
+      if (existing && existing.id !== course.id) {
         throw new ConflictException(`Đường dẫn slug "${dto.slug}" đã tồn tại`);
       }
     }
@@ -393,11 +398,13 @@ export class CoursesService {
         ] as CourseCategory[]
       ).includes(dto.category);
     }
+    if (dto.level !== undefined) dataToUpdate.level = dto.level;
+    if (dto.price !== undefined) dataToUpdate.price = Number(dto.price);
     if (dto.thumbnail !== undefined) dataToUpdate.thumbnail = dto.thumbnail;
     if (dto.isPublished !== undefined) dataToUpdate.isPublished = dto.isPublished;
 
     const updated = await this.prisma.course.update({
-      where: { id },
+      where: { id: course.id },
       data: dataToUpdate,
     });
 
