@@ -75,6 +75,12 @@ export class CoursesController {
     return this.coursesService.findAll(user?.role, category, search);
   }
 
+  @Get('exchange-rate')
+  @ApiOperation({ summary: 'Lấy tỷ giá quy đổi USD / VND hệ thống hiện hành' })
+  getExchangeRate() {
+    return this.coursesService.getExchangeRate();
+  }
+
   @Get(':slugOrId')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Lấy chi tiết khóa học, toàn bộ Modules và Bài học' })
@@ -208,5 +214,31 @@ export class CoursesController {
   @ApiOperation({ summary: 'Admin ghi danh thủ công học viên vào khóa học' })
   manualEnroll(@Body() body: { courseId: string; userId: string }) {
     return this.coursesService.manualEnroll(body.courseId, body.userId);
+  }
+
+  @Put('admin/exchange-rate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin cập nhật tỷ giá quy đổi USD / VND cho toàn bộ hệ thống' })
+  updateExchangeRate(@Body('exchangeRate') exchangeRate: number) {
+    return this.coursesService.updateExchangeRate(exchangeRate);
+  }
+
+  @Post('admin/batch-price')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin thay đổi đồng giá hoặc điều chỉnh tỷ lệ giá (%) cho toàn bộ khóa học' })
+  batchUpdatePrices(
+    @Body()
+    body: {
+      mode: 'FLAT' | 'PERCENTAGE';
+      flatPrice?: number;
+      percentage?: number;
+      track?: 'ALL' | 'ENGLISH' | 'PERSONAL_DEV';
+    },
+  ) {
+    return this.coursesService.batchUpdateCoursePrices(body);
   }
 }

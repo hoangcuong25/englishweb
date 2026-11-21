@@ -3,7 +3,10 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { RedisService } from '../../core/redis/redis.service';
@@ -698,6 +701,121 @@ export class CoursesService {
     return {
       message: `Đã ghi danh thủ công học viên "${user.fullName}" vào khóa học "${course.title}" thành công!`,
       enrollment,
+    };
+  }
+
+  private configFilePath = path.join(process.cwd(), 'data', 'system-config.json');
+
+  /**
+   * Lấy tỷ giá quy đổi USD / VND hệ thống hiện hành
+   */
+  getExchangeRate(): { exchangeRate: number; defaultRate: number; updatedAt?: string } {
+    try {
+      if (fs.existsSync(this.configFilePath)) {
+        const raw = fs.readFileSync(this.configFilePath, 'utf8');
+        const data = JSON.parse(raw);
+        if (data && typeof data.exchangeRate === 'number' && data.exchangeRate > 0) {
+          return {
+            exchangeRate: data.exchangeRate,
+            defaultRate: 25400,
+            updatedAt: data.updatedAt,
+          };
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+    return { exchangeRate: 25400, defaultRate: 25400 };
+  }
+
+  /**
+   * Admin cập nhật tỷ giá quy đổi USD / VND cho toàn bộ hệ thống
+   */
+  updateExchangeRate(newRate: number) {
+    if (!newRate || isNaN(newRate) || newRate <= 0) {
+      throw new BadRequestException('Tỷ giá phải là một số dương hợp lệ (ví dụ: 25400)');
+    }
+    const dir = path.dirname(this.configFilePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    let currentData: Record<string, any> = {};
+    try {
+      if (fs.existsSync(this.configFilePath)) {
+        currentData = JSON.parse(fs.readFileSync(this.configFilePath, 'utf8'));
+      }
+    } catch (e) {}
+
+    currentData.exchangeRate = Math.round(newRate);
+    currentData.updatedAt = new Date().toISOString();
+    fs.writeFileSync(this.configFilePath, JSON.stringify(currentData, null, 2), 'utf8');
+
+    return {
+      message: `Đã cập nhật tỷ giá ngoại tệ toàn hệ thống: 1 USD = ${currentData.exchangeRate.toLocaleString('vi-VN')} VND`,
+      exchangeRate: currentData.exchangeRate,
+      updatedAt: currentData.updatedAt,
+    };
+  }
+
+  /**
+   * Admin thay đổi đồng giá hoặc điều chỉnh tỷ lệ giá (%) cho toàn bộ khóa học
+   */
+  async batchUpdateCoursePrices(dto: {
+    mode: 'FLAT' | 'PERCENTAGE';
+    flatPrice?: number;
+    percentage?: number;
+    track?: 'ALL' | 'ENGLISH' | 'PERSONAL_DEV';
+  }) {
+    const { mode, flatPrice, percentage, track } = dto;
+
+    const where: any = {};
+    if (track === 'ENGLISH') {
+      where.OR = [
+        { category: { in: ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'] } },
+        { isEnglishCourse: true },
+      ];
+    } else if (track === 'PERSONAL_DEV') {
+      where.category = { in: ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'] };
+    }
+
+    const coursesToUpdate = await this.prisma.course.findMany({ where });
+    if (coursesToUpdate.length === 0) {
+      return { updatedCount: 0, message: 'Không tìm thấy khóa học nào phù hợp với phạm vi đã chọn.' };
+    }
+
+    let updatedCount = 0;
+
+    if (mode === 'FLAT') {
+      if (flatPrice === undefined || isNaN(flatPrice) || flatPrice < 0) {
+        throw new BadRequestException('Mức đồng giá phải là một số hợp lệ (>= 0)');
+      }
+      const result = await this.prisma.course.updateMany({
+        where,
+        data: { price: Math.round(flatPrice) },
+      });
+      updatedCount = result.count;
+    } else if (mode === 'PERCENTAGE') {
+      if (percentage === undefined || isNaN(percentage)) {
+        throw new BadRequestException('Tỷ lệ phần trăm điều chỉnh không hợp lệ');
+      }
+      const factor = 1 + percentage / 100;
+      for (const c of coursesToUpdate) {
+        const newPrice = Math.max(0, Math.round((c.price * factor) / 10000) * 10000);
+        await this.prisma.course.update({
+          where: { id: c.id },
+          data: { price: newPrice },
+        });
+        updatedCount++;
+      }
+    }
+
+    await this.redisService.delPattern('cache:courses:*');
+
+    return {
+      updatedCount,
+      message: mode === 'FLAT'
+        ? `Đã áp dụng mức đồng giá ${Number(flatPrice).toLocaleString('vi-VN')}đ cho ${updatedCount} khóa học trên toàn hệ thống!`
+        : `Đã điều chỉnh ${percentage !== undefined && percentage >= 0 ? '+' : ''}${percentage}% giá cho ${updatedCount} khóa học trên toàn hệ thống!`,
     };
   }
 }

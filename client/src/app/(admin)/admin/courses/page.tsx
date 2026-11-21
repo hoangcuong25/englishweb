@@ -35,6 +35,12 @@ import {
   DollarSign,
   Clock,
   ShieldCheck,
+  Sliders,
+  Percent,
+  Settings2,
+  TrendingUp,
+  Tag,
+  CheckCheck,
 } from 'lucide-react';
 import CustomSelect from '@/components/ui/custom-select';
 import RichTextEditor from '@/components/shared/rich-text-editor';
@@ -47,7 +53,7 @@ import { useCurrency } from '@/lib/currency-context';
 function AdminCoursesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { formatPrice, convertToUsd, formatUsd, formatVnd, currency } = useCurrency();
+  const { formatPrice, convertToUsd, formatUsd, formatVnd, currency, exchangeRate, updateSystemExchangeRate } = useCurrency();
 
   // Courses state
   const [courses, setCourses] = useState<Course[]>([]);
@@ -98,6 +104,27 @@ function AdminCoursesContent() {
     note: '',
   });
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+
+  // Price & Exchange Rate Modal state
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [priceModalTab, setPriceModalTab] = useState<'exchange_rate' | 'batch_pricing'>('batch_pricing');
+
+  // Tab 1: Exchange Rate
+  const [inputExchangeRate, setInputExchangeRate] = useState<number>(exchangeRate || 25400);
+  const [isUpdatingExchangeRate, setIsUpdatingExchangeRate] = useState(false);
+
+  // Tab 2: Batch Price
+  const [batchMode, setBatchMode] = useState<'FLAT' | 'PERCENTAGE'>('FLAT');
+  const [batchTrack, setBatchTrack] = useState<'ALL' | 'ENGLISH' | 'PERSONAL_DEV'>('ALL');
+  const [flatPriceInput, setFlatPriceInput] = useState<number>(1490000);
+  const [percentageInput, setPercentageInput] = useState<number>(10);
+  const [isUpdatingBatchPrice, setIsUpdatingBatchPrice] = useState(false);
+
+  useEffect(() => {
+    if (exchangeRate) {
+      setInputExchangeRate(exchangeRate);
+    }
+  }, [exchangeRate]);
 
   // Modal Create / Edit Course state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -324,6 +351,102 @@ function AdminCoursesContent() {
     return courses.filter((c) => c.isPublished).length;
   }, [courses]);
 
+  // Batch Target Courses & Preview
+  const batchTargetCourses = useMemo(() => {
+    return courses.filter((c) => {
+      if (batchTrack === 'ENGLISH') {
+        return ['IELTS', 'ENGLISH', 'BUSINESS', 'KIDS'].includes(c.category) || c.isEnglishCourse;
+      }
+      if (batchTrack === 'PERSONAL_DEV') {
+        return ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(c.category);
+      }
+      return true;
+    });
+  }, [courses, batchTrack]);
+
+  const previewSampleCourses = useMemo(() => {
+    return batchTargetCourses.slice(0, 4).map((c) => {
+      const currentPrice = Number(c.price || 0);
+      let calculatedPrice = currentPrice;
+      if (batchMode === 'FLAT') {
+        calculatedPrice = Math.max(0, Number(flatPriceInput || 0));
+      } else {
+        const factor = 1 + Number(percentageInput || 0) / 100;
+        calculatedPrice = Math.max(0, Math.round((currentPrice * factor) / 10000) * 10000);
+      }
+      const diff = calculatedPrice - currentPrice;
+      return {
+        id: c.id,
+        title: c.title,
+        category: c.category,
+        currentPrice,
+        calculatedPrice,
+        diff,
+      };
+    });
+  }, [batchTargetCourses, batchMode, flatPriceInput, percentageInput]);
+
+  // Handle Save System Exchange Rate
+  const handleSaveExchangeRate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!inputExchangeRate || inputExchangeRate <= 0) {
+      toast.error('Vui lòng nhập tỷ giá hợp lệ (> 0)!');
+      return;
+    }
+    setIsUpdatingExchangeRate(true);
+    try {
+      await updateSystemExchangeRate(Number(inputExchangeRate));
+      toast.success(`Đã cập nhật tỷ giá toàn hệ thống: 1 USD = ${Number(inputExchangeRate).toLocaleString('vi-VN')} VND`);
+    } catch (err) {
+      toast.error(`Lỗi cập nhật tỷ giá: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+    } finally {
+      setIsUpdatingExchangeRate(false);
+    }
+  };
+
+  // Handle Apply Batch Pricing
+  const handleApplyBatchPrice = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const targetCount = batchTargetCourses.length;
+
+    if (targetCount === 0) {
+      toast.error('Không có khóa học nào trong phân hệ đã chọn!');
+      return;
+    }
+
+    const scopeName =
+      batchTrack === 'ALL'
+        ? 'Toàn hệ thống'
+        : batchTrack === 'ENGLISH'
+        ? 'Tiếng Anh & IELTS'
+        : 'Phát triển cá nhân & Sư phạm';
+
+    const confirmMsg =
+      batchMode === 'FLAT'
+        ? `Bạn có chắc muốn ĐỒNG GIÁ ${Number(flatPriceInput).toLocaleString('vi-VN')}đ cho toàn bộ ${targetCount} khóa học (${scopeName})?`
+        : `Bạn có chắc muốn ĐIỀU CHỈNH ${percentageInput >= 0 ? '+' : ''}${percentageInput}% giá cho toàn bộ ${targetCount} khóa học (${scopeName})?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    setIsUpdatingBatchPrice(true);
+    try {
+      const res = await coursesService.batchUpdatePrices({
+        mode: batchMode,
+        track: batchTrack,
+        flatPrice: batchMode === 'FLAT' ? Number(flatPriceInput) : undefined,
+        percentage: batchMode === 'PERCENTAGE' ? Number(percentageInput) : undefined,
+      });
+
+      toast.success(res.message || 'Cập nhật giá khóa học thành công!');
+      setIsPriceModalOpen(false);
+      await fetchCourses();
+    } catch (err) {
+      toast.error(`Lỗi cập nhật giá: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+    } finally {
+      setIsUpdatingBatchPrice(false);
+    }
+  };
+
   // Filtered Courses
   const filteredCourses = useMemo(() => {
     return courses.filter((c) => {
@@ -526,16 +649,34 @@ function AdminCoursesContent() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           {adminTab === 'courses' ? (
-            <button
-              type="button"
-              onClick={handleOpenCreateModal}
-              className="px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-dark text-white font-extrabold text-xs shadow-md shadow-primary/20 transition flex items-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Tạo Khóa Học Mới</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setPriceModalTab('batch_pricing');
+                  setIsPriceModalOpen(true);
+                }}
+                className="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 border border-line font-extrabold text-xs shadow-xs transition flex items-center gap-2 cursor-pointer"
+                title="Thay đổi tỷ lệ đồng giá và tỷ giá quy đổi USD toàn hệ thống"
+              >
+                <Sliders className="w-4 h-4 text-primary" />
+                <span>⚙️ Tỷ Lệ Giá & Tỷ Giá</span>
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-sky-50 text-primary text-[10.5px] font-mono font-black border border-sky-200">
+                  1$ = {exchangeRate?.toLocaleString('vi-VN')}₫
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenCreateModal}
+                className="px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-dark text-white font-extrabold text-xs shadow-md shadow-primary/20 transition flex items-center gap-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tạo Khóa Học Mới</span>
+              </button>
+            </>
           ) : (
             <button
               type="button"
@@ -600,6 +741,55 @@ function AdminCoursesContent() {
 
       {adminTab === 'courses' ? (
         <div className="space-y-6">
+          {/* BANNER: CHÍNH SÁCH ĐỒNG GIÁ & TỶ GIÁ HỆ THỐNG */}
+          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-900 text-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-750 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-white/10 text-sky-300 flex items-center justify-center font-bold shrink-0 border border-white/10">
+                <Tag className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-400/20 text-sky-300 border border-sky-400/30">
+                    Pricing & Currency Hub
+                  </span>
+                  <span className="text-xs text-slate-300 font-medium">
+                    Tỷ giá USD hiện tại: <strong className="text-white font-mono">1$ ≈ {exchangeRate?.toLocaleString('vi-VN')} ₫</strong>
+                  </span>
+                </div>
+                <h3 className="text-sm sm:text-base font-extrabold text-white mt-1">
+                  Chính Sách Đồng Giá & Tỷ Lệ Học Phí Toàn Hệ Thống
+                </h3>
+                <p className="text-xs text-slate-300 mt-0.5 max-w-2xl">
+                  Thay đổi tỷ giá quy đổi USD/VND hoặc áp dụng mức đồng giá / tỷ lệ phần trăm (+/- %) hàng loạt cho toàn bộ {courses.length} khóa học một cách nhanh chóng.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setPriceModalTab('batch_pricing');
+                  setIsPriceModalOpen(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-extrabold text-xs transition flex items-center gap-1.5 cursor-pointer border border-white/20"
+              >
+                <Percent className="w-3.5 h-3.5 text-sky-300" />
+                <span>Áp Dụng Đồng Giá / %</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPriceModalTab('exchange_rate');
+                  setIsPriceModalOpen(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-black text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <DollarSign className="w-3.5 h-3.5" />
+                <span>Đổi Tỷ Giá USD</span>
+              </button>
+            </div>
+          </div>
           {/* 2. STATS OVERVIEW CARDS */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-3xl border border-line shadow-xs flex items-center gap-3.5">
@@ -1686,6 +1876,449 @@ function AdminCoursesContent() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. MODAL: QUẢN TRỊ TỶ GIÁ & CHÍNH SÁCH GIÁ TOÀN HỆ THỐNG */}
+      {isPriceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-line max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-line">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-sky-50 text-primary flex items-center justify-center font-bold">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                    Trung Tâm Quản Trị Tỷ Giá & Giá Hệ Thống
+                  </h2>
+                  <p className="text-xs text-muted">
+                    Thay đổi tỷ lệ đồng giá, điều chỉnh học phí và tỷ giá ngoại tệ áp dụng toàn học viện.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPriceModalOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Subtabs */}
+            <div className="flex items-center gap-2 mt-5 p-1 bg-slate-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setPriceModalTab('batch_pricing')}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 cursor-pointer ${
+                  priceModalTab === 'batch_pricing'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Percent className="w-4 h-4 text-primary" />
+                <span>Chính Sách Đồng Giá & Tỷ Lệ (+/- %)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPriceModalTab('exchange_rate')}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 cursor-pointer ${
+                  priceModalTab === 'exchange_rate'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+                <span>Tỷ Giá Ngoại Tệ (USD / VND)</span>
+              </button>
+            </div>
+
+            {/* TAB 1: BATCH PRICING */}
+            {priceModalTab === 'batch_pricing' && (
+              <form onSubmit={handleApplyBatchPrice} className="space-y-5 mt-5">
+                {/* 1. Track Scope */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-2">
+                    1. Chọn Phân Hệ Áp Dụng <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBatchTrack('ALL')}
+                      className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
+                        batchTrack === 'ALL'
+                          ? 'border-primary bg-sky-50/70 text-primary shadow-xs'
+                          : 'border-line hover:border-slate-300 text-slate-700 bg-white'
+                      }`}
+                    >
+                      <span className="text-xs font-extrabold block">Toàn Hệ Thống</span>
+                      <span className="text-[11px] text-muted block mt-0.5 font-medium">
+                        Tất cả {courses.length} khóa học
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBatchTrack('ENGLISH')}
+                      className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
+                        batchTrack === 'ENGLISH'
+                          ? 'border-primary bg-sky-50/70 text-primary shadow-xs'
+                          : 'border-line hover:border-slate-300 text-slate-700 bg-white'
+                      }`}
+                    >
+                      <span className="text-xs font-extrabold block">Tiếng Anh & IELTS</span>
+                      <span className="text-[11px] text-muted block mt-0.5 font-medium">
+                        {englishCoursesCount} khóa học
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBatchTrack('PERSONAL_DEV')}
+                      className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
+                        batchTrack === 'PERSONAL_DEV'
+                          ? 'border-primary bg-sky-50/70 text-primary shadow-xs'
+                          : 'border-line hover:border-slate-300 text-slate-700 bg-white'
+                      }`}
+                    >
+                      <span className="text-xs font-extrabold block">Sư Phạm & Kỹ Năng</span>
+                      <span className="text-[11px] text-muted block mt-0.5 font-medium">
+                        {devCoursesCount} khóa học
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Adjustment Mode */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-2">
+                    2. Chọn Hình Thức Điều Chỉnh <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* FLAT PRICE */}
+                    <div
+                      onClick={() => setBatchMode('FLAT')}
+                      className={`p-3.5 rounded-2xl border cursor-pointer transition ${
+                        batchMode === 'FLAT'
+                          ? 'border-primary bg-sky-50/50 ring-2 ring-primary/20'
+                          : 'border-line hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="batchMode"
+                          checked={batchMode === 'FLAT'}
+                          onChange={() => setBatchMode('FLAT')}
+                          className="accent-primary"
+                        />
+                        <span className="text-xs font-black text-slate-900">
+                          Đồng Giá Hàng Loạt (Flat Price)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed pl-5">
+                        Thiết lập tất cả khóa học được chọn về cùng một mức học phí duy nhất.
+                      </p>
+                    </div>
+
+                    {/* PERCENTAGE */}
+                    <div
+                      onClick={() => setBatchMode('PERCENTAGE')}
+                      className={`p-3.5 rounded-2xl border cursor-pointer transition ${
+                        batchMode === 'PERCENTAGE'
+                          ? 'border-primary bg-sky-50/50 ring-2 ring-primary/20'
+                          : 'border-line hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="batchMode"
+                          checked={batchMode === 'PERCENTAGE'}
+                          onChange={() => setBatchMode('PERCENTAGE')}
+                          className="accent-primary"
+                        />
+                        <span className="text-xs font-black text-slate-900">
+                          Tỷ Lệ Phần Trăm (+/- %)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed pl-5">
+                        Tăng hoặc giảm học phí của từng khóa theo tỷ lệ % (tự động làm tròn 10.000₫).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Value Input */}
+                {batchMode === 'FLAT' ? (
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                    <label className="block text-xs font-bold text-slate-800">
+                      Mức Học Phí Đồng Giá Mới (VND) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        step="10000"
+                        required
+                        value={flatPriceInput}
+                        onChange={(e) => setFlatPriceInput(Number(e.target.value) || 0)}
+                        placeholder="VD: 1490000"
+                        className="w-full px-4 py-3 rounded-xl border border-line bg-white font-mono font-black text-base text-slate-900 focus:outline-none focus:border-primary"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                        VND (~{formatUsd(convertToUsd(flatPriceInput))})
+                      </span>
+                    </div>
+
+                    {/* Quick Suggestions */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                      <span className="text-[11px] text-slate-400 font-semibold mr-1">Gợi ý nhanh:</span>
+                      {[0, 490000, 990000, 1490000, 1990000, 2490000].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setFlatPriceInput(val)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold font-mono transition cursor-pointer ${
+                            flatPriceInput === val
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-white border border-line text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {val === 0 ? 'Miễn phí' : `${(val / 1000).toLocaleString('vi-VN')}k`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                    <label className="block text-xs font-bold text-slate-800">
+                      Tỷ Lệ Phần Trăm Tăng / Giảm (%) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="1"
+                        required
+                        value={percentageInput}
+                        onChange={(e) => setPercentageInput(Number(e.target.value) || 0)}
+                        placeholder="VD: 10 (tăng 10%) hoặc -20 (giảm 20%)"
+                        className="w-full px-4 py-3 rounded-xl border border-line bg-white font-mono font-black text-base text-slate-900 focus:outline-none focus:border-primary"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                        % ({percentageInput >= 0 ? `Tăng +${percentageInput}%` : `Giảm ${percentageInput}%`})
+                      </span>
+                    </div>
+
+                    {/* Quick Suggestions */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                      <span className="text-[11px] text-slate-400 font-semibold mr-1">Gợi ý nhanh:</span>
+                      {[-30, -20, -10, 5, 10, 15, 20].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setPercentageInput(val)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold font-mono transition cursor-pointer ${
+                            percentageInput === val
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-white border border-line text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {val > 0 ? `+${val}%` : `${val}%`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Preview Changes */}
+                <div className="border border-line rounded-2xl p-4 bg-white space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5 text-primary" />
+                      <span>Xem Trước Thay Đổi Học Phí</span>
+                    </span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      Tác động {batchTargetCourses.length} khóa học
+                    </span>
+                  </div>
+
+                  {previewSampleCourses.length === 0 ? (
+                    <div className="py-4 text-center text-xs text-slate-400">
+                      Không có khóa học nào trong phân hệ đã chọn.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {previewSampleCourses.map((sample) => (
+                        <div
+                          key={sample.id}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs"
+                        >
+                          <div className="min-w-0 pr-3">
+                            <span className="font-bold text-slate-800 truncate block">
+                              {sample.title}
+                            </span>
+                            <span className="text-[10px] text-slate-400 uppercase font-mono">
+                              {sample.category}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <span className="text-slate-400 line-through font-mono text-[11px]">
+                              {formatVnd(sample.currentPrice)}
+                            </span>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="font-black text-slate-900 font-mono text-xs">
+                              {formatVnd(sample.calculatedPrice)}
+                            </span>
+                            <span
+                              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                                sample.diff > 0
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : sample.diff < 0
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-slate-200 text-slate-700'
+                              }`}
+                            >
+                              {sample.diff > 0
+                                ? `+${(sample.diff / 1000).toLocaleString('vi-VN')}k`
+                                : sample.diff < 0
+                                ? `${(sample.diff / 1000).toLocaleString('vi-VN')}k`
+                                : '0đ'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-line">
+                  <button
+                    type="button"
+                    onClick={() => setIsPriceModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl border border-line hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdatingBatchPrice || batchTargetCourses.length === 0}
+                    className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-black text-xs shadow-md shadow-primary/20 transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isUpdatingBatchPrice && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                    <CheckCheck className="w-4 h-4" />
+                    <span>Áp Dụng Cho {batchTargetCourses.length} Khóa Học</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 2: SYSTEM EXCHANGE RATE */}
+            {priceModalTab === 'exchange_rate' && (
+              <form onSubmit={handleSaveExchangeRate} className="space-y-5 mt-5">
+                <div className="p-4 rounded-2xl bg-sky-50 border border-sky-100 text-sky-950 text-xs flex items-start gap-3">
+                  <DollarSign className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold">
+                      Tỷ giá ngoại tệ hệ thống (USD / VND)
+                    </p>
+                    <p className="text-sky-800 leading-relaxed text-[11.5px]">
+                      Hệ thống tự động sử dụng tỷ giá này để quy đổi học phí sang USD cho học viên quốc tế trên toàn bộ trang học liệu, giỏ hàng, bảng giá và hướng dẫn thanh toán USD Wire / PayPal.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Current & New Rate Inputs */}
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Tỷ Giá Quy Đổi (Số VND cho 1 USD) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1000"
+                      step="100"
+                      required
+                      value={inputExchangeRate}
+                      onChange={(e) => setInputExchangeRate(Number(e.target.value) || 0)}
+                      placeholder="VD: 25400"
+                      className="w-full px-4 py-3 rounded-xl border border-line bg-white font-mono font-black text-base text-slate-900 focus:outline-none focus:border-primary"
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 font-mono">
+                      VND / 1 USD
+                    </span>
+                  </div>
+
+                  {/* Quick Suggestions */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[11px] text-slate-400 font-semibold mr-1">Mốc phổ biến:</span>
+                    {[24800, 25000, 25400, 25500, 25800, 26000].map((rate) => (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => setInputExchangeRate(rate)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold font-mono transition cursor-pointer ${
+                          inputExchangeRate === rate
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-white border border-line text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {rate.toLocaleString('vi-VN')} ₫
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Currency Preview */}
+                <div className="border border-line rounded-2xl p-4 bg-slate-50 space-y-2.5">
+                  <span className="text-xs font-extrabold text-slate-800 block">
+                    Bảng Thử Nghiệm Quy Đổi Học Phí Theo Tỷ Giá Mới:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {[500000, 1500000, 2500000, 5000000].map((amount) => {
+                      const usd = inputExchangeRate > 0 ? (amount / inputExchangeRate).toFixed(2) : '0.00';
+                      return (
+                        <div
+                          key={amount}
+                          className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between"
+                        >
+                          <span className="font-bold text-slate-700 font-mono">
+                            {formatVnd(amount)}
+                          </span>
+                          <span className="font-black text-emerald-600 font-mono">
+                            ~ ${usd}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-line">
+                  <button
+                    type="button"
+                    onClick={() => setIsPriceModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl border border-line hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdatingExchangeRate || !inputExchangeRate}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isUpdatingExchangeRate && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                    <Check className="w-4 h-4" />
+                    <span>Lưu Tỷ Giá Mới Toàn Hệ Thống</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { coursesService } from "@/services/courses.service";
 
 export type Currency = "VND" | "USD";
 
@@ -19,6 +20,8 @@ interface CurrencyContextType {
   toggleCurrency: () => void;
   exchangeRate: number;
   setExchangeRate: (rate: number) => void;
+  syncExchangeRate: () => Promise<number>;
+  updateSystemExchangeRate: (rate: number) => Promise<void>;
   convertToUsd: (vndAmount: number) => number;
   convertToVnd: (usdAmount: number) => number;
   formatVnd: (vndAmount: number) => string;
@@ -42,6 +45,26 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [exchangeRate, setExchangeRate] = useState<number>(DEFAULT_EXCHANGE_RATE);
   const [isMounted, setIsMounted] = useState<boolean>(false);
 
+  const syncExchangeRate = useCallback(async (): Promise<number> => {
+    try {
+      const res = await coursesService.getExchangeRate();
+      const rate = typeof res === "object" && res !== null ? res.exchangeRate : Number(res);
+      if (rate && !isNaN(rate) && rate > 0) {
+        setExchangeRate(rate);
+        return rate;
+      }
+    } catch (err) {
+      console.warn("Could not fetch remote exchange rate:", err);
+    }
+    return DEFAULT_EXCHANGE_RATE;
+  }, []);
+
+  const updateSystemExchangeRate = useCallback(async (newRate: number): Promise<void> => {
+    if (!newRate || isNaN(newRate) || newRate <= 0) return;
+    await coursesService.updateExchangeRate(newRate);
+    setExchangeRate(Math.round(newRate));
+  }, []);
+
   useEffect(() => {
     setIsMounted(true);
     try {
@@ -52,7 +75,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // LocalStorage access fallback
     }
-  }, []);
+
+    // Load initial remote exchange rate
+    syncExchangeRate();
+  }, [syncExchangeRate]);
 
   const setCurrency = (c: Currency) => {
     setCurrencyState(c);
@@ -164,6 +190,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         toggleCurrency,
         exchangeRate,
         setExchangeRate,
+        syncExchangeRate,
+        updateSystemExchangeRate,
         convertToUsd,
         convertToVnd,
         formatVnd,

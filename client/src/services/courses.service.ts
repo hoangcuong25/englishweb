@@ -163,6 +163,30 @@ export const coursesService = {
     return response.data;
   },
 
+  async getExchangeRate(): Promise<{ exchangeRate: number; defaultRate?: number; updatedAt?: string }> {
+    try {
+      const response = await api.get('/courses/exchange-rate');
+      return response.data?.data || response.data || { exchangeRate: 25400 };
+    } catch {
+      return { exchangeRate: 25400 };
+    }
+  },
+
+  async updateExchangeRate(exchangeRate: number): Promise<{ message: string; exchangeRate: number; updatedAt?: string }> {
+    const response = await api.put('/courses/admin/exchange-rate', { exchangeRate });
+    return response.data?.data || response.data;
+  },
+
+  async batchUpdatePrices(payload: {
+    mode: 'FLAT' | 'PERCENTAGE';
+    flatPrice?: number;
+    percentage?: number;
+    track?: 'ALL' | 'ENGLISH' | 'PERSONAL_DEV';
+  }): Promise<{ updatedCount: number; message: string }> {
+    const response = await api.post('/courses/admin/batch-price', payload);
+    return response.data?.data || response.data;
+  },
+
   async deleteCourse(id: string) {
     const response = await api.delete(`/courses/${id}`);
     return response.data;
