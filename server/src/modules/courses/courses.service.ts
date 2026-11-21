@@ -26,14 +26,54 @@ export class CoursesService {
 
   getCategories() {
     return [
-      { key: CourseCategory.ENGLISH, nameVi: 'Tiếng Anh (IELTS / Giao tiếp / Học thuật)', isEnglish: true, group: 'TIẾNG ANH' },
-      { key: CourseCategory.IELTS, nameVi: 'Luyện thi IELTS Chuyên Sâu (4 Kỹ Năng)', isEnglish: true, group: 'TIẾNG ANH' },
-      { key: CourseCategory.BUSINESS, nameVi: 'Business English (Tiếng Anh Thương Mại)', isEnglish: true, group: 'TIẾNG ANH' },
-      { key: CourseCategory.KIDS, nameVi: 'English for Kids (Tiếng Anh Thiếu Nhi)', isEnglish: true, group: 'TIẾNG ANH' },
-      { key: CourseCategory.LIFE_SKILLS, nameVi: 'Kỹ Năng Sống', isEnglish: false, group: 'KỸ NĂNG & PHÁT TRIỂN' },
-      { key: CourseCategory.SOFT_SKILLS, nameVi: 'Kỹ Năng Mềm', isEnglish: false, group: 'KỸ NĂNG & PHÁT TRIỂN' },
-      { key: CourseCategory.PERSONAL_DEV, nameVi: 'Phát Triển Bản Thân', isEnglish: false, group: 'KỸ NĂNG & PHÁT TRIỂN' },
-      { key: CourseCategory.PEDAGOGY, nameVi: 'Năng Lực Sư Phạm & Giảng Dạy', isEnglish: false, group: 'KỸ NĂNG & PHÁT TRIỂN' },
+      {
+        key: CourseCategory.ENGLISH,
+        nameVi: 'Tiếng Anh (IELTS / Giao tiếp / Học thuật)',
+        isEnglish: true,
+        group: 'TIẾNG ANH',
+      },
+      {
+        key: CourseCategory.IELTS,
+        nameVi: 'Luyện thi IELTS Chuyên Sâu (4 Kỹ Năng)',
+        isEnglish: true,
+        group: 'TIẾNG ANH',
+      },
+      {
+        key: CourseCategory.BUSINESS,
+        nameVi: 'Business English (Tiếng Anh Thương Mại)',
+        isEnglish: true,
+        group: 'TIẾNG ANH',
+      },
+      {
+        key: CourseCategory.KIDS,
+        nameVi: 'English for Kids (Tiếng Anh Thiếu Nhi)',
+        isEnglish: true,
+        group: 'TIẾNG ANH',
+      },
+      {
+        key: CourseCategory.LIFE_SKILLS,
+        nameVi: 'Kỹ Năng Sống',
+        isEnglish: false,
+        group: 'KỸ NĂNG & PHÁT TRIỂN',
+      },
+      {
+        key: CourseCategory.SOFT_SKILLS,
+        nameVi: 'Kỹ Năng Mềm',
+        isEnglish: false,
+        group: 'KỸ NĂNG & PHÁT TRIỂN',
+      },
+      {
+        key: CourseCategory.PERSONAL_DEV,
+        nameVi: 'Phát Triển Bản Thân',
+        isEnglish: false,
+        group: 'KỸ NĂNG & PHÁT TRIỂN',
+      },
+      {
+        key: CourseCategory.PEDAGOGY,
+        nameVi: 'Năng Lực Sư Phạm & Giảng Dạy',
+        isEnglish: false,
+        group: 'KỸ NĂNG & PHÁT TRIỂN',
+      },
     ];
   }
 
@@ -87,7 +127,10 @@ export class CoursesService {
   }
 
   async findBySlugOrId(identifier: string, userId?: string, role?: Role) {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        identifier,
+      );
 
     const course = await this.prisma.course.findFirst({
       where: isUuid ? { id: identifier } : { slug: identifier },
@@ -143,7 +186,9 @@ export class CoursesService {
     });
 
     if (!course) {
-      throw new NotFoundException(`Không tìm thấy khóa học với định danh: ${identifier}`);
+      throw new NotFoundException(
+        `Không tìm thấy khóa học với định danh: ${identifier}`,
+      );
     }
 
     if (!course.isPublished && role !== Role.ADMIN) {
@@ -218,17 +263,19 @@ export class CoursesService {
     return enrollments.map((e) => {
       let totalLessons = 0;
       e.course.modules.forEach((m) => {
-        totalLessons += (m as any)._count?.lessons ?? (m as any).lessons?.length ?? 0;
+        totalLessons +=
+          (m as any)._count?.lessons ?? (m as any).lessons?.length ?? 0;
       });
 
-      const isEnglish = (
-        [
-          CourseCategory.ENGLISH,
-          CourseCategory.IELTS,
-          CourseCategory.BUSINESS,
-          CourseCategory.KIDS,
-        ] as CourseCategory[]
-      ).includes(e.course.category) || !!(e.course as any).isEnglishCourse;
+      const isEnglish =
+        (
+          [
+            CourseCategory.ENGLISH,
+            CourseCategory.IELTS,
+            CourseCategory.BUSINESS,
+            CourseCategory.KIDS,
+          ] as CourseCategory[]
+        ).includes(e.course.category) || !!(e.course as any).isEnglishCourse;
 
       return {
         enrollmentId: e.id,
@@ -324,7 +371,9 @@ export class CoursesService {
     const baseSlug = this.generateSlug(rawSlug);
 
     let finalSlug = baseSlug;
-    const existing = await this.prisma.course.findUnique({ where: { slug: finalSlug } });
+    const existing = await this.prisma.course.findUnique({
+      where: { slug: finalSlug },
+    });
     if (existing) {
       // Nếu bị trùng tên, thêm date ở đằng sau (YYYYMMDD)
       const now = new Date();
@@ -335,7 +384,9 @@ export class CoursesService {
       finalSlug = `${baseSlug}-${dateStr}`;
 
       let counter = 1;
-      while (await this.prisma.course.findUnique({ where: { slug: finalSlug } })) {
+      while (
+        await this.prisma.course.findUnique({ where: { slug: finalSlug } })
+      ) {
         finalSlug = `${baseSlug}-${dateStr}-${counter}`;
         counter++;
       }
@@ -369,7 +420,10 @@ export class CoursesService {
   }
 
   async updateCourse(id: string, dto: UpdateCourseDto) {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id,
+      );
     const course = await this.prisma.course.findFirst({
       where: isUuid ? { id } : { slug: id },
     });
@@ -389,7 +443,8 @@ export class CoursesService {
     const dataToUpdate: any = {};
     if (dto.title !== undefined) dataToUpdate.title = dto.title.trim();
     if (dto.slug !== undefined) dataToUpdate.slug = dto.slug.trim();
-    if (dto.description !== undefined) dataToUpdate.description = dto.description;
+    if (dto.description !== undefined)
+      dataToUpdate.description = dto.description;
     if (dto.category !== undefined) {
       dataToUpdate.category = dto.category;
       dataToUpdate.isEnglishCourse = (
@@ -404,7 +459,8 @@ export class CoursesService {
     if (dto.level !== undefined) dataToUpdate.level = dto.level;
     if (dto.price !== undefined) dataToUpdate.price = Number(dto.price);
     if (dto.thumbnail !== undefined) dataToUpdate.thumbnail = dto.thumbnail;
-    if (dto.isPublished !== undefined) dataToUpdate.isPublished = dto.isPublished;
+    if (dto.isPublished !== undefined)
+      dataToUpdate.isPublished = dto.isPublished;
 
     const updated = await this.prisma.course.update({
       where: { id: course.id },
@@ -419,19 +475,27 @@ export class CoursesService {
     if (!file) {
       throw new NotFoundException('Vui lòng chọn tệp ảnh bìa khóa học.');
     }
-    const result = await this.cloudinaryService.uploadImage(file, 'teacher_dong_academy/courses');
+    const result = await this.cloudinaryService.uploadImage(
+      file,
+      'teacher_dong_academy/courses',
+    );
     return { url: result.secureUrl || result.url };
   }
 
   async uploadThumbnail(courseId: string, file: Express.Multer.File) {
-    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
     if (!course) {
       throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
     }
     if (!file) {
       throw new NotFoundException('Vui lòng chọn tệp ảnh bìa khóa học.');
     }
-    const result = await this.cloudinaryService.uploadImage(file, 'teacher_dong_academy/courses');
+    const result = await this.cloudinaryService.uploadImage(
+      file,
+      'teacher_dong_academy/courses',
+    );
     const updated = await this.prisma.course.update({
       where: { id: courseId },
       data: { thumbnail: result.secureUrl || result.url },
@@ -452,19 +516,35 @@ export class CoursesService {
   }
 
   async enrollCourse(courseId: string, userId: string) {
-    const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        courseId,
+      );
+    const course = await this.prisma.course.findFirst({
+      where: isUuid ? { id: courseId } : { slug: courseId },
     });
 
     if (!course) {
       throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
     }
 
+    if (!course.isPublished) {
+      throw new BadRequestException(
+        'Khóa học này hiện chưa được công khai hoặc tạm dừng đăng ký.',
+      );
+    }
+
+    if (course.price && Number(course.price) > 0) {
+      throw new BadRequestException(
+        'Khóa học này có thu phí. Vui lòng gửi yêu cầu thanh toán chuyển khoản qua VietQR.',
+      );
+    }
+
     const enrollment = await this.prisma.enrollment.upsert({
       where: {
         userId_courseId: {
           userId,
-          courseId,
+          courseId: course.id,
         },
       },
       update: {
@@ -472,7 +552,7 @@ export class CoursesService {
       },
       create: {
         userId,
-        courseId,
+        courseId: course.id,
         status: 'ACTIVE',
         progressPercent: 0,
       },
@@ -498,33 +578,66 @@ export class CoursesService {
     paymentNote?: string,
     paymentAmount?: number,
   ) {
-    const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        courseId,
+      );
+    const course = await this.prisma.course.findFirst({
+      where: isUuid ? { id: courseId } : { slug: courseId },
     });
 
     if (!course) {
-      throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
+      throw new NotFoundException(`Không tìm thấy khóa học: ${courseId}`);
     }
+
+    if (!course.isPublished) {
+      throw new BadRequestException(
+        'Khóa học này hiện chưa được công khai hoặc tạm dừng đăng ký.',
+      );
+    }
+
+    const existing = await this.prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: {
+          userId,
+          courseId: course.id,
+        },
+      },
+    });
+
+    if (existing && existing.status === 'ACTIVE') {
+      throw new BadRequestException(
+        'Bạn đã sở hữu và được kích hoạt khóa học này rồi.',
+      );
+    }
+
+    const safeNote = (
+      paymentNote?.trim() || `TD ${userId} ${course.slug}`
+    ).slice(0, 190);
+    const safeAmount =
+      paymentAmount !== undefined && paymentAmount >= 0
+        ? paymentAmount
+        : (course as any).price || 2500000;
 
     const enrollment = await this.prisma.enrollment.upsert({
       where: {
         userId_courseId: {
           userId,
-          courseId,
+          courseId: course.id,
         },
       },
       update: {
         status: 'PENDING',
-        paymentNote: paymentNote || `TD ${userId} ${course.slug}`,
-        paymentAmount: paymentAmount || 2500000,
+        paymentNote: safeNote,
+        paymentAmount: safeAmount,
         enrolledAt: new Date(),
       },
       create: {
         userId,
-        courseId,
+        courseId: course.id,
         status: 'PENDING',
-        paymentNote: paymentNote || `TD ${userId} ${course.slug}`,
-        paymentAmount: paymentAmount || 2500000,
+        paymentNote: safeNote,
+        paymentAmount: safeAmount,
         progressPercent: 0,
       },
       include: {
@@ -591,7 +704,9 @@ export class CoursesService {
     });
 
     if (!enrollment) {
-      throw new NotFoundException(`Không tìm thấy yêu cầu ghi danh ID: ${enrollmentId}`);
+      throw new NotFoundException(
+        `Không tìm thấy yêu cầu ghi danh ID: ${enrollmentId}`,
+      );
     }
 
     const updated = await this.prisma.enrollment.update({
@@ -605,8 +720,25 @@ export class CoursesService {
 
     await this.redisService.delPattern('cache:courses:*');
 
+    // Send email notification to student about successful activation
+    if (updated.user?.email && this.mailService) {
+      const subject = `[Teacher Dong Academy] Chúc mừng! Khóa học "${updated.course?.title || ''}" của bạn đã được kích hoạt`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #0284c7; margin-bottom: 16px;">Kích Hoạt Khóa Học Thành Công! 🎉</h2>
+          <p>Xin chào <strong>${updated.user.fullName || updated.user.email}</strong>,</p>
+          <p>Ban quản trị đã đối soát học phí và kích hoạt thành công khóa học <strong>${updated.course?.title || ''}</strong> trên tài khoản của bạn.</p>
+          <p>Toàn bộ bài học, video và tài liệu của khóa học hiện đã được mở khóa. Bạn có thể vào học ngay bây giờ.</p>
+          <p style="margin-top: 24px;">Chúc bạn học tập hiệu quả!<br/><strong>Ban Quản Trị Teacher Dong Academy</strong></p>
+        </div>
+      `;
+      this.mailService
+        .sendMail({ to: updated.user.email, subject, html })
+        .catch(() => {});
+    }
+
     return {
-      message: `Đã xác nhận thanh toán & kích hoạt khóa học "${updated.course.title}" cho học viên ${updated.user.fullName}!`,
+      message: `Đã xác nhận thanh toán & kích hoạt khóa học "${updated.course?.title || ''}" cho học viên ${updated.user?.fullName || updated.user?.email || ''}!`,
       enrollment: updated,
     };
   }
@@ -621,7 +753,9 @@ export class CoursesService {
     });
 
     if (!enrollment) {
-      throw new NotFoundException(`Không tìm thấy yêu cầu ghi danh ID: ${enrollmentId}`);
+      throw new NotFoundException(
+        `Không tìm thấy yêu cầu ghi danh ID: ${enrollmentId}`,
+      );
     }
 
     const updated = await this.prisma.enrollment.update({
@@ -649,11 +783,14 @@ export class CoursesService {
           <p style="margin-top: 24px;">Trân trọng,<br/><strong>Ban Quản Trị Teacher Dong Academy</strong></p>
         </div>
       `;
-      this.mailService.sendMail({ to: updated.user.email, subject, html }).catch(() => {});
+      this.mailService
+        .sendMail({ to: updated.user.email, subject, html })
+        .catch(() => {});
     }
 
     return {
-      message: 'Đã từ chối yêu cầu đăng ký khóa học và gửi email thông báo cho học viên',
+      message:
+        'Đã từ chối yêu cầu đăng ký khóa học và gửi email thông báo cho học viên',
       enrollment: updated,
     };
   }
@@ -661,10 +798,16 @@ export class CoursesService {
   /**
    * Admin ghi danh thủ công học viên vào khóa học bất kỳ
    */
-  async manualEnroll(courseId: string, userId: string) {
-    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+  async manualEnroll(courseId: string, userId: string, note?: string) {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        courseId,
+      );
+    const course = await this.prisma.course.findFirst({
+      where: isUuid ? { id: courseId } : { slug: courseId },
+    });
     if (!course) {
-      throw new NotFoundException(`Không tìm thấy khóa học ID: ${courseId}`);
+      throw new NotFoundException(`Không tìm thấy khóa học: ${courseId}`);
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -672,21 +815,25 @@ export class CoursesService {
       throw new NotFoundException(`Không tìm thấy học viên ID: ${userId}`);
     }
 
+    const safeNote = note?.trim() ? note.trim().slice(0, 190) : undefined;
+
     const enrollment = await this.prisma.enrollment.upsert({
       where: {
         userId_courseId: {
           userId,
-          courseId,
+          courseId: course.id,
         },
       },
       update: {
         status: 'ACTIVE',
+        paymentNote: safeNote,
         approvedAt: new Date(),
       },
       create: {
         userId,
-        courseId,
+        courseId: course.id,
         status: 'ACTIVE',
+        paymentNote: safeNote,
         approvedAt: new Date(),
         progressPercent: 0,
       },
@@ -704,17 +851,29 @@ export class CoursesService {
     };
   }
 
-  private configFilePath = path.join(process.cwd(), 'data', 'system-config.json');
+  private configFilePath = path.join(
+    process.cwd(),
+    'data',
+    'system-config.json',
+  );
 
   /**
    * Lấy tỷ giá quy đổi USD / VND hệ thống hiện hành
    */
-  getExchangeRate(): { exchangeRate: number; defaultRate: number; updatedAt?: string } {
+  getExchangeRate(): {
+    exchangeRate: number;
+    defaultRate: number;
+    updatedAt?: string;
+  } {
     try {
       if (fs.existsSync(this.configFilePath)) {
         const raw = fs.readFileSync(this.configFilePath, 'utf8');
         const data = JSON.parse(raw);
-        if (data && typeof data.exchangeRate === 'number' && data.exchangeRate > 0) {
+        if (
+          data &&
+          typeof data.exchangeRate === 'number' &&
+          data.exchangeRate > 0
+        ) {
           return {
             exchangeRate: data.exchangeRate,
             defaultRate: 25400,
@@ -733,7 +892,9 @@ export class CoursesService {
    */
   updateExchangeRate(newRate: number) {
     if (!newRate || isNaN(newRate) || newRate <= 0) {
-      throw new BadRequestException('Tỷ giá phải là một số dương hợp lệ (ví dụ: 25400)');
+      throw new BadRequestException(
+        'Tỷ giá phải là một số dương hợp lệ (ví dụ: 25400)',
+      );
     }
     const dir = path.dirname(this.configFilePath);
     if (!fs.existsSync(dir)) {
@@ -748,7 +909,11 @@ export class CoursesService {
 
     currentData.exchangeRate = Math.round(newRate);
     currentData.updatedAt = new Date().toISOString();
-    fs.writeFileSync(this.configFilePath, JSON.stringify(currentData, null, 2), 'utf8');
+    fs.writeFileSync(
+      this.configFilePath,
+      JSON.stringify(currentData, null, 2),
+      'utf8',
+    );
 
     return {
       message: `Đã cập nhật tỷ giá ngoại tệ toàn hệ thống: 1 USD = ${currentData.exchangeRate.toLocaleString('vi-VN')} VND`,
@@ -775,19 +940,26 @@ export class CoursesService {
         { isEnglishCourse: true },
       ];
     } else if (track === 'PERSONAL_DEV') {
-      where.category = { in: ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'] };
+      where.category = {
+        in: ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'],
+      };
     }
 
     const coursesToUpdate = await this.prisma.course.findMany({ where });
     if (coursesToUpdate.length === 0) {
-      return { updatedCount: 0, message: 'Không tìm thấy khóa học nào phù hợp với phạm vi đã chọn.' };
+      return {
+        updatedCount: 0,
+        message: 'Không tìm thấy khóa học nào phù hợp với phạm vi đã chọn.',
+      };
     }
 
     let updatedCount = 0;
 
     if (mode === 'FLAT') {
       if (flatPrice === undefined || isNaN(flatPrice) || flatPrice < 0) {
-        throw new BadRequestException('Mức đồng giá phải là một số hợp lệ (>= 0)');
+        throw new BadRequestException(
+          'Mức đồng giá phải là một số hợp lệ (>= 0)',
+        );
       }
       const result = await this.prisma.course.updateMany({
         where,
@@ -796,11 +968,16 @@ export class CoursesService {
       updatedCount = result.count;
     } else if (mode === 'PERCENTAGE') {
       if (percentage === undefined || isNaN(percentage)) {
-        throw new BadRequestException('Tỷ lệ phần trăm điều chỉnh không hợp lệ');
+        throw new BadRequestException(
+          'Tỷ lệ phần trăm điều chỉnh không hợp lệ',
+        );
       }
       const factor = 1 + percentage / 100;
       for (const c of coursesToUpdate) {
-        const newPrice = Math.max(0, Math.round((c.price * factor) / 10000) * 10000);
+        const newPrice = Math.max(
+          0,
+          Math.round((c.price * factor) / 10000) * 10000,
+        );
         await this.prisma.course.update({
           where: { id: c.id },
           data: { price: newPrice },
@@ -813,9 +990,10 @@ export class CoursesService {
 
     return {
       updatedCount,
-      message: mode === 'FLAT'
-        ? `Đã áp dụng mức đồng giá ${Number(flatPrice).toLocaleString('vi-VN')}đ cho ${updatedCount} khóa học trên toàn hệ thống!`
-        : `Đã điều chỉnh ${percentage !== undefined && percentage >= 0 ? '+' : ''}${percentage}% giá cho ${updatedCount} khóa học trên toàn hệ thống!`,
+      message:
+        mode === 'FLAT'
+          ? `Đã áp dụng mức đồng giá ${Number(flatPrice).toLocaleString('vi-VN')}đ cho ${updatedCount} khóa học trên toàn hệ thống!`
+          : `Đã điều chỉnh ${percentage !== undefined && percentage >= 0 ? '+' : ''}${percentage}% giá cho ${updatedCount} khóa học trên toàn hệ thống!`,
     };
   }
 }

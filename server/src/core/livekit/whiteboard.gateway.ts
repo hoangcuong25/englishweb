@@ -15,12 +15,14 @@ import { Role } from '@prisma/client';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: true,
     credentials: true,
   },
   namespace: '/whiteboard',
 })
-export class WhiteboardGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class WhiteboardGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -33,7 +35,9 @@ export class WhiteboardGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected from Whiteboard WebSocket: ${client.id}`);
+    this.logger.log(
+      `Client disconnected from Whiteboard WebSocket: ${client.id}`,
+    );
   }
 
   @SubscribeMessage('joinWhiteboard')
@@ -83,7 +87,11 @@ export class WhiteboardGateway implements OnGatewayConnection, OnGatewayDisconne
         role: Role.STUDENT,
       };
 
-      const stroke = this.whiteboardService.addStroke(data.roomName, data.stroke, user);
+      const stroke = this.whiteboardService.addStroke(
+        data.roomName,
+        data.stroke,
+        user,
+      );
 
       // Phát sự kiện nét vẽ mới tới tất cả thành viên khác trong phòng học
       client.to(`wb_${data.roomName}`).emit('strokeAdded', {
@@ -139,7 +147,10 @@ export class WhiteboardGateway implements OnGatewayConnection, OnGatewayDisconne
     },
   ) {
     if (!data?.roomName || data.role !== Role.ADMIN) {
-      return { status: 'forbidden', message: 'Chỉ Admin mới có quyền điều khiển bảng trắng' };
+      return {
+        status: 'forbidden',
+        message: 'Chỉ Admin mới có quyền điều khiển bảng trắng',
+      };
     }
 
     const res = this.whiteboardService.setStudentDrawingPermission(

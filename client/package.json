@@ -14,7 +14,6 @@
     "@livekit/components-styles": "^1.2.0",
     "axios": "^1.21.0",
     "clsx": "^2.1.1",
-    "englishweb": "file:..",
     "livekit-client": "^2.23.0",
     "lucide-react": "^1.67.0",
     "next": "14.2.24",

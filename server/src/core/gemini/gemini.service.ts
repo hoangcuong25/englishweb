@@ -21,10 +21,14 @@ export interface IeltsWritingEvaluationResult {
 export class GeminiService {
   private readonly logger = new Logger(GeminiService.name);
   private ai: GoogleGenAI | null = null;
-  private readonly modelName = 'gemini-3.8-flash';
+  private readonly modelName: string;
   private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
+    this.modelName =
+      this.configService.get<string>('GEMINI_MODEL') ||
+      process.env.GEMINI_MODEL ||
+      'gemini-2.5-flash';
     this.apiKey =
       this.configService.get<string>('GEMINI_API_KEY') ||
       process.env.GEMINI_API_KEY ||
@@ -33,13 +37,19 @@ export class GeminiService {
     if (this.apiKey && this.apiKey !== 'AIzaSy_YOUR_GEMINI_API_KEY_HERE') {
       try {
         this.ai = new GoogleGenAI({ apiKey: this.apiKey });
-        this.logger.log(`Google Gemini AI initialized successfully with model ${this.modelName}`);
+        this.logger.log(
+          `Google Gemini AI initialized successfully with model ${this.modelName}`,
+        );
       } catch (err) {
-        this.logger.warn(`Failed to initialize Google Gemini AI client: ${err}`);
+        this.logger.warn(
+          `Failed to initialize Google Gemini AI client: ${err}`,
+        );
         this.ai = null;
       }
     } else {
-      this.logger.warn('No valid GEMINI_API_KEY found. Heuristic AI Fallback evaluator will be used.');
+      this.logger.warn(
+        'No valid GEMINI_API_KEY found. Heuristic AI Fallback evaluator will be used.',
+      );
     }
   }
 
@@ -100,7 +110,10 @@ Vui lòng trả về DUY NHẤT một chuỗi JSON hợp lệ không bọc trong
 `.trim();
 
         const timeoutPromise = new Promise<never>((_, reject) => {
-          const timer = setTimeout(() => reject(new Error('Gemini API request timed out after 25s')), 25000);
+          const timer = setTimeout(
+            () => reject(new Error('Gemini API request timed out after 25s')),
+            25000,
+          );
           if (timer.unref) timer.unref();
         });
 
@@ -120,22 +133,39 @@ Vui lòng trả về DUY NHẤT một chuỗi JSON hợp lệ không bọc trong
           const parsed = JSON.parse(text);
           return {
             taskAchievementScore: Number(parsed.taskAchievementScore) || 7.0,
-            coherenceCohesionScore: Number(parsed.coherenceCohesionScore) || 7.0,
+            coherenceCohesionScore:
+              Number(parsed.coherenceCohesionScore) || 7.0,
             lexicalResourceScore: Number(parsed.lexicalResourceScore) || 7.0,
             grammarScore: Number(parsed.grammarScore) || 7.0,
             overallBand: Number(parsed.overallBand) || 7.0,
-            aiFeedback: parsed.aiFeedback || 'Đánh giá chi tiết từ Google Gemini Model.',
-            aiSuggestions: Array.isArray(parsed.aiSuggestions) ? parsed.aiSuggestions : [],
-            sampleBand8Essay: parsed.sampleBand8Essay || sampleEssay || this.getDefaultSampleEssay(topic),
+            aiFeedback:
+              parsed.aiFeedback || 'Đánh giá chi tiết từ Google Gemini Model.',
+            aiSuggestions: Array.isArray(parsed.aiSuggestions)
+              ? parsed.aiSuggestions
+              : [],
+            sampleBand8Essay:
+              parsed.sampleBand8Essay ||
+              sampleEssay ||
+              this.getDefaultSampleEssay(topic),
           };
         }
       } catch (geminiError) {
-        this.logger.error('Gemini API call failed, falling back to local heuristic evaluator:', geminiError);
+        this.logger.error(
+          'Gemini API call failed, falling back to local heuristic evaluator:',
+          geminiError,
+        );
       }
     }
 
     // Heuristic AI Fallback Evaluation
-    return this.runHeuristicEvaluation(taskType, topic, targetWords, essayContent, wordCount, sampleEssay);
+    return this.runHeuristicEvaluation(
+      taskType,
+      topic,
+      targetWords,
+      essayContent,
+      wordCount,
+      sampleEssay,
+    );
   }
 
   /**
@@ -157,12 +187,30 @@ Vui lòng trả về DUY NHẤT một chuỗi JSON hợp lệ không bọc trong
     let lr = 7.0;
     let gra = 7.0;
 
-    const cohesiveLinkers = ['furthermore', 'moreover', 'consequently', 'in contrast', 'on the other hand', 'nevertheless'];
-    const hasCohesiveLinkers = cohesiveLinkers.some((l) => content.toLowerCase().includes(l));
+    const cohesiveLinkers = [
+      'furthermore',
+      'moreover',
+      'consequently',
+      'in contrast',
+      'on the other hand',
+      'nevertheless',
+    ];
+    const hasCohesiveLinkers = cohesiveLinkers.some((l) =>
+      content.toLowerCase().includes(l),
+    );
     if (hasCohesiveLinkers) cc += 0.5;
 
-    const academicWords = ['proliferation', 'imperative', 'predominant', 'substantial', 'indispensable', 'paramount'];
-    const hasAcademicWords = academicWords.some((w) => content.toLowerCase().includes(w));
+    const academicWords = [
+      'proliferation',
+      'imperative',
+      'predominant',
+      'substantial',
+      'indispensable',
+      'paramount',
+    ];
+    const hasAcademicWords = academicWords.some((w) =>
+      content.toLowerCase().includes(w),
+    );
     if (hasAcademicWords) lr += 0.5;
 
     const rawBand = (tr + cc + lr + gra) / 4;
@@ -195,7 +243,8 @@ Vui lòng trả về DUY NHẤT một chuỗi JSON hợp lệ không bọc trong
       },
       {
         original: 'it can make things worse',
-        suggestion: 'it could potentially exacerbate existing socio-economic disparities',
+        suggestion:
+          'it could potentially exacerbate existing socio-economic disparities',
         type: 'Sentence Architecture Refinement',
       },
     ];

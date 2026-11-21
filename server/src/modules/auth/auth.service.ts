@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../core/prisma/prisma.service';
@@ -54,7 +60,11 @@ export class AuthService {
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    await this.redisService.set(`otp:register:${normalizedEmail}`, otpCode, 10 * 60);
+    await this.redisService.set(
+      `otp:register:${normalizedEmail}`,
+      otpCode,
+      10 * 60,
+    );
     await this.redisService.set(rateLimitKey, '1', 60);
 
     try {
@@ -65,7 +75,9 @@ export class AuthService {
         expiresInMinutes: 10,
       });
     } catch (err) {
-      console.warn(`Failed to dispatch register OTP email to ${normalizedEmail}: ${err}`);
+      console.warn(
+        `Failed to dispatch register OTP email to ${normalizedEmail}: ${err}`,
+      );
     }
 
     return {
@@ -93,7 +105,9 @@ export class AuthService {
     }
 
     // Strict OTP verification for registration
-    const storedOtp = await this.redisService.get(`otp:register:${normalizedEmail}`);
+    const storedOtp = await this.redisService.get(
+      `otp:register:${normalizedEmail}`,
+    );
     if (storedOtp || dto.otp) {
       if (!dto.otp || !storedOtp || dto.otp.trim() !== storedOtp) {
         throw AppException.badRequest(
@@ -130,7 +144,14 @@ export class AuthService {
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role, dto.deviceId, ipAddress, userAgent);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      dto.deviceId,
+      ipAddress,
+      userAgent,
+    );
     return { user, ...tokens };
   }
 
@@ -151,7 +172,9 @@ export class AuthService {
     const failAttemptsStr = await this.redisService.get(rateLimitKey);
     const failAttempts = failAttemptsStr ? parseInt(failAttemptsStr, 10) : 0;
     if (failAttempts >= 5) {
-      throw new UnauthorizedException('Tài khoản đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 5 phút.');
+      throw new UnauthorizedException(
+        'Tài khoản đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 5 phút.',
+      );
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
@@ -181,17 +204,34 @@ export class AuthService {
       });
 
       // Revoke prior active session in Redis
-      const oldSessionToken = await this.redisService.get(`user:session:${user.id}`);
+      const oldSessionToken = await this.redisService.get(
+        `user:session:${user.id}`,
+      );
       if (oldSessionToken) {
-        await this.redisService.set(`blacklist:token:${oldSessionToken}`, 'revoked', 7 * 24 * 3600);
+        await this.redisService.set(
+          `blacklist:token:${oldSessionToken}`,
+          'revoked',
+          7 * 24 * 3600,
+        );
       }
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role, dto.deviceId, ipAddress, userAgent);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      dto.deviceId,
+      ipAddress,
+      userAgent,
+    );
 
     // Track latest active session in Redis for instant invalidation
     if (user.role === Role.STUDENT) {
-      await this.redisService.set(`user:session:${user.id}`, tokens.refreshToken, 7 * 24 * 3600);
+      await this.redisService.set(
+        `user:session:${user.id}`,
+        tokens.refreshToken,
+        7 * 24 * 3600,
+      );
     }
 
     return {
@@ -256,10 +296,18 @@ export class AuthService {
 
     if (googleAccount) {
       user = googleAccount.user;
-      const updateData: { fullName?: string; avatarUrl?: string; email?: string } = {};
+      const updateData: {
+        fullName?: string;
+        avatarUrl?: string;
+        email?: string;
+      } = {};
 
       // Sync latest Google name & avatar if changed
-      if (fullName && fullName !== 'Google Student' && user.fullName !== fullName) {
+      if (
+        fullName &&
+        fullName !== 'Google Student' &&
+        user.fullName !== fullName
+      ) {
         updateData.fullName = fullName;
       }
       if (avatarUrl && user.avatarUrl !== avatarUrl) {
@@ -346,7 +394,14 @@ export class AuthService {
       });
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role, dto.deviceId, ipAddress, userAgent);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      dto.deviceId,
+      ipAddress,
+      userAgent,
+    );
 
     return {
       user: {
@@ -390,7 +445,9 @@ export class AuthService {
     });
 
     if (existing) {
-      throw new ConflictException('This Google account is already linked to another user');
+      throw new ConflictException(
+        'This Google account is already linked to another user',
+      );
     }
 
     await this.prisma.googleAccount.create({
@@ -419,7 +476,9 @@ export class AuthService {
     }
 
     if (!user.passwordHash) {
-      throw new BadRequestException('Cannot unlink Google account without setting a local password first');
+      throw new BadRequestException(
+        'Cannot unlink Google account without setting a local password first',
+      );
     }
 
     await this.prisma.googleAccount.delete({
@@ -448,7 +507,11 @@ export class AuthService {
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    await this.redisService.set(`otp:change_password:${userId}`, otpCode, 10 * 60);
+    await this.redisService.set(
+      `otp:change_password:${userId}`,
+      otpCode,
+      10 * 60,
+    );
     await this.redisService.set(rateLimitKey, '1', 60);
 
     try {
@@ -481,10 +544,14 @@ export class AuthService {
     }
 
     // Verify OTP if OTP exists or if dto.otp provided
-    const storedOtp = await this.redisService.get(`otp:change_password:${userId}`);
+    const storedOtp = await this.redisService.get(
+      `otp:change_password:${userId}`,
+    );
     if (dto.otp || storedOtp) {
       if (!dto.otp || !storedOtp || dto.otp.trim() !== storedOtp) {
-        throw new BadRequestException('Mã OTP xác thực không chính xác hoặc đã hết hạn (quá 10 phút)');
+        throw new BadRequestException(
+          'Mã OTP xác thực không chính xác hoặc đã hết hạn (quá 10 phút)',
+        );
       }
       // Clear OTP upon successful verification
       try {
@@ -507,7 +574,11 @@ export class AuthService {
     });
 
     // Invalidate user in Redis session store
-    await this.redisService.set(`blacklist:user:${userId}`, 'revoked', 7 * 24 * 3600);
+    await this.redisService.set(
+      `blacklist:user:${userId}`,
+      'revoked',
+      7 * 24 * 3600,
+    );
     await this.redisService.del(`user:session:${userId}`);
     await this.redisService.del(`user:active_session:${userId}`);
 
@@ -527,15 +598,23 @@ export class AuthService {
   /**
    * 7. Refresh Token Rotation
    */
-  async refreshTokens(refreshToken: string, ipAddress?: string, userAgent?: string) {
+  async refreshTokens(
+    refreshToken: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token is required');
     }
 
     // Fast check against Redis blacklist
-    const isTokenBlacklisted = await this.redisService.get(`blacklist:token:${refreshToken}`);
+    const isTokenBlacklisted = await this.redisService.get(
+      `blacklist:token:${refreshToken}`,
+    );
     if (isTokenBlacklisted) {
-      throw new UnauthorizedException('Invalid, revoked or expired refresh token');
+      throw new UnauthorizedException(
+        'Invalid, revoked or expired refresh token',
+      );
     }
 
     const tokenRecord = await this.prisma.refreshToken.findUnique({
@@ -543,11 +622,20 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!tokenRecord || tokenRecord.isRevoked || tokenRecord.revokedAt || new Date() > tokenRecord.expiresAt) {
-      throw new UnauthorizedException('Invalid, revoked or expired refresh token');
+    if (
+      !tokenRecord ||
+      tokenRecord.isRevoked ||
+      tokenRecord.revokedAt ||
+      new Date() > tokenRecord.expiresAt
+    ) {
+      throw new UnauthorizedException(
+        'Invalid, revoked or expired refresh token',
+      );
     }
 
-    const isUserBlacklisted = await this.redisService.get(`blacklist:user:${tokenRecord.userId}`);
+    const isUserBlacklisted = await this.redisService.get(
+      `blacklist:user:${tokenRecord.userId}`,
+    );
     if (isUserBlacklisted) {
       throw new UnauthorizedException('User sessions have been invalidated');
     }
@@ -559,9 +647,20 @@ export class AuthService {
     });
 
     // Blacklist rotated token in Redis
-    await this.redisService.set(`blacklist:token:${refreshToken}`, 'revoked', 7 * 24 * 3600);
+    await this.redisService.set(
+      `blacklist:token:${refreshToken}`,
+      'revoked',
+      7 * 24 * 3600,
+    );
 
-    return this.generateTokens(tokenRecord.user.id, tokenRecord.user.email, tokenRecord.user.role, tokenRecord.deviceId, ipAddress, userAgent);
+    return this.generateTokens(
+      tokenRecord.user.id,
+      tokenRecord.user.email,
+      tokenRecord.user.role,
+      tokenRecord.deviceId,
+      ipAddress,
+      userAgent,
+    );
   }
 
   /**
@@ -577,10 +676,16 @@ export class AuthService {
         where: { token: refreshToken, revokedAt: null },
         data: { revokedAt: new Date(), isRevoked: true },
       });
-      await this.redisService.set(`blacklist:token:${refreshToken}`, 'revoked', 7 * 24 * 3600);
+      await this.redisService.set(
+        `blacklist:token:${refreshToken}`,
+        'revoked',
+        7 * 24 * 3600,
+      );
       if (tokenRecord?.userId) {
         await this.redisService.del(`user:session:${tokenRecord.userId}`);
-        await this.redisService.del(`user:active_session:${tokenRecord.userId}`);
+        await this.redisService.del(
+          `user:active_session:${tokenRecord.userId}`,
+        );
       }
     }
     return { message: 'Logged out successfully' };
@@ -594,7 +699,11 @@ export class AuthService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date(), isRevoked: true },
     });
-    await this.redisService.set(`blacklist:user:${userId}`, 'revoked', 7 * 24 * 3600);
+    await this.redisService.set(
+      `blacklist:user:${userId}`,
+      'revoked',
+      7 * 24 * 3600,
+    );
     await this.redisService.del(`user:session:${userId}`);
     await this.redisService.del(`user:active_session:${userId}`);
     return { message: 'Logged out from all devices successfully' };
@@ -701,8 +810,10 @@ export class AuthService {
       where: { id: userId },
       data: {
         phone: dto.phone !== undefined ? dto.phone.trim() : user.phone,
-        fullName: dto.fullName !== undefined ? dto.fullName.trim() : user.fullName,
-        avatarUrl: dto.avatarUrl !== undefined ? dto.avatarUrl.trim() : user.avatarUrl,
+        fullName:
+          dto.fullName !== undefined ? dto.fullName.trim() : user.fullName,
+        avatarUrl:
+          dto.avatarUrl !== undefined ? dto.avatarUrl.trim() : user.avatarUrl,
       },
       select: {
         id: true,
@@ -733,7 +844,9 @@ export class AuthService {
     }
 
     if (!file) {
-      throw new BadRequestException('Vui lòng chọn file hình ảnh hợp lệ để upload avatar');
+      throw new BadRequestException(
+        'Vui lòng chọn file hình ảnh hợp lệ để upload avatar',
+      );
     }
 
     const uploadRes = await this.cloudinaryService.uploadImage(
@@ -779,7 +892,13 @@ export class AuthService {
     const jwtSecret =
       this.configService.get<string>('JWT_SECRET') ||
       this.configService.get<string>('JWT_ACCESS_TOKEN_SECRET') ||
-      'your_super_secret_jwt_key_teacher_dong_2026';
+      (process.env.NODE_ENV === 'production'
+        ? (() => {
+            throw new Error(
+              'CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing in production!',
+            );
+          })()
+        : 'dev_jwt_secret_teacher_dong_2026');
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: jwtSecret,
@@ -802,7 +921,11 @@ export class AuthService {
     });
 
     if (role === Role.STUDENT) {
-      await this.redisService.set(`user:active_session:${userId}`, sessionId, 7 * 24 * 3600);
+      await this.redisService.set(
+        `user:active_session:${userId}`,
+        sessionId,
+        7 * 24 * 3600,
+      );
     }
 
     return {
@@ -859,13 +982,21 @@ export class AuthService {
     );
 
     try {
-      await this.redisService.set(`password_reset:${user.id}`, resetToken, 15 * 60);
+      await this.redisService.set(
+        `password_reset:${user.id}`,
+        resetToken,
+        15 * 60,
+      );
     } catch {}
 
     // Generate 6-digit OTP code for password reset
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     try {
-      await this.redisService.set(`otp:password_reset:${user.email.toLowerCase()}`, otpCode, 10 * 60);
+      await this.redisService.set(
+        `otp:password_reset:${user.email.toLowerCase()}`,
+        otpCode,
+        10 * 60,
+      );
     } catch {}
 
     await this.mailService.sendForgotPasswordEmail({
@@ -885,7 +1016,8 @@ export class AuthService {
 
     return {
       success: true,
-      message: 'Mã xác thực OTP và liên kết đặt lại mật khẩu đã được gửi đến email của bạn.',
+      message:
+        'Mã xác thực OTP và liên kết đặt lại mật khẩu đã được gửi đến email của bạn.',
       otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
     };
   }
@@ -897,7 +1029,9 @@ export class AuthService {
     let user: any;
 
     if (dto.otp && dto.email) {
-      const storedOtp = await this.redisService.get(`otp:password_reset:${dto.email.toLowerCase()}`);
+      const storedOtp = await this.redisService.get(
+        `otp:password_reset:${dto.email.toLowerCase()}`,
+      );
       if (!storedOtp || storedOtp !== dto.otp.trim()) {
         throw AppException.badRequest(
           AppErrorCode.AUTH_RESET_TOKEN_INVALID,
@@ -918,7 +1052,9 @@ export class AuthService {
 
       // Delete OTP on success
       try {
-        await this.redisService.del(`otp:password_reset:${dto.email.toLowerCase()}`);
+        await this.redisService.del(
+          `otp:password_reset:${dto.email.toLowerCase()}`,
+        );
       } catch {}
     } else if (dto.token) {
       const secret = this.configService.get<string>('JWT_SECRET');
@@ -940,7 +1076,9 @@ export class AuthService {
       }
 
       // SEC-004: Check Redis to ensure token has not been used or invalidated (Single-use token enforcement)
-      const storedResetToken = await this.redisService.get(`password_reset:${payload.sub}`);
+      const storedResetToken = await this.redisService.get(
+        `password_reset:${payload.sub}`,
+      );
       if (!storedResetToken || storedResetToken !== dto.token) {
         throw AppException.badRequest(
           AppErrorCode.AUTH_RESET_TOKEN_EXPIRED,
@@ -1000,7 +1138,8 @@ export class AuthService {
 
     return {
       success: true,
-      message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.',
+      message:
+        'Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.',
     };
   }
 }

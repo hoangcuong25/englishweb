@@ -14,8 +14,10 @@ let whiteboardSocket: Socket | null = null;
  */
 export function getChatSocket(): Socket {
   if (!chatSocket) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     chatSocket = io(`${SOCKET_SERVER_URL}/chat`, {
       withCredentials: true,
+      auth: { token },
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnectionAttempts: 5,
@@ -33,8 +35,10 @@ export function getChatSocket(): Socket {
  */
 export function getNotificationsSocket(): Socket {
   if (!notificationsSocket) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     notificationsSocket = io(`${SOCKET_SERVER_URL}/notifications`, {
       withCredentials: true,
+      auth: { token },
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnectionAttempts: 5,

@@ -32,7 +32,13 @@ export class MaterialsService {
     const secret =
       this.configService.get<string>('JWT_SECRET') ||
       this.configService.get<string>('JWT_ACCESS_TOKEN_SECRET') ||
-      'your_super_secret_jwt_key_teacher_dong_2026';
+      (process.env.NODE_ENV === 'production'
+        ? (() => {
+            throw new Error(
+              'CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing in production!',
+            );
+          })()
+        : 'dev_jwt_secret_teacher_dong_2026');
     this.jwtSecret = secret;
   }
 
@@ -53,7 +59,9 @@ export class MaterialsService {
         include: { module: { select: { courseId: true } } },
       });
       if (!lesson) {
-        throw new NotFoundException(`Không tìm thấy bài học ID: ${dto.lessonId}`);
+        throw new NotFoundException(
+          `Không tìm thấy bài học ID: ${dto.lessonId}`,
+        );
       }
       if (!resolvedCourseId && lesson.module) {
         resolvedCourseId = lesson.module.courseId;
@@ -65,7 +73,9 @@ export class MaterialsService {
         where: { id: resolvedCourseId },
       });
       if (!course) {
-        throw new NotFoundException(`Không tìm thấy khóa học ID: ${resolvedCourseId}`);
+        throw new NotFoundException(
+          `Không tìm thấy khóa học ID: ${resolvedCourseId}`,
+        );
       }
     }
 
@@ -154,7 +164,9 @@ export class MaterialsService {
     let lessonId = body.lessonId;
 
     if (courseId) {
-      const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+      const course = await this.prisma.course.findUnique({
+        where: { id: courseId },
+      });
       if (!course) {
         throw AppException.notFound(
           AppErrorCode.COURSE_NOT_FOUND,
@@ -194,7 +206,11 @@ export class MaterialsService {
     const title = (body.title && body.title.trim()) || file.originalname;
 
     // Ensure physical storage folder exists
-    const privateStorageDir = path.join(process.cwd(), 'private_storage', 'materials');
+    const privateStorageDir = path.join(
+      process.cwd(),
+      'private_storage',
+      'materials',
+    );
     if (!fs.existsSync(privateStorageDir)) {
       fs.mkdirSync(privateStorageDir, { recursive: true });
     }
@@ -222,8 +238,12 @@ export class MaterialsService {
       }
     }
 
-    const isPrivate = body.isPrivate !== undefined ? String(body.isPrivate) === 'true' : true;
-    const isWatermarked = body.isWatermarked !== undefined ? String(body.isWatermarked) === 'true' : true;
+    const isPrivate =
+      body.isPrivate !== undefined ? String(body.isPrivate) === 'true' : true;
+    const isWatermarked =
+      body.isWatermarked !== undefined
+        ? String(body.isWatermarked) === 'true'
+        : true;
 
     return this.prisma.material.create({
       data: {
@@ -234,7 +254,7 @@ export class MaterialsService {
         type,
         fileKey,
         fileSize: file.size,
-        durationSeconds: isAudio ? (Number(body.durationSeconds) || 300) : null,
+        durationSeconds: isAudio ? Number(body.durationSeconds) || 300 : null,
         isPrivate,
         isWatermarked,
       },
@@ -310,7 +330,9 @@ export class MaterialsService {
 
     // Q-02: Revoke active 15m signed URLs instantly via Redis Blacklist
     if (this.redisService) {
-      await this.redisService.set(`material_revoked:${id}`, 'revoked', 900).catch(() => {});
+      await this.redisService
+        .set(`material_revoked:${id}`, 'revoked', 900)
+        .catch(() => {});
     }
 
     return this.prisma.material.delete({ where: { id } });
@@ -608,7 +630,13 @@ export class MaterialsService {
     // If material has child audios, also generate signed URLs for them!
     const childAudios = await this.prisma.material.findMany({
       where: { parentId: material.id, type: MaterialType.AUDIO },
-      select: { id: true, title: true, fileKey: true, durationSeconds: true, fileSize: true },
+      select: {
+        id: true,
+        title: true,
+        fileKey: true,
+        durationSeconds: true,
+        fileSize: true,
+      },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -646,15 +674,21 @@ export class MaterialsService {
         studentName: user.fullName || 'Học viên Teacher Dong',
         studentCode,
         maskedPhone,
-        renderedTimestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        displayWarning: 'Bản quyền thuộc về Teacher Dong Academy • Không sao chép hoặc phân phối trái phép',
+        renderedTimestamp: new Date()
+          .toISOString()
+          .replace('T', ' ')
+          .substring(0, 16),
+        displayWarning:
+          'Bản quyền thuộc về Teacher Dong Academy • Không sao chép hoặc phân phối trái phép',
       },
     };
   }
 
   async verifyTokenAndGetStream(materialId: string, token: string) {
     if (!token) {
-      throw new UnauthorizedException('Thiếu chữ ký bảo mật (token) để truy cập tài liệu');
+      throw new UnauthorizedException(
+        'Thiếu chữ ký bảo mật (token) để truy cập tài liệu',
+      );
     }
 
     let payload: any;
@@ -667,18 +701,28 @@ export class MaterialsService {
     }
 
     if (payload.materialId !== materialId) {
-      throw new ForbiddenException('Token ký số không khớp với tài liệu yêu cầu');
+      throw new ForbiddenException(
+        'Token ký số không khớp với tài liệu yêu cầu',
+      );
     }
 
     // Q-02: Check Redis Blacklist for revoked material or token
     if (this.redisService) {
-      const isMaterialRevoked = await this.redisService.get(`material_revoked:${materialId}`);
+      const isMaterialRevoked = await this.redisService.get(
+        `material_revoked:${materialId}`,
+      );
       if (isMaterialRevoked) {
-        throw new UnauthorizedException('Tài liệu bảo mật này đã bị thu hồi hoặc gỡ bỏ bởi quản trị viên.');
+        throw new UnauthorizedException(
+          'Tài liệu bảo mật này đã bị thu hồi hoặc gỡ bỏ bởi quản trị viên.',
+        );
       }
-      const isTokenRevoked = await this.redisService.get(`token_revoked:${token}`);
+      const isTokenRevoked = await this.redisService.get(
+        `token_revoked:${token}`,
+      );
       if (isTokenRevoked) {
-        throw new UnauthorizedException('Chữ ký truy cập (token) này đã bị thu hồi.');
+        throw new UnauthorizedException(
+          'Chữ ký truy cập (token) này đã bị thu hồi.',
+        );
       }
     }
 
@@ -696,15 +740,26 @@ export class MaterialsService {
     // BIZ-01: Check for physical file in private storage first
     let stream: Readable;
     let fileSize: number;
-    const privateStorageDir = path.join(process.cwd(), 'private_storage', 'materials');
+    const privateStorageDir = path.join(
+      process.cwd(),
+      'private_storage',
+      'materials',
+    );
     if (!fs.existsSync(privateStorageDir)) {
       fs.mkdirSync(privateStorageDir, { recursive: true });
     }
 
-    const isHttpUrl = material.fileKey && (material.fileKey.startsWith('http://') || material.fileKey.startsWith('https://'));
-    const physicalPath = material.fileKey && !isHttpUrl
-      ? path.join(privateStorageDir, material.fileKey)
-      : path.join(privateStorageDir, `${material.id}.${material.type === MaterialType.PDF ? 'pdf' : 'mp3'}`);
+    const isHttpUrl =
+      material.fileKey &&
+      (material.fileKey.startsWith('http://') ||
+        material.fileKey.startsWith('https://'));
+    const physicalPath =
+      material.fileKey && !isHttpUrl
+        ? path.join(privateStorageDir, material.fileKey)
+        : path.join(
+            privateStorageDir,
+            `${material.id}.${material.type === MaterialType.PDF ? 'pdf' : 'mp3'}`,
+          );
 
     if (fs.existsSync(physicalPath)) {
       const stat = fs.statSync(physicalPath);

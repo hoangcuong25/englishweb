@@ -13,8 +13,12 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LivekitService } from './livekit.service';
 import { WhiteboardService } from './whiteboard.service';
-import { WhiteboardStrokeDto, SetWhiteboardPermissionDto } from './dto/whiteboard-stroke.dto';
+import {
+  WhiteboardStrokeDto,
+  SetWhiteboardPermissionDto,
+} from './dto/whiteboard-stroke.dto';
 import { KickParticipantDto } from './dto/kick-participant.dto';
+import { CreateClassroomDto } from '../../modules/attendance/dto/create-classroom.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -48,7 +52,7 @@ export class LivekitController {
   @ResponseMessage('Lập lịch phòng học trực tuyến thành công')
   async createRoom(
     @CurrentUser('id') hostId: string,
-    @Body() body: { name: string; courseId?: string; scheduledStartTime: string; scheduledEndTime: string },
+    @Body() body: CreateClassroomDto,
   ) {
     return this.livekitService.createRoom(hostId, {
       name: body.name,
@@ -62,10 +66,7 @@ export class LivekitController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate access token for WebRTC classroom' })
-  async getToken(
-    @Body('roomName') roomName: string,
-    @CurrentUser() user: any,
-  ) {
+  async getToken(@Body('roomName') roomName: string, @CurrentUser() user: any) {
     return this.livekitService.createToken(
       roomName,
       user.id,
@@ -96,7 +97,12 @@ export class LivekitController {
     @Body('trackSid') trackSid: string,
     @Body('muted') muted: boolean,
   ) {
-    return this.livekitService.muteParticipantTrack(roomName, identity, trackSid, muted);
+    return this.livekitService.muteParticipantTrack(
+      roomName,
+      identity,
+      trackSid,
+      muted,
+    );
   }
 
   @Post('kick-participant')
@@ -104,7 +110,9 @@ export class LivekitController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin Host buộc người tham gia rời khỏi phòng học' })
+  @ApiOperation({
+    summary: 'Admin Host buộc người tham gia rời khỏi phòng học',
+  })
   @ResponseMessage('Đã buộc người tham gia rời khỏi phòng học thành công')
   async kickParticipant(@Body() body: KickParticipantDto) {
     return this.livekitService.removeParticipant(body.roomName, body.identity);
@@ -114,7 +122,9 @@ export class LivekitController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin xem toàn bộ lịch sử các lớp học đã tạo và giảng dạy' })
+  @ApiOperation({
+    summary: 'Admin xem toàn bộ lịch sử các lớp học đã tạo và giảng dạy',
+  })
   @ResponseMessage('Lấy lịch sử lớp học admin thành công')
   async getAdminHistory() {
     return this.livekitService.getAdminClassroomHistory();
@@ -123,14 +133,18 @@ export class LivekitController {
   @Get('student/history')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Học viên xem lịch sử các lớp học đã join và chưa join' })
+  @ApiOperation({
+    summary: 'Học viên xem lịch sử các lớp học đã join và chưa join',
+  })
   @ResponseMessage('Lấy lịch sử lớp học học viên thành công')
   async getStudentHistory(@CurrentUser('id') studentId: string) {
     return this.livekitService.getStudentClassroomHistory(studentId);
   }
 
   @Post('webhook')
-  @ApiOperation({ summary: 'LiveKit SFU webhook endpoint for participant events' })
+  @ApiOperation({
+    summary: 'LiveKit SFU webhook endpoint for participant events',
+  })
   async handleWebhook(
     @Req() req: any,
     @Headers('authorization') authHeader: string,
@@ -150,7 +164,9 @@ export class LivekitController {
   @Get('rooms/:roomName/whiteboard')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current whiteboard state and strokes snapshot' })
+  @ApiOperation({
+    summary: 'Get current whiteboard state and strokes snapshot',
+  })
   @ResponseMessage('Lấy dữ liệu bảng trắng thành công')
   async getWhiteboardSnapshot(@Param('roomName') roomName: string) {
     const snapshot = this.whiteboardService.getSnapshot(roomName);
@@ -204,7 +220,9 @@ export class LivekitController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin grants or revokes student whiteboard drawing permission' })
+  @ApiOperation({
+    summary: 'Admin grants or revokes student whiteboard drawing permission',
+  })
   @ResponseMessage('Cập nhật quyền vẽ bảng trắng thành công')
   async setWhiteboardPermission(
     @Param('roomName') roomName: string,

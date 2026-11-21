@@ -508,7 +508,7 @@ export default function StudentHomeworkPage() {
                 <span>Lời Phê Sư Phạm Từ Thầy Đông</span>
               </div>
               <p className="text-xs sm:text-sm text-slate-800 leading-relaxed italic whitespace-pre-line pl-8">
-                "{activeHomework.mySubmission.feedback || 'Chúc mừng em đã hoàn thành tốt bài tập!'}"
+                &ldquo;{activeHomework.mySubmission.feedback || 'Chúc mừng em đã hoàn thành tốt bài tập!'}&rdquo;
               </p>
             </div>
 

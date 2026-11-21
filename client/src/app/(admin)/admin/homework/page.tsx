@@ -334,7 +334,7 @@ export default function AdminHomeworkPage() {
           <FileText className="w-12 h-12 text-slate-300 mx-auto" />
           <h3 className="text-sm font-bold text-slate-700">Chưa có bài tập về nhà nào</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Hãy bấm nút "Giao bài tập mới" để giao nhiệm vụ thực hành và bài tập về nhà cho học viên.
+            Hãy bấm nút &quot;Giao bài tập mới&quot; để giao nhiệm vụ thực hành và bài tập về nhà cho học viên.
           </p>
         </div>
       ) : (

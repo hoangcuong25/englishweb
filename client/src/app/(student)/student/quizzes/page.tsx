@@ -1090,7 +1090,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
         <div className="p-12 text-center bg-white rounded-3xl border border-line space-y-3">
           <AlertCircle className="w-10 h-10 text-slate-400 mx-auto" />
           <h3 className="font-bold text-slate-800 text-sm">Chưa có bài Quiz nào phù hợp với bộ lọc hiện tại</h3>
-          <p className="text-xs text-muted max-w-md mx-auto">Hãy thử chọn lại "Tất cả loại bài" hoặc chuyển sang danh mục khác để tìm đề thi phù hợp.</p>
+          <p className="text-xs text-muted max-w-md mx-auto">Hãy thử chọn lại &quot;Tất cả loại bài&quot; hoặc chuyển sang danh mục khác để tìm đề thi phù hợp.</p>
           <button
             onClick={() => {
               setFilterQuizType('ALL');

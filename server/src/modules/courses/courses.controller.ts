@@ -25,6 +25,8 @@ import {
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { RequestEnrollDto } from './dto/request-enroll.dto';
+import { ManualEnrollDto } from './dto/manual-enroll.dto';
 import { JwtAuthGuard } from '../../core/common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../core/common/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../core/common/guards/roles.guard';
@@ -39,7 +41,9 @@ export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
   @Get('categories')
-  @ApiOperation({ summary: 'Lấy danh mục 5 trụ cột đào tạo của Teacher Dong Academy' })
+  @ApiOperation({
+    summary: 'Lấy danh mục 5 trụ cột đào tạo của Teacher Dong Academy',
+  })
   getCategories() {
     return this.coursesService.getCategories();
   }
@@ -48,7 +52,9 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.STUDENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Lấy danh sách khóa học mà học viên đã ghi danh kèm tiến độ %' })
+  @ApiOperation({
+    summary: 'Lấy danh sách khóa học mà học viên đã ghi danh kèm tiến độ %',
+  })
   getMyLearning(@CurrentUser() user: any) {
     return this.coursesService.findMyLearning(user.id);
   }
@@ -56,14 +62,20 @@ export class CoursesController {
   @Get('ielts-access')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Kiểm tra học viên có quyền truy cập phân hệ IELTS 4 kỹ năng hay không (yêu cầu sở hữu khóa Tiếng Anh)' })
+  @ApiOperation({
+    summary:
+      'Kiểm tra học viên có quyền truy cập phân hệ IELTS 4 kỹ năng hay không (yêu cầu sở hữu khóa Tiếng Anh)',
+  })
   checkIeltsAccess(@CurrentUser() user: any) {
     return this.coursesService.checkIeltsAccess(user.id, user.role);
   }
 
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
-  @ApiOperation({ summary: 'Lấy danh sách khóa học (lọc theo trụ cột danh mục và từ khóa tìm kiếm)' })
+  @ApiOperation({
+    summary:
+      'Lấy danh sách khóa học (lọc theo trụ cột danh mục và từ khóa tìm kiếm)',
+  })
   @ApiQuery({ name: 'category', required: false, enum: CourseCategory })
   @ApiQuery({ name: 'search', required: false, type: String })
   findAll(
@@ -83,7 +95,9 @@ export class CoursesController {
 
   @Get(':slugOrId')
   @UseGuards(OptionalJwtAuthGuard)
-  @ApiOperation({ summary: 'Lấy chi tiết khóa học, toàn bộ Modules và Bài học' })
+  @ApiOperation({
+    summary: 'Lấy chi tiết khóa học, toàn bộ Modules và Bài học',
+  })
   @ApiParam({ name: 'slugOrId', description: 'Slug hoặc UUID của khóa học' })
   findOne(@Param('slugOrId') slugOrId: string, @Req() req: Request) {
     const user = (req as any).user;
@@ -95,7 +109,9 @@ export class CoursesController {
   @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin tải lên ảnh bìa cho khóa học và nhận về URL' })
+  @ApiOperation({
+    summary: 'Admin tải lên ảnh bìa cho khóa học và nhận về URL',
+  })
   uploadThumbnailGeneral(@UploadedFile() file: Express.Multer.File) {
     return this.coursesService.uploadThumbnailGeneral(file);
   }
@@ -105,7 +121,9 @@ export class CoursesController {
   @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin tải lên ảnh bìa và cập nhật trực tiếp vào khóa học' })
+  @ApiOperation({
+    summary: 'Admin tải lên ảnh bìa và cập nhật trực tiếp vào khóa học',
+  })
   @ApiParam({ name: 'id', description: 'UUID của khóa học' })
   uploadThumbnail(
     @Param('id') id: string,
@@ -158,12 +176,14 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.STUDENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Học viên gửi yêu cầu đăng ký kèm xác nhận chuyển khoản QR' })
+  @ApiOperation({
+    summary: 'Học viên gửi yêu cầu đăng ký kèm xác nhận chuyển khoản QR',
+  })
   @ApiParam({ name: 'id', description: 'UUID của khóa học' })
   requestEnroll(
     @Param('id') id: string,
     @CurrentUser() user: any,
-    @Body() body: { paymentNote?: string; paymentAmount?: number },
+    @Body() body: RequestEnrollDto,
   ) {
     return this.coursesService.requestEnrollment(
       id,
@@ -177,9 +197,19 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin lấy danh sách tất cả yêu cầu đăng ký / ghi danh khóa học' })
-  @ApiQuery({ name: 'status', required: false, description: 'PENDING | ACTIVE | REJECTED' })
-  @ApiQuery({ name: 'courseId', required: false, description: 'Lọc theo khóa học' })
+  @ApiOperation({
+    summary: 'Admin lấy danh sách tất cả yêu cầu đăng ký / ghi danh khóa học',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'PENDING | ACTIVE | REJECTED',
+  })
+  @ApiQuery({
+    name: 'courseId',
+    required: false,
+    description: 'Lọc theo khóa học',
+  })
   getAdminEnrollments(
     @Query('status') status?: string,
     @Query('courseId') courseId?: string,
@@ -191,7 +221,10 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin xác nhận chuyển khoản thành công và kích hoạt khóa học cho học viên' })
+  @ApiOperation({
+    summary:
+      'Admin xác nhận chuyển khoản thành công và kích hoạt khóa học cho học viên',
+  })
   @ApiParam({ name: 'id', description: 'UUID của enrollment' })
   approveEnrollment(@Param('id') id: string) {
     return this.coursesService.approveEnrollment(id);
@@ -212,15 +245,21 @@ export class CoursesController {
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Admin ghi danh thủ công học viên vào khóa học' })
-  manualEnroll(@Body() body: { courseId: string; userId: string }) {
-    return this.coursesService.manualEnroll(body.courseId, body.userId);
+  manualEnroll(@Body() body: ManualEnrollDto) {
+    return this.coursesService.manualEnroll(
+      body.courseId,
+      body.userId,
+      body.note,
+    );
   }
 
   @Put('admin/exchange-rate')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin cập nhật tỷ giá quy đổi USD / VND cho toàn bộ hệ thống' })
+  @ApiOperation({
+    summary: 'Admin cập nhật tỷ giá quy đổi USD / VND cho toàn bộ hệ thống',
+  })
   updateExchangeRate(@Body('exchangeRate') exchangeRate: number) {
     return this.coursesService.updateExchangeRate(exchangeRate);
   }
@@ -229,7 +268,10 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin thay đổi đồng giá hoặc điều chỉnh tỷ lệ giá (%) cho toàn bộ khóa học' })
+  @ApiOperation({
+    summary:
+      'Admin thay đổi đồng giá hoặc điều chỉnh tỷ lệ giá (%) cho toàn bộ khóa học',
+  })
   batchUpdatePrices(
     @Body()
     body: {

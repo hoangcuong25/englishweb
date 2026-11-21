@@ -17,7 +17,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const jwtSecret =
       configService.get<string>('JWT_SECRET') ||
       configService.get<string>('JWT_ACCESS_TOKEN_SECRET') ||
-      'your_super_secret_jwt_key_teacher_dong_2026';
+      (process.env.NODE_ENV === 'production'
+        ? (() => {
+            throw new Error(
+              'CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing in production!',
+            );
+          })()
+        : 'dev_jwt_secret_teacher_dong_2026');
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -37,7 +43,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; email: string; role: string; sessionId?: string }) {
+  async validate(payload: {
+    sub: string;
+    email: string;
+    role: string;
+    sessionId?: string;
+  }) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -56,7 +67,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // SEC-02: Realtime Single Concurrent Session validation for STUDENT
     if (user.role === Role.STUDENT && payload.sessionId) {
-      const activeSessionId = await this.redisService.get(`user:active_session:${user.id}`);
+      const activeSessionId = await this.redisService.get(
+        `user:active_session:${user.id}`,
+      );
       if (activeSessionId && activeSessionId !== payload.sessionId) {
         throw new UnauthorizedException(
           'Phiên đăng nhập đã bị vô hiệu hóa do có đăng nhập mới trên thiết bị khác',
