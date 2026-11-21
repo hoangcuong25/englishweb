@@ -147,7 +147,7 @@ function AssessmentHubContent() {
 
   useEffect(() => {
     if (tabParam === 'personal_dev') {
-      router.replace('/admin/pedagogy-assessments');
+      router.replace('/admin/personal-dev-assessments');
     } else if (tabParam === 'writing' || tabParam === 'speaking' || tabParam === 'mocktest') {
       setActiveHubTab(tabParam);
     }

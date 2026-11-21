@@ -42,7 +42,7 @@ export default function AdminSidebar() {
       title: 'Khảo Thí & Đánh Giá',
       items: [
         { href: '/admin/assessments', label: t('nav_admin_assessments', 'Khảo thí & Chấm thi IELTS'), icon: Award },
-        { href: '/admin/pedagogy-assessments', label: t('nav_admin_pedagogy_assessments', 'Khảo thí Sư phạm & Tình huống'), icon: Sparkles },
+        { href: '/admin/personal-dev-assessments', label: t('nav_admin_personal_assessments', 'Khảo thí Phát triển cá nhân'), icon: Sparkles },
       ],
     },
     {
