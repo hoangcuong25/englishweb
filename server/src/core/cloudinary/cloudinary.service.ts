@@ -96,6 +96,27 @@ export class CloudinaryService {
   }
 
   /**
+   * Upload tệp tin học liệu số (PDF, DOCX, Audio, ZIP...) lên Cloudinary
+   */
+  async uploadRaw(
+    file: Express.Multer.File,
+    folder = 'teacher_dong_academy/materials',
+  ): Promise<CloudinaryUploadResult> {
+    if (!file) {
+      throw new BadRequestException('Vui lòng chọn file hợp lệ để upload');
+    }
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const isAudio = file.mimetype?.startsWith('audio/') || ['.mp3', '.wav', '.m4a'].includes(ext);
+    const isVideo = file.mimetype?.startsWith('video/') || ['.mp4', '.webm', '.mov'].includes(ext);
+    const resourceType = isVideo ? 'video' : isAudio ? 'video' : 'raw';
+
+    return this.uploadToCloudinary(file.buffer, {
+      folder,
+      resource_type: resourceType,
+    });
+  }
+
+  /**
    * Upload buffer lên Cloudinary hoặc dùng fallback mock khi chạy test/offline
    */
   async uploadToCloudinary(

@@ -88,7 +88,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
   const adminNavItems = [
     { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
     { href: '/admin/courses', label: t('nav_admin_courses', 'Khóa học & Cây giáo trình'), icon: GraduationCap },
-    { href: '/admin/library', label: t('nav_admin_library', 'Kho học liệu số'), icon: FolderLock },
+    { href: '/admin/homework', label: t('nav_admin_homework', 'Giao bài tập về nhà'), icon: FileText },
     { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến'), icon: Video },
     { href: '/admin/assessments', label: t('nav_admin_assessments', 'Khảo thí & Chấm thi IELTS'), icon: Award },
     { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },

@@ -82,6 +82,31 @@ export class MediaController {
     return this.cloudinaryService.uploadVideo(file, folder || 'teacher_dong_academy/videos');
   }
 
+  @Post('upload/raw')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Upload học liệu số, tài liệu PDF, file âm thanh lên Cloudinary' })
+  @ApiConsumes('multipart/form-data')
+  @ApiQuery({ name: 'folder', required: false, description: 'Tên thư mục trên Cloudinary' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  @ResponseMessage('Upload tài liệu lên Cloudinary thành công')
+  async uploadRaw(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('folder') folder?: string,
+  ) {
+    return this.cloudinaryService.uploadRaw(file, folder || 'teacher_dong_academy/materials');
+  }
+
   @Delete(':publicId')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Xóa asset khỏi Cloudinary' })

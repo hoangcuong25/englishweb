@@ -11,6 +11,7 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { Role, MaterialType } from '@prisma/client';
 import { RedisService } from '../../core/redis/redis.service';
+import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 import { AppException } from '../../core/common/errors/app.exception';
 import { AppErrorCode } from '../../core/common/errors/error-codes.enum';
 import * as fs from 'fs';
@@ -26,6 +27,7 @@ export class MaterialsService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private redisService: RedisService,
+    private cloudinaryService: CloudinaryService,
   ) {
     const secret =
       this.configService.get<string>('JWT_SECRET') ||
@@ -191,6 +193,22 @@ export class MaterialsService {
 
     fs.writeFileSync(targetPath, file.buffer);
 
+    // Upload to Cloudinary
+    let fileKey = fileName;
+    if (this.cloudinaryService) {
+      try {
+        const cloudUpload = await this.cloudinaryService.uploadRaw(
+          file,
+          `teacher_dong_academy/materials/${safeBase}`,
+        );
+        if (cloudUpload?.secureUrl) {
+          fileKey = cloudUpload.secureUrl;
+        }
+      } catch {
+        // Keep fallback to local file
+      }
+    }
+
     const isPrivate = body.isPrivate !== undefined ? String(body.isPrivate) === 'true' : true;
     const isWatermarked = body.isWatermarked !== undefined ? String(body.isWatermarked) === 'true' : true;
 
@@ -201,7 +219,7 @@ export class MaterialsService {
         parentId: body.parentId || null,
         title,
         type,
-        fileKey: fileName,
+        fileKey,
         fileSize: file.size,
         durationSeconds: isAudio ? (Number(body.durationSeconds) || 300) : null,
         isPrivate,
@@ -670,7 +688,8 @@ export class MaterialsService {
       fs.mkdirSync(privateStorageDir, { recursive: true });
     }
 
-    const physicalPath = material.fileKey
+    const isHttpUrl = material.fileKey && (material.fileKey.startsWith('http://') || material.fileKey.startsWith('https://'));
+    const physicalPath = material.fileKey && !isHttpUrl
       ? path.join(privateStorageDir, material.fileKey)
       : path.join(privateStorageDir, `${material.id}.${material.type === MaterialType.PDF ? 'pdf' : 'mp3'}`);
 
@@ -678,6 +697,32 @@ export class MaterialsService {
       const stat = fs.statSync(physicalPath);
       fileSize = stat.size;
       stream = fs.createReadStream(physicalPath);
+    } else if (isHttpUrl) {
+      try {
+        const response = await fetch(material.fileKey);
+        if (response.ok) {
+          const arrayBuf = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuf);
+          fileSize = buffer.length;
+          stream = Readable.from(buffer);
+        } else {
+          const buffer = Buffer.from(
+            material.type === MaterialType.PDF
+              ? `%PDF-1.4 Mock Document for ${material.title}`
+              : `MOCK_AUDIO_MP3_STREAM_FOR_${material.title}`,
+          );
+          fileSize = buffer.length;
+          stream = Readable.from(buffer);
+        }
+      } catch {
+        const buffer = Buffer.from(
+          material.type === MaterialType.PDF
+            ? `%PDF-1.4 Mock Document for ${material.title}`
+            : `MOCK_AUDIO_MP3_STREAM_FOR_${material.title}`,
+        );
+        fileSize = buffer.length;
+        stream = Readable.from(buffer);
+      }
     } else {
       // Fallback document content stream for test/verification
       const buffer = Buffer.from(

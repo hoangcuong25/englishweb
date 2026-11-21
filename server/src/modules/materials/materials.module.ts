@@ -4,10 +4,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MaterialsService } from './materials.service';
 import { MaterialsController } from './materials.controller';
 import { PrismaModule } from '../../core/prisma/prisma.module';
+import { CloudinaryModule } from '../../core/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     PrismaModule,
+    CloudinaryModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

@@ -38,7 +38,7 @@ import RichTextEditor from '@/components/shared/rich-text-editor';
 import { coursesService, Course, CourseEnrollment, getCourseCoverUrl } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
 import { usersService, UserProfile } from '@/services/users.service';
-import { materialsService, Material } from '@/services/materials.service';
+import { materialsService, Material, SignedUrlResponse } from '@/services/materials.service';
 import { extractErrorMessage } from '@/lib/api-error';
 
 interface AttachedMaterial {
