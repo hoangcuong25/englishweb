@@ -737,7 +737,7 @@ export default function StudentIeltsHubPage() {
                       {c.title}
                     </h4>
                     <p className="text-xs text-slate-500 line-clamp-2">
-                      {c.description || 'Chương trình đào tạo tiếng Anh chuẩn EdTech tích hợp AI.'}
+                      {c.description || 'Chương trình đào tạo tiếng Anh chuẩn quốc tế tích hợp AI.'}
                     </p>
                   </div>
 

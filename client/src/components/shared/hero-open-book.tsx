@@ -33,7 +33,7 @@ const IELTS_SKILLS: SkillInfo[] = [
     id: 'listening',
     title: 'Listening Lab',
     shortTitle: 'Listening',
-    tagline: 'Acoustic SFU & Accents',
+    tagline: 'Acoustic Audio & Accents',
     bandTarget: 'Band 8.5+',
     accentColor: '#1B64B0',
     ringColor: 'ring-sky-500',
@@ -351,7 +351,7 @@ export default function HeroOpenBook() {
             </div>
             <span className="text-[10.5px] text-[#1B64B0] font-semibold flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-[#1B64B0]" />
-              EdTech SFU
+              IELTS Mock Test
             </span>
           </div>
 

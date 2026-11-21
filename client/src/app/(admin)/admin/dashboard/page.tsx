@@ -415,7 +415,7 @@ export default function AdminDashboard() {
                     <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
                       Phát Triển Cá Nhân & Sư Phạm
                     </h4>
-                    <p className="text-[11px] text-muted">Năng Lực Sư Phạm EdTech, Kỹ Năng Sống & Kỹ Năng Mềm</p>
+                    <p className="text-[11px] text-muted">Năng Lực Sư Phạm Hiện Đại, Kỹ Năng Sống & Kỹ Năng Mềm</p>
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 text-[10px] font-black uppercase">
@@ -429,7 +429,7 @@ export default function AdminDashboard() {
                   {
                     category: 'PEDAGOGY',
                     label: 'Năng Lực Sư Phạm',
-                    sub: 'Soạn giảng & EdTech',
+                    sub: 'Soạn giảng & Giảng dạy',
                     icon: Sparkles,
                   },
                   {

@@ -517,7 +517,7 @@ export const ClassroomContainer: React.FC<ClassroomContainerProps> = ({ roomId, 
     return (
       <div className="h-screen w-screen bg-slate-950 flex flex-col items-center justify-center text-white space-y-4">
         <Loader2 className="w-10 h-10 text-sky-500 animate-spin" />
-        <p className="text-sm font-semibold text-slate-300">Đang khởi tạo phòng học LiveKit WebRTC...</p>
+        <p className="text-sm font-semibold text-slate-300">Đang kết nối vào phòng học trực tuyến...</p>
       </div>
     );
   }

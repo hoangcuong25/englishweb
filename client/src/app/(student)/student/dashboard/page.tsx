@@ -388,7 +388,7 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* Track 3: Sư Phạm & Giảng Dạy EdTech */}
+          {/* Track 3: Sư Phạm & Giảng Dạy */}
           {enrolledTracks.includes('pedagogy') && (
             <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2.5 hover:border-[#1B64B0] transition-colors group">
               <div className="flex items-center justify-between">
@@ -594,7 +594,7 @@ export default function StudentDashboard() {
                   className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 transition space-y-1 group select-none shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 group-hover:text-[#1B64B0]">Sư Phạm EdTech</span>
+                    <span className="text-xs font-black text-slate-900 group-hover:text-[#1B64B0]">Năng Lực Sư Phạm</span>
                     <GraduationCap className="w-4 h-4 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
                   </div>
                   <p className="text-[10.5px] text-slate-500 line-clamp-1">Năng lực giảng dạy hiện đại</p>

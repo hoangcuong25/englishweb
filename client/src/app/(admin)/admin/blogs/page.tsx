@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { blogsService, BlogPost } from '@/services/blogs.service';
 import CustomSelect from '@/components/ui/custom-select';
+import RichTextEditor from '@/components/shared/rich-text-editor';
 import {
   Newspaper,
   Plus,
@@ -195,6 +196,23 @@ export default function AdminBlogsPage() {
       }
       setCoverFile(file);
       setCoverPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Callback for RichTextEditor inline image upload
+  const handleUploadInlineForEditor = async (file: File): Promise<string | null> => {
+    try {
+      const res = await blogsService.uploadImage(file);
+      const imageUrl = res.secureUrl || res.url;
+      if (imageUrl) {
+        showToast('Đã tải ảnh lên Cloudinary thành công!', 'success');
+        return imageUrl;
+      }
+      return null;
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      showToast(msg || 'Tải ảnh thất bại', 'error');
+      return null;
     }
   };
 
@@ -938,94 +956,17 @@ export default function AdminBlogsPage() {
                     />
                   </div>
 
-                  {/* Content Area with Markdown & Image Insertion Toolbar */}
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <label className="text-xs font-extrabold text-slate-700">
-                        Nội dung chi tiết (Định dạng Markdown) <span className="text-rose-500">*</span>
-                      </label>
-
-                      {/* Image Upload Button & Markdown Toolbar */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => inlineImgInputRef.current?.click()}
-                          disabled={uploadingInlineImg}
-                          className="flex items-center gap-1 px-3 py-1 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 text-xs font-extrabold transition-all"
-                          title="Tải ảnh từ máy tính lên Cloudinary và chèn vào nội dung bài viết"
-                        >
-                          <Upload className={`w-3.5 h-3.5 ${uploadingInlineImg ? 'animate-bounce text-sky-600' : ''}`} />
-                          <span>{uploadingInlineImg ? 'Đang tải ảnh...' : '📸 + Chèn ảnh (Upload)'}</span>
-                        </button>
-
-                        <div className="h-4 w-px bg-slate-200 mx-1" />
-
-                        <button
-                          type="button"
-                          onClick={() => insertMarkdown('## ')}
-                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                          title="Tiêu đề H2"
-                        >
-                          H2
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertMarkdown('### ')}
-                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                          title="Tiêu đề H3"
-                        >
-                          H3
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertMarkdown('**', '**')}
-                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                          title="In đậm"
-                        >
-                          B
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertMarkdown('*', '*')}
-                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-italic"
-                          title="In nghiêng"
-                        >
-                          I
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertMarkdown('> ')}
-                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                          title="Trích dẫn"
-                        >
-                          &ldquo;&rdquo;
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertMarkdown('- ')}
-                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                          title="Gạch đầu dòng"
-                        >
-                          • List
-                        </button>
-                      </div>
-                    </div>
-
-                    <textarea
-                      ref={textareaRef}
-                      required
-                      rows={12}
-                      placeholder="Soạn thảo nội dung bài viết. Bạn có thể bấm nút '+ Chèn ảnh (Upload)' phía trên để tải ảnh trực tiếp từ máy lên Cloudinary..."
-                      value={formData.content}
-                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-mono text-slate-800 leading-relaxed focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-                    />
-
-                    <p className="text-[11px] text-slate-400 flex items-center justify-between flex-wrap gap-1">
-                      <span>Cú pháp ảnh: <code>![Mô tả ảnh](https://res.cloudinary.com/...)</code> hoặc bấm nút <strong>+ Chèn ảnh</strong> để tải tự động</span>
-                      <span>{formData.content.length} ký tự</span>
-                    </p>
-                  </div>
+                  {/* Content Area with RichTextEditor */}
+                  <RichTextEditor
+                    label="Nội dung chi tiết bài viết"
+                    required
+                    value={formData.content}
+                    onChange={(val) => setFormData({ ...formData, content: val })}
+                    placeholder="Soạn thảo nội dung bài viết. Bạn có thể dùng thanh công cụ để định dạng tiêu đề, in đậm, chèn ảnh Cloudinary, bảng dữ liệu hoặc xem trước song song..."
+                    minHeight="min-h-[300px]"
+                    onUploadImage={handleUploadInlineForEditor}
+                    helperText="Hỗ trợ đầy đủ Rich Text: In đậm, gạch đầu dòng, bảng số liệu, tải ảnh lên Cloudinary và xem trước thời gian thực."
+                  />
                 </div>
               )}
 

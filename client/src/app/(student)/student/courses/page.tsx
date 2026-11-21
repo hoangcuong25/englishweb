@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { coursesService, Course, CourseModule, CourseLesson, getCourseCoverUrl, DEFAULT_COVERS } from '@/services/courses.service';
 import { lessonsService } from '@/services/lessons.service';
+import { materialsService, Material } from '@/services/materials.service';
+import { homeworkService, Homework } from '@/services/homework.service';
 import { authService, User } from '@/services/auth.service';
 import {
   BookOpen,
@@ -32,6 +34,10 @@ import {
   Briefcase,
   Globe,
   HeartHandshake,
+  FolderOpen,
+  Headphones,
+  FileText,
+  Eye,
 } from 'lucide-react';
 
 interface MockLesson {
@@ -56,23 +62,6 @@ function StudentCoursesContent() {
   const searchParams = useSearchParams();
   const urlTrack = searchParams?.get('track');
 
-  // Track: 'ALL' | 'ENGLISH' | 'PERSONAL_DEV'
-  const [activeTrack, setActiveTrack] = useState<'ALL' | 'ENGLISH' | 'PERSONAL_DEV'>(
-    urlTrack === 'english'
-      ? 'ENGLISH'
-      : urlTrack === 'personal_dev' || urlTrack === 'skills'
-      ? 'PERSONAL_DEV'
-      : 'ALL',
-  );
-
-  useEffect(() => {
-    if (urlTrack === 'english') {
-      setActiveTrack('ENGLISH');
-    } else if (urlTrack === 'personal_dev' || urlTrack === 'skills') {
-      setActiveTrack('PERSONAL_DEV');
-    }
-  }, [urlTrack]);
-
   // Tabs: 'my-courses' | 'recommended' | 'curriculum'
   const [activeTab, setActiveTab] = useState<'my-courses' | 'recommended' | 'curriculum'>('my-courses');
 
@@ -85,12 +74,27 @@ function StudentCoursesContent() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<MockModule[]>([]);
   const [expandedModule, setExpandedModule] = useState<string>('m1');
+  const [curriculumTab, setCurriculumTab] = useState<'lessons' | 'materials' | 'homework'>('lessons');
+  const [courseMaterials, setCourseMaterials] = useState<Material[]>([]);
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [courseHomeworks, setCourseHomeworks] = useState<Homework[]>([]);
+  const [loadingHomeworks, setLoadingHomeworks] = useState(false);
 
   // Filters & Loading
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (urlTrack === 'english' || urlTrack === 'ielts') {
+      setFilterCategory('IELTS');
+      setActiveTab('recommended');
+    } else if (urlTrack === 'personal_dev' || urlTrack === 'skills' || urlTrack === 'pedagogy') {
+      setFilterCategory('PEDAGOGY');
+      setActiveTab('recommended');
+    }
+  }, [urlTrack]);
 
   // User and VietQR Payment states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -169,6 +173,30 @@ function StudentCoursesContent() {
     fetchData();
   }, []);
 
+  const loadCourseMaterials = async (cId: string) => {
+    setLoadingMaterials(true);
+    try {
+      const res = await materialsService.getAll({ courseId: cId });
+      setCourseMaterials(res.items || []);
+    } catch {
+      setCourseMaterials([]);
+    } finally {
+      setLoadingMaterials(false);
+    }
+  };
+
+  const loadCourseHomeworks = async (cId: string) => {
+    setLoadingHomeworks(true);
+    try {
+      const res = await homeworkService.getMyHomeworks({ courseId: cId });
+      setCourseHomeworks(res || []);
+    } catch {
+      setCourseHomeworks([]);
+    } finally {
+      setLoadingHomeworks(false);
+    }
+  };
+
   // Open Curriculum for a specific Course
   const handleOpenCurriculum = async (course: Course) => {
     if (course.enrollmentStatus === 'PENDING') {
@@ -178,6 +206,9 @@ function StudentCoursesContent() {
 
     setSelectedCourse(course);
     setActiveTab('curriculum');
+    setCurriculumTab('lessons');
+    loadCourseMaterials(course.id);
+    loadCourseHomeworks(course.id);
     setLoading(true);
 
     try {
@@ -283,35 +314,14 @@ function StudentCoursesContent() {
     );
   };
 
-  // Helper check if a course belongs to a specific track
-  const isCourseInTrack = (c: Course, track: 'ALL' | 'ENGLISH' | 'PERSONAL_DEV') => {
-    if (track === 'ALL') return true;
-    const cat = (c.category || '').toUpperCase();
-    const isEng = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(cat) || c.isEnglishCourse === true;
-    if (track === 'ENGLISH') return isEng;
-    if (track === 'PERSONAL_DEV') return !isEng || ['PEDAGOGY', 'LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(cat);
-    return true;
-  };
+  // Average progress across enrolled courses
+  const avgProgress = useMemo(() => {
+    if (myCourses.length === 0) return 0;
+    const total = myCourses.reduce((acc, c) => acc + (c.progressPercent || c.progress || 0), 0);
+    return Math.round(total / myCourses.length);
+  }, [myCourses]);
 
-  // Filtered My Courses by Track
-  const filteredMyCourses = useMemo(() => {
-    return myCourses.filter((c) => isCourseInTrack(c, activeTrack));
-  }, [myCourses, activeTrack]);
-
-  // Counts for each track
-  const englishTotalCount = useMemo(() => {
-    const fromMy = myCourses.filter((c) => isCourseInTrack(c, 'ENGLISH')).length;
-    const fromRec = recommendedCourses.filter((c) => isCourseInTrack(c, 'ENGLISH')).length;
-    return fromMy + fromRec;
-  }, [myCourses, recommendedCourses]);
-
-  const personalDevTotalCount = useMemo(() => {
-    const fromMy = myCourses.filter((c) => isCourseInTrack(c, 'PERSONAL_DEV')).length;
-    const fromRec = recommendedCourses.filter((c) => isCourseInTrack(c, 'PERSONAL_DEV')).length;
-    return fromMy + fromRec;
-  }, [myCourses, recommendedCourses]);
-
-  // Category Badge helper with explicit Track indicator - Unified Form
+  // Category Badge helper
   const renderCategoryBadge = (category?: string) => {
     const cat = (category || '').toUpperCase();
     const badgeMap: Record<string, { label: string; icon: React.ElementType }> = {
@@ -343,51 +353,34 @@ function StudentCoursesContent() {
     );
   };
 
-  // Dynamic Subcategory Filter Pills based on activeTrack
-  const categoryFilterPills = useMemo(() => {
-    if (activeTrack === 'ENGLISH') {
-      return [
-        { id: 'ALL', label: 'Tất cả Tiếng Anh' },
-        { id: 'IELTS', label: 'IELTS Masterclass' },
-        { id: 'ENGLISH', label: 'General English' },
-        { id: 'BUSINESS', label: 'Business English' },
-        { id: 'KIDS', label: 'Tiếng Anh Thiếu Nhi' },
-      ];
-    }
-    if (activeTrack === 'PERSONAL_DEV') {
-      return [
-        { id: 'ALL', label: 'Tất cả Kỹ Năng & Sư Phạm' },
-        { id: 'PEDAGOGY', label: 'Năng Lực Sư Phạm EdTech' },
-        { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống & Thuyết Trình' },
-        { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
-        { id: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân' },
-      ];
-    }
-    return [
-      { id: 'ALL', label: 'Tất cả lĩnh vực' },
-      { id: 'IELTS', label: 'IELTS 4 Kỹ Năng' },
-      { id: 'ENGLISH', label: 'Tiếng Anh Tổng Quát' },
-      { id: 'BUSINESS', label: 'Business English' },
-      { id: 'KIDS', label: 'Tiếng Anh Thiếu Nhi' },
-      { id: 'PEDAGOGY', label: 'Sư Phạm EdTech' },
-      { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
-      { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
-      { id: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân' },
-    ];
-  }, [activeTrack]);
+  // Category Filter Pills for Catalog (Aligned with 5 Pillars)
+  const categoryFilterPills = [
+    { id: 'ALL', label: 'Tất cả lĩnh vực' },
+    { id: 'IELTS', label: 'IELTS Masterclass' },
+    { id: 'ENGLISH', label: 'Tiếng Anh Giao Tiếp' },
+    { id: 'BUSINESS', label: 'Business English' },
+    { id: 'PEDAGOGY', label: 'Phương Pháp Sư Phạm' },
+    { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
+    { id: 'KIDS', label: 'Tiếng Anh Thiếu Nhi' },
+  ];
 
-  // Filtered recommended list based on Track + Subcategory + Search
+  // Filtered recommended list based on Subcategory + Search
   const filteredRecommended = useMemo(() => {
     return recommendedCourses.filter((c) => {
-      const matchTrack = isCourseInTrack(c, activeTrack);
-      const matchCat = filterCategory === 'ALL' || c.category === filterCategory;
+      const cat = (c.category || '').toUpperCase();
+      const matchCat =
+        filterCategory === 'ALL' ||
+        cat === filterCategory ||
+        (filterCategory === 'ENGLISH' && ['ENGLISH', 'CONVERSATIONAL'].includes(cat)) ||
+        (filterCategory === 'PEDAGOGY' && ['PEDAGOGY', 'EDUCATION'].includes(cat)) ||
+        (filterCategory === 'LIFE_SKILLS' && ['LIFE_SKILLS', 'SOFT_SKILLS', 'PERSONAL_DEV'].includes(cat));
       const matchSearch =
         !searchQuery.trim() ||
         c.title.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
         (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase().trim()));
-      return matchTrack && matchCat && matchSearch;
+      return matchCat && matchSearch;
     });
-  }, [recommendedCourses, activeTrack, filterCategory, searchQuery]);
+  }, [recommendedCourses, filterCategory, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -399,223 +392,71 @@ function StudentCoursesContent() {
         </div>
       )}
 
-      {/* 0. Primary Track Switcher (Tiếng Anh vs Phát triển cá nhân) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        {/* Track 1: All */}
-        <button
-          onClick={() => {
-            setActiveTrack('ALL');
-            setFilterCategory('ALL');
-          }}
-          className={`p-4 sm:p-5 rounded-3xl border text-left transition-all flex items-center justify-between gap-3 ${
-            activeTrack === 'ALL'
-              ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/15 ring-2 ring-slate-900/20'
-              : 'bg-white text-slate-700 border-line hover:border-slate-300 hover:bg-slate-50'
-          }`}
-        >
-          <div className="flex items-center gap-3.5">
-            <div
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                activeTrack === 'ALL' ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-700'
-              }`}
-            >
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-black tracking-tight">Tất Cả Lộ Trình</h3>
-              <p className={`text-[11px] font-medium ${activeTrack === 'ALL' ? 'text-slate-300' : 'text-slate-500'}`}>
-                Toàn bộ chương trình đào tạo
-              </p>
-            </div>
-          </div>
-          <span
-            className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
-              activeTrack === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
-            }`}
-          >
-            {myCourses.length + recommendedCourses.length}
-          </span>
-        </button>
-
-        {/* Track 2: English & IELTS Track */}
-        <button
-          onClick={() => {
-            setActiveTrack('ENGLISH');
-            setFilterCategory('ALL');
-          }}
-          className={`p-4 sm:p-5 rounded-3xl border text-left transition-all flex items-center justify-between gap-3 ${
-            activeTrack === 'ENGLISH'
-              ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white border-sky-600 shadow-lg shadow-sky-600/25 ring-2 ring-sky-500/30'
-              : 'bg-white text-slate-700 border-line hover:border-sky-200 hover:bg-sky-50/40'
-          }`}
-        >
-          <div className="flex items-center gap-3.5">
-            <div
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                activeTrack === 'ENGLISH' ? 'bg-white/20 text-white' : 'bg-sky-50 text-sky-600'
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className="text-xs sm:text-sm font-black tracking-tight">Đào Tạo Tiếng Anh & IELTS</h3>
-                <span
-                  className={`text-[9px] font-black px-1.5 py-0.2 rounded-md ${
-                    activeTrack === 'ENGLISH' ? 'bg-white/20 text-white' : 'bg-sky-100 text-sky-800'
-                  }`}
-                >
-                  IELTS 8.5
-                </span>
-              </div>
-              <p className={`text-[11px] font-medium ${activeTrack === 'ENGLISH' ? 'text-sky-100' : 'text-slate-500'}`}>
-                IELTS • Giao tiếp • Doanh nghiệp • Thiếu nhi
-              </p>
-            </div>
-          </div>
-          <span
-            className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
-              activeTrack === 'ENGLISH' ? 'bg-white/20 text-white' : 'bg-sky-50 text-sky-700'
-            }`}
-          >
-            {englishTotalCount}
-          </span>
-        </button>
-
-        {/* Track 3: Personal Development & Pedagogy */}
-        <button
-          onClick={() => {
-            setActiveTrack('PERSONAL_DEV');
-            setFilterCategory('ALL');
-          }}
-          className={`p-4 sm:p-5 rounded-3xl border text-left transition-all flex items-center justify-between gap-3 ${
-            activeTrack === 'PERSONAL_DEV'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-emerald-600 shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-500/30'
-              : 'bg-white text-slate-700 border-line hover:border-emerald-200 hover:bg-emerald-50/40'
-          }`}
-        >
-          <div className="flex items-center gap-3.5">
-            <div
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                activeTrack === 'PERSONAL_DEV' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'
-              }`}
-            >
-              <Compass className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className="text-xs sm:text-sm font-black tracking-tight">Phát Triển Cá Nhân & Sư Phạm</h3>
-                <span
-                  className={`text-[9px] font-black px-1.5 py-0.2 rounded-md ${
-                    activeTrack === 'PERSONAL_DEV' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-                  }`}
-                >
-                  Kỹ Năng Sống
-                </span>
-              </div>
-              <p className={`text-[11px] font-medium ${activeTrack === 'PERSONAL_DEV' ? 'text-emerald-100' : 'text-slate-500'}`}>
-                Sư phạm EdTech • Kỹ năng mềm • Lãnh đạo
-              </p>
-            </div>
-          </div>
-          <span
-            className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
-              activeTrack === 'PERSONAL_DEV' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700'
-            }`}
-          >
-            {personalDevTotalCount}
-          </span>
-        </button>
-      </div>
-
-      {/* Special Spotlight Strip according to active track */}
-      {activeTrack === 'ENGLISH' && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-sky-50 via-sky-50/80 to-blue-50 border border-sky-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <Award className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-extrabold text-sky-950 text-xs sm:text-sm">
-                Không gian chuyên biệt: Khảo Thí & Luyện Tập IELTS 4 Kỹ Năng
-              </p>
-              <p className="text-sky-700 text-[11px] mt-0.5">
-                Luyện viết chấm 4 tiêu chí với AI, thu âm giọng nói wave studio và luyện mock tests chuẩn đề thi.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <Link
-              href="/student/ielts"
-              className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold shadow-sm transition flex items-center gap-1"
-            >
-              <span>IELTS Hub</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-            <Link
-              href="/student/writing"
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-100 text-sky-800 font-bold border border-sky-200 transition"
-            >
-              Writing AI
-            </Link>
-            <Link
-              href="/student/speaking"
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-100 text-sky-800 font-bold border border-sky-200 transition"
-            >
-              Speaking Studio
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {activeTrack === 'PERSONAL_DEV' && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-emerald-50/80 to-teal-50 border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <Compass className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-extrabold text-emerald-950 text-xs sm:text-sm">
-                Không gian chuyên biệt: Năng Lực Giảng Dạy & Kỹ Năng Sống
-              </p>
-              <p className="text-emerald-700 text-[11px] mt-0.5">
-                Các phương pháp sư phạm ứng dụng EdTech, thuyết trình, tư duy phản biện và chứng chỉ hoàn thành xuất sắc.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="px-3 py-1.5 rounded-xl bg-white text-emerald-800 font-extrabold border border-emerald-200 shadow-2xs">
-              ⭐ Tích lũy điểm năng lực
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* 1. Header & Navigation Tabs */}
+      {/* 1. Sleek Header & Quick Stats */}
       <div className="bg-white rounded-3xl border border-line p-6 sm:p-7 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 flex items-center justify-center text-white shadow-md shadow-sky-600/20">
-                <BookOpen className="w-5 h-5" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          {/* Left: Title & Subtitle */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 flex items-center justify-center text-white shadow-md shadow-sky-600/20 shrink-0">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Khóa Học Của Tôi
+                </h1>
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100">
+                  LMS Học Viên
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+                Theo dõi tiến độ bài học, làm bài tập và đồng hành phát triển năng lực cùng Teacher Dong.
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Inline Quick Stats Badges */}
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            {/* Owned count */}
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs shadow-2xs">
+              <div className="w-7 h-7 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-black shrink-0">
+                <BookOpen className="w-3.5 h-3.5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  Khóa Học Của Tôi & Khám Phá Lộ Trình
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                  Cấu trúc đào tạo chuẩn EdTech 4 Cấp Độ: Course ➔ Module ➔ Lesson ➔ Components
-                </p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đang học</p>
+                <p className="text-xs font-black text-slate-900">{myCourses.length} khóa học</p>
               </div>
             </div>
-          </div>
 
-          {loading && (
-            <div className="flex items-center gap-2 text-xs font-bold text-sky-600">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Đang đồng bộ dữ liệu...</span>
+            {/* Average Progress */}
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs shadow-2xs">
+              <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black shrink-0">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ TB</p>
+                <p className="text-xs font-black text-emerald-600">{avgProgress}%</p>
+              </div>
             </div>
-          )}
+
+            {/* Mentor info */}
+            <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-amber-50/70 border border-amber-200/60 text-xs shadow-2xs">
+              <div className="w-7 h-7 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-black shrink-0">
+                <Award className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Cố vấn</p>
+                <p className="text-xs font-black text-slate-800">Teacher Dong (8.5)</p>
+              </div>
+            </div>
+
+            {loading && (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-600 px-2">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span className="hidden xl:inline">Đồng bộ...</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tab Buttons */}
@@ -641,7 +482,7 @@ function StudentCoursesContent() {
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            <span>Khám phá & Gợi ý khóa học ({recommendedCourses.length})</span>
+            <span>Khám phá khóa học ({recommendedCourses.length})</span>
           </button>
 
           {activeTab === 'curriculum' && (
@@ -659,48 +500,7 @@ function StudentCoursesContent() {
       {/* ================= VIEW 1: MY OWNED COURSES ================= */}
       {activeTab === 'my-courses' && (
         <div className="space-y-6">
-          {/* Quick Stats Banner */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-line shadow-xs flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500">Khóa học đang sở hữu</p>
-                <p className="text-xl sm:text-2xl font-black text-slate-900">{myCourses.length} khóa học</p>
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-line shadow-xs flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500">Tiến độ hoàn thành trung bình</p>
-                <p className="text-xl sm:text-2xl font-black text-emerald-600">
-                  {myCourses.length > 0
-                    ? Math.round(
-                        myCourses.reduce((acc, c) => acc + (c.progressPercent || c.progress || 0), 0) /
-                          myCourses.length,
-                      )
-                    : 0}
-                  %
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-line shadow-xs flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <Award className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500">Giảng viên hướng dẫn</p>
-                <p className="text-sm sm:text-base font-extrabold text-slate-900">Teacher Dong (IELTS 8.5)</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Owned Courses Grid */}
+          {/* Owned Courses Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
@@ -710,50 +510,32 @@ function StudentCoursesContent() {
               <span className="text-xs text-slate-500 font-bold">Bấm vào khóa học để mở đề cương chi tiết</span>
             </div>
 
-            {filteredMyCourses.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-line p-12 text-center space-y-4">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${
-                  activeTrack === 'PERSONAL_DEV' ? 'bg-emerald-50 text-emerald-600' : 'bg-sky-50 text-sky-600'
-                }`}>
-                  {activeTrack === 'PERSONAL_DEV' ? <Compass className="w-8 h-8" /> : <BookOpen className="w-8 h-8" />}
+            {myCourses.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-line p-10 sm:p-14 text-center space-y-4 shadow-xs">
+                <div className="w-16 h-16 rounded-3xl bg-sky-50 text-sky-600 flex items-center justify-center mx-auto border border-sky-100 shadow-2xs">
+                  <BookOpen className="w-8 h-8" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-800">
-                    {activeTrack === 'ENGLISH'
-                      ? 'Bạn chưa đăng ký khóa học Tiếng Anh nào'
-                      : activeTrack === 'PERSONAL_DEV'
-                      ? 'Bạn chưa đăng ký khóa học Kỹ Năng & Sư Phạm nào'
-                      : 'Bạn chưa đăng ký khóa học nào'}
+                <div className="max-w-md mx-auto space-y-1.5">
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                    Bạn chưa đăng ký khóa học nào
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
-                    {activeTrack === 'ENGLISH'
-                      ? 'Khám phá ngay lộ trình luyện thi IELTS 4 kỹ năng và Tiếng Anh giao tiếp bứt phá cùng Thầy Đông.'
-                      : activeTrack === 'PERSONAL_DEV'
-                      ? 'Nâng cao năng lực giảng dạy EdTech và hoàn thiện bộ kỹ năng sống thực chiến.'
-                      : 'Khám phá ngay danh mục các chương trình đào tạo của Teacher Dong Academy để bắt đầu học tập.'}
+                  <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                    Khám phá ngay danh mục các chương trình đào tạo của Teacher Dong Academy để bắt đầu lộ trình học tập bứt phá.
                   </p>
                 </div>
-                <button
-                  onClick={() => setActiveTab('recommended')}
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-xs sm:text-sm shadow-md ${
-                    activeTrack === 'PERSONAL_DEV'
-                      ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-                      : 'bg-sky-600 hover:bg-sky-700 shadow-sky-600/20'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>
-                    {activeTrack === 'ENGLISH'
-                      ? 'Khám phá khóa học Tiếng Anh'
-                      : activeTrack === 'PERSONAL_DEV'
-                      ? 'Khám phá khóa học Sư Phạm & Kỹ Năng'
-                      : 'Khám phá tất cả khóa học'}
-                  </span>
-                </button>
+                <div className="pt-2">
+                  <button
+                    onClick={() => setActiveTab('recommended')}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-sky-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Khám phá khóa học ngay</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {filteredMyCourses.map((course) => {
+                {myCourses.map((course) => {
                   const progress = course.progressPercent ?? course.progress ?? 0;
                   const coverUrl = getCourseCoverUrl(course.thumbnail, course.category);
 
@@ -812,7 +594,7 @@ function StudentCoursesContent() {
 
                           {/* Description */}
                           <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                            {course.description || 'Chương trình đào tạo tương tác trực tuyến chuẩn EdTech.'}
+                            {course.description || 'Chương trình đào tạo tương tác trực tuyến chuẩn quốc tế.'}
                           </p>
 
                           {course.enrollmentStatus === 'PENDING' ? (
@@ -898,28 +680,30 @@ function StudentCoursesContent() {
           </div>
 
           {/* Suggested Courses Preview Strip */}
-          <div className="bg-gradient-to-r from-sky-900 via-slate-900 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border border-slate-800">
-            <div className="space-y-1.5 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
-                <Sparkles className="w-3 h-3 text-slate-950" />
-                <span>Gợi ý mở rộng năng lực</span>
+          {myCourses.length > 0 && (
+            <div className="bg-gradient-to-r from-sky-900 via-slate-900 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border border-slate-800">
+              <div className="space-y-1.5 max-w-xl">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3 text-slate-950" />
+                  <span>Gợi ý mở rộng năng lực</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-extrabold text-white">
+                  Khám phá thêm các khóa học theo 5 Trụ Cột Đào Tạo
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300">
+                  Bên cạnh khóa học hiện tại, bạn có thể tham gia IELTS Speaking Studio phản xạ 1-1, Business English hoặc Phương pháp Sư phạm Hiện Đại.
+                </p>
               </div>
-              <h3 className="text-lg sm:text-xl font-extrabold text-white">
-                Khám phá thêm các khóa học theo 5 Trụ Cột Đào Tạo
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300">
-                Bên cạnh IELTS Writing, bạn có thể tham gia IELTS Speaking Studio phản xạ 1-1, Business English hoặc Phương pháp Sư phạm.
-              </p>
-            </div>
 
-            <button
-              onClick={() => setActiveTab('recommended')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white text-slate-900 hover:bg-sky-50 font-extrabold text-xs sm:text-sm transition-all shadow-sm shrink-0"
-            >
-              <span>Xem tất cả khóa học gợi ý</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+              <button
+                onClick={() => setActiveTab('recommended')}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white text-slate-900 hover:bg-sky-50 font-extrabold text-xs sm:text-sm transition-all shadow-sm shrink-0"
+              >
+                <span>Xem tất cả khóa học gợi ý</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -940,7 +724,7 @@ function StudentCoursesContent() {
               />
             </div>
 
-            {/* Category Filter Pills (Dynamically matched to activeTrack) */}
+            {/* Category Filter Pills (Aligned with 5 Pillars) */}
             <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
               {categoryFilterPills.map((tab) => (
                 <button
@@ -948,9 +732,7 @@ function StudentCoursesContent() {
                   onClick={() => setFilterCategory(tab.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     filterCategory === tab.id
-                      ? activeTrack === 'PERSONAL_DEV'
-                        ? 'bg-emerald-600 text-white font-extrabold shadow-sm'
-                        : 'bg-sky-600 text-white font-extrabold shadow-sm'
+                      ? 'bg-sky-600 text-white font-extrabold shadow-sm shadow-sky-600/20'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
                   }`}
                 >
@@ -1026,7 +808,7 @@ function StudentCoursesContent() {
                       </h3>
 
                       <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                        {course.description || 'Chương trình đào tạo chuyên sâu kết hợp thực hành WebRTC LiveKit và trí tuệ nhân tạo AI.'}
+                        {course.description || 'Chương trình đào tạo chuyên sâu kết hợp thực hành lớp học trực tuyến và trí tuệ nhân tạo AI.'}
                       </p>
 
                       <div className="flex items-center justify-between text-xs font-bold text-slate-600 pt-2 border-t border-slate-100">
@@ -1035,7 +817,7 @@ function StudentCoursesContent() {
                           <span>Giảng viên: Teacher Dong</span>
                         </span>
                         <span className="text-xs font-extrabold text-emerald-600">
-                          Học trực tuyến + WebRTC
+                          Lớp học trực tuyến tương tác
                         </span>
                       </div>
                     </div>
@@ -1054,9 +836,9 @@ function StudentCoursesContent() {
               );
             })}
           </div>
-        )}
-      </div>
-    )}
+          )}
+        </div>
+      )}
 
       {/* ================= VIEW 3: ACTIVE COURSE CURRICULUM ================= */}
       {activeTab === 'curriculum' && (
@@ -1126,7 +908,60 @@ function StudentCoursesContent() {
             </div>
           )}
 
+          {/* Sub-tabs for Course: Lessons vs Course Materials */}
+          <div className="flex items-center justify-between border-b border-line pb-3 gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurriculumTab('lessons')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+                  curriculumTab === 'lessons'
+                    ? 'bg-[#1B64B0] text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Chương Trình & Bài Học ({modules.reduce((acc, m) => acc + m.lessons.length, 0)})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurriculumTab('materials')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+                  curriculumTab === 'materials'
+                    ? 'bg-[#1B64B0] text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <FolderOpen className="w-4 h-4" />
+                <span>Học Liệu & Đề Thi Khóa Học ({courseMaterials.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurriculumTab('homework')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+                  curriculumTab === 'homework'
+                    ? 'bg-[#1B64B0] text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Bài Tập Về Nhà ({courseHomeworks.length})</span>
+              </button>
+            </div>
+
+            {selectedCourse && (
+              <Link
+                href={`/student/library?courseId=${selectedCourse.id}`}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1B64B0] hover:underline"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Mở toàn bộ tủ sách khóa học ➔</span>
+              </Link>
+            )}
+          </div>
+
           {/* Curriculum Accordion (Modules & Lessons) */}
+          {curriculumTab === 'lessons' ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black text-slate-900">
@@ -1270,6 +1105,189 @@ function StudentCoursesContent() {
               );
             })}
           </div>
+          ) : curriculumTab === 'materials' ? (
+          /* Materials View for the selected course */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  Kho Học Liệu & Đề Thi Dành Riêng Cho Khóa Học Này ({courseMaterials.length})
+                </h3>
+                <p className="text-xs text-slate-500">Giáo trình PDF & file nghe Audio chính thức được phân bổ cho học viên khóa này.</p>
+              </div>
+              <Link
+                href={`/student/library?courseId=${selectedCourse?.id}`}
+                className="px-3.5 py-1.5 rounded-xl bg-sky-50 text-[#1B64B0] border border-sky-200 text-xs font-extrabold hover:bg-sky-100 transition flex items-center gap-1.5"
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>Xem trong Tủ Sách</span>
+              </Link>
+            </div>
+
+            {loadingMaterials ? (
+              <div className="p-8 text-center text-slate-500 font-semibold bg-white rounded-2xl border border-line">
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#1B64B0] mb-2" />
+                <p className="text-xs">Đang tải danh sách học liệu của khóa học...</p>
+              </div>
+            ) : courseMaterials.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-2xl border border-line space-y-2">
+                <FolderOpen className="w-10 h-10 text-slate-300 mx-auto" />
+                <h4 className="text-sm font-black text-slate-800">Khóa học này chưa có học liệu riêng</h4>
+                <p className="text-xs text-slate-500">Thầy Đông sẽ sớm bổ sung tài liệu và bài nghe cho khóa học này.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {courseMaterials.map((mat) => {
+                  const isPdf = mat.type === 'PDF' || mat.fileType === 'PDF';
+                  const childrenCount = Array.isArray(mat.children) ? mat.children.length : 0;
+                  return (
+                    <div
+                      key={mat.id}
+                      className="p-5 rounded-2xl bg-white border border-line hover:border-[#1B64B0] shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-4"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-sky-50 text-[#1B64B0]">
+                            {isPdf ? 'Đề thi & Giáo trình' : 'Audio bài nghe'}
+                          </span>
+                          {childrenCount > 0 && (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Kèm {childrenCount} file nghe
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                            isPdf ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+                          }`}>
+                            {isPdf ? <FileText className="w-5 h-5" /> : <Headphones className="w-5 h-5" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-black text-slate-900 line-clamp-2 leading-snug">
+                              {mat.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 mt-1">
+                              {mat.fileSize ? `${(mat.fileSize / (1024 * 1024)).toFixed(1)} MB` : '8.5 MB'} • Bảo mật DRM Watermark
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-line flex items-center justify-between">
+                        <span className="text-[10.5px] text-slate-400 font-medium">Bảo vệ bản quyền</span>
+                        <Link
+                          href={`/student/library?courseId=${selectedCourse?.id}`}
+                          className={`px-3.5 py-1.5 rounded-xl text-white text-xs font-black transition shadow-sm flex items-center gap-1.5 ${
+                            childrenCount > 0 ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#1B64B0] hover:bg-[#154E8A]'
+                          }`}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>{childrenCount > 0 ? 'Mở Đề & Nghe Audio' : 'Mở Xem Bảo Mật'}</span>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          ) : (
+          /* Homework View for the selected course */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  Nhiệm Vụ & Bài Tập Về Nhà Của Khóa Học ({courseHomeworks.length})
+                </h3>
+                <p className="text-xs text-slate-500">Các bài tập thực hành do Thầy Đông giao riêng cho học viên khóa học này.</p>
+              </div>
+              <Link
+                href="/student/homework"
+                className="px-3.5 py-1.5 rounded-xl bg-sky-50 text-[#1B64B0] border border-sky-200 text-xs font-extrabold hover:bg-sky-100 transition flex items-center gap-1.5"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Xem Tất Cả Bài Tập</span>
+              </Link>
+            </div>
+
+            {loadingHomeworks ? (
+              <div className="p-8 text-center text-slate-500 font-semibold bg-white rounded-2xl border border-line">
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#1B64B0] mb-2" />
+                <p className="text-xs">Đang tải bài tập về nhà của khóa học...</p>
+              </div>
+            ) : courseHomeworks.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-2xl border border-line space-y-2">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto" />
+                <h4 className="text-sm font-black text-slate-800">Chưa có bài tập về nhà nào cho khóa học này</h4>
+                <p className="text-xs text-slate-500">Thầy Đông sẽ cập nhật bài tập thực hành sau các buổi học.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {courseHomeworks.map((hw) => {
+                  const isGraded = hw.submissionStatus === 'GRADED';
+                  const isPending = hw.submissionStatus === 'PENDING';
+                  return (
+                    <div
+                      key={hw.id}
+                      className="p-5 rounded-2xl bg-white border border-line hover:border-[#1B64B0] shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-4"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-sky-50 text-[#1B64B0]">
+                            Thang điểm {hw.maxScore}đ
+                          </span>
+                          {hw.dueDate && (
+                            <span className="text-[10.5px] font-bold text-slate-500 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              <span>Hạn: {new Date(hw.dueDate).toLocaleDateString('vi-VN')}</span>
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-sm font-black text-slate-900 leading-snug">
+                          {hw.title}
+                        </h4>
+                        <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed whitespace-pre-line">
+                          {hw.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-3 border-t border-line flex items-center justify-between">
+                        <div>
+                          {isGraded && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black">
+                              <Award className="w-3 h-3 text-emerald-600" />
+                              <span>Điểm: {hw.mySubmission?.score}/{hw.maxScore}đ</span>
+                            </span>
+                          )}
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold">
+                              <Clock className="w-3 h-3 text-sky-600" />
+                              <span>Đã nộp - Chờ chấm</span>
+                            </span>
+                          )}
+                          {!isGraded && !isPending && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
+                              Chưa nộp bài
+                            </span>
+                          )}
+                        </div>
+
+                        <Link
+                          href="/student/homework"
+                          className="px-3.5 py-1.5 rounded-xl bg-[#1B64B0] hover:bg-[#154E8A] text-white text-xs font-black transition shadow-sm flex items-center gap-1"
+                        >
+                          <span>{isGraded ? 'Xem Lời Phê' : isPending ? 'Xem Bài Nộp' : 'Làm & Nộp Bài'}</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          )}
         </div>
       )}
 

@@ -16,6 +16,7 @@ import {
   Settings,
   Newspaper,
   Award,
+  FileText,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
@@ -32,8 +33,9 @@ export default function AdminSidebar() {
       items: [
         { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
         { href: '/admin/courses', label: t('nav_admin_courses', 'Khóa học & Cây giáo trình'), icon: GraduationCap },
+        { href: '/admin/homework', label: t('nav_admin_homework', 'Giao bài tập về nhà'), icon: FileText },
         { href: '/admin/library', label: t('nav_admin_library', 'Kho học liệu số bảo mật'), icon: FolderLock },
-        { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến LiveKit'), icon: Video },
+        { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến'), icon: Video },
       ],
     },
     {
@@ -133,19 +135,19 @@ export default function AdminSidebar() {
         ))}
       </nav>
 
-      {/* SFU Status indicator */}
+      {/* Classroom Status indicator */}
       {isOpen ? (
         <div className="p-3 m-3 rounded-xl bg-slate-800 border border-slate-700 text-xs shrink-0">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-            <span className="font-bold text-white truncate">LiveKit SFU Online</span>
+            <span className="font-bold text-white truncate">Phòng học trực tuyến: Sẵn sàng</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1 truncate">Uptime 99.98% • Latency 42ms</p>
+          <p className="text-[11px] text-slate-400 mt-1 truncate">Đường truyền ổn định • Kết nối 100%</p>
         </div>
       ) : (
         <div
           className="p-2 my-3 mx-auto rounded-xl bg-slate-800/60 border border-slate-700 flex items-center justify-center cursor-pointer shrink-0"
-          title="LiveKit SFU Online • Uptime 99.98% • Latency 42ms"
+          title="Phòng học trực tuyến: Sẵn sàng"
         >
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
         </div>

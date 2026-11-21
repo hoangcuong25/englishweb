@@ -15,6 +15,7 @@ import {
   MessageSquare,
   UserCheck,
   Award,
+  FileText,
   Target,
   Compass,
   GraduationCap,
@@ -68,8 +69,9 @@ export default function StudentSidebar() {
       items: [
         { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
         { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen },
-        { href: '/student/classroom', label: t('nav_classroom', 'Lớp trực tuyến WebRTC'), icon: Video },
-        { href: '/student/library', label: t('nav_library', 'Học liệu số & Bảo mật'), icon: FolderLock },
+        { href: '/student/homework', label: t('nav_homework', 'Bài tập về nhà'), icon: FileText },
+        { href: '/student/classroom', label: t('nav_classroom', 'Lớp học trực tuyến'), icon: Video },
+        { href: '/student/library', label: t('nav_library', 'Học liệu & Đề thi số'), icon: FolderLock },
       ],
     },
     {

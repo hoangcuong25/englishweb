@@ -7,8 +7,8 @@ import { ToastProvider } from '@/components/ui/toast';
 import { SidebarProvider } from '@/lib/sidebar-context';
 
 export const metadata: Metadata = {
-  title: 'Teacher Dong Academy — Nền Tảng Đào Tạo Anh Ngữ & WebRTC In-House',
-  description: 'Nền tảng đào tạo trực tuyến chuẩn EdTech hiện đại: IELTS, Business English, LiveKit WebRTC, AI Writing Assessment, Speaking Studio và Điểm danh tự động.',
+  title: 'Teacher Dong Academy — Nền Tảng Đào Tạo Anh Ngữ & Kỹ Năng Toàn Diện',
+  description: 'Nền tảng đào tạo trực tuyến hiện đại: IELTS, Business English, Lớp học trực tuyến tương tác, IELTS Mock Test, AI Writing Assessment, Speaking Studio và Điểm danh tự động.',
 };
 
 export const viewport: Viewport = {

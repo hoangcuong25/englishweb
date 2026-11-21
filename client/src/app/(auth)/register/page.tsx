@@ -80,7 +80,7 @@ const TARGET_OPTIONS_BY_FIELD: Record<
   ],
   PEDAGOGY: [
     { value: 'ACTIVE_TEACHING', label: 'Phương pháp giảng dạy tương tác hiện đại', badge: 'Giảng dạy' },
-    { value: 'EDTECH_DESIGN', label: 'Thiết kế giáo án EdTech & Ứng dụng AI', badge: 'EdTech' },
+    { value: 'TEACHING_DESIGN', label: 'Thiết kế giáo án hiện đại & Ứng dụng AI', badge: 'Giáo án' },
     { value: 'CLASS_INSPIRATION', label: 'Nghệ thuật truyền cảm hứng trong lớp học', badge: 'Truyền cảm hứng' },
   ],
 };

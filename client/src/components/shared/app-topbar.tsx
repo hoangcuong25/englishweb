@@ -75,7 +75,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
     { href: '/student/dashboard', label: t('nav_dashboard', 'Tổng quan học tập'), icon: LayoutDashboard },
     { href: '/student/courses', label: t('nav_courses', 'Khóa học của tôi'), icon: BookOpen },
     { href: '/student/ielts', label: 'IELTS 4 Kỹ Năng Master', icon: Award },
-    { href: '/student/classroom', label: t('nav_classroom', 'Lớp trực tuyến WebRTC'), icon: Video },
+    { href: '/student/classroom', label: t('nav_classroom', 'Lớp học trực tuyến'), icon: Video },
     { href: '/student/library', label: t('nav_library', 'Học liệu số & Bảo mật'), icon: FolderLock },
     { href: '/student/writing', label: t('nav_writing', 'Luyện viết IELTS AI'), icon: PenTool },
     { href: '/student/speaking', label: t('nav_speaking', 'Studio luyện nói IELTS'), icon: Mic },
@@ -89,7 +89,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
     { href: '/admin/dashboard', label: t('nav_admin_dashboard', 'Tổng quan hệ thống'), icon: LayoutDashboard },
     { href: '/admin/courses', label: t('nav_admin_courses', 'Khóa học & Cây giáo trình'), icon: GraduationCap },
     { href: '/admin/library', label: t('nav_admin_library', 'Kho học liệu số'), icon: FolderLock },
-    { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến LiveKit'), icon: Video },
+    { href: '/admin/classroom', label: t('nav_admin_classroom', 'Lớp học trực tuyến'), icon: Video },
     { href: '/admin/assessments', label: t('nav_admin_assessments', 'Khảo thí & Chấm thi IELTS'), icon: Award },
     { href: '/admin/attendance', label: t('nav_admin_attendance', 'Báo cáo điểm danh & Chuyên cần'), icon: CalendarCheck },
     { href: '/admin/users', label: t('nav_users', 'Quản lý học viên'), icon: Users },
@@ -490,7 +490,7 @@ export default function AppTopbar({ currentPortal, pageTitle }: AppTopbarProps) 
                 {/* Footer */}
                 <div className="p-2 border-t border-line bg-slate-50/50 text-center">
                   <p className="text-[10px] text-slate-400 font-medium">
-                    Hệ thống thông báo đồng bộ tự động từ LiveKit, LMS & AI
+                    Hệ thống thông báo đồng bộ tự động theo thời gian thực
                   </p>
                 </div>
               </div>

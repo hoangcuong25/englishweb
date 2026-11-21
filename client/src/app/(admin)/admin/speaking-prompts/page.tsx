@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { speakingService, SpeakingPrompt } from '@/services/speaking.service';
 import { useI18n } from '@/lib/i18n-context';
 import { extractErrorMessage } from '@/lib/api-error';
+import RichTextEditor from '@/components/shared/rich-text-editor';
 import {
   Mic,
   Plus,
@@ -371,29 +372,25 @@ export default function AdminSpeakingPromptsPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nội Dung Câu Hỏi (Prompt Description):</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Nhập nội dung câu hỏi hoặc yêu cầu bài thi..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-line focus:outline-none focus:border-primary leading-relaxed"
-                />
-              </div>
+              <RichTextEditor
+                label="Nội Dung Câu Hỏi (Prompt Description)"
+                required
+                value={formDesc}
+                onChange={(val) => setFormDesc(val)}
+                placeholder="Nhập nội dung câu hỏi hoặc yêu cầu bài thi nói IELTS..."
+                minHeight="min-h-[140px]"
+                helperText="Hỗ trợ in đậm, gạch đầu dòng và lưu ý chuẩn bị."
+              />
 
               {formPart === 2 && (
-                <div>
-                  <label className="block text-xs font-bold text-amber-800 mb-1">Nội Dung Cue Card (Các Gợi Ý):</label>
-                  <textarea
-                    rows={4}
-                    value={formCueCard}
-                    onChange={(e) => setFormCueCard(e.target.value)}
-                    placeholder="You should say:&#10;- Where it took place&#10;- Who was with you&#10;- What happened"
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-amber-300 bg-amber-50/50 focus:outline-none focus:border-amber-500 leading-relaxed font-mono"
-                  />
-                </div>
+                <RichTextEditor
+                  label="Nội Dung Cue Card Part 2 (Các Gợi Ý Thuyết Trình)"
+                  value={formCueCard}
+                  onChange={(val) => setFormCueCard(val)}
+                  placeholder="You should say:&#10;- Where it took place&#10;- Who was with you&#10;- What happened"
+                  minHeight="min-h-[140px]"
+                  helperText="Gợi ý các ý triển khai trong 2 phút thuyết trình cho thí sinh."
+                />
               )}
 
               <div className="grid grid-cols-2 gap-3">

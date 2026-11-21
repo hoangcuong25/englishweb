@@ -9,6 +9,7 @@ import { usersService, UserProfile } from '@/services/users.service';
 import { useAuth } from '@/lib/auth-context';
 import DynamicWatermarkCanvas from '@/components/shared/dynamic-watermark-canvas';
 import CustomSelect from '@/components/ui/custom-select';
+import RichTextEditor from '@/components/shared/rich-text-editor';
 import { extractErrorMessage } from '@/lib/api-error';
 import {
   Plus,
@@ -529,6 +530,7 @@ export default function AdminCoursesPage() {
     type: 'VIDEO',
     durationMinutes: 45,
     isFreePreview: false,
+    content: '',
   });
   const [lessonVideoFile, setLessonVideoFile] = useState<File | null>(null);
   const [lessonUploadProgress, setLessonUploadProgress] = useState<number | null>(null);
@@ -544,6 +546,7 @@ export default function AdminCoursesPage() {
       type: 'VIDEO',
       durationMinutes: 45,
       isFreePreview: false,
+      content: '',
     });
     setLessonVideoFile(null);
     setLessonUploadProgress(null);
@@ -584,6 +587,7 @@ export default function AdminCoursesPage() {
         title: lessonFormData.lessonTitle.trim(),
         durationMinutes: Number(lessonFormData.durationMinutes) || 45,
         isFreePreview: Boolean(lessonFormData.isFreePreview),
+        content: lessonFormData.content.trim() || undefined,
       });
 
       const createdLessonId = (createdLessonRes as any)?.data?.id || (createdLessonRes as any)?.id;
@@ -1260,7 +1264,7 @@ export default function AdminCoursesPage() {
                 : adminTrackFilter === 'PERSONAL_DEV'
                 ? [
                     { id: 'ALL', label: 'Tất cả Kỹ Năng & Sư Phạm' },
-                    { id: 'PEDAGOGY', label: 'Năng Lực Sư Phạm EdTech' },
+                    { id: 'PEDAGOGY', label: 'Năng Lực Sư Phạm' },
                     { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống & Thuyết Trình' },
                     { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
                     { id: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân' },
@@ -1271,7 +1275,7 @@ export default function AdminCoursesPage() {
                     { id: 'ENGLISH', label: 'General English' },
                     { id: 'BUSINESS', label: 'Business' },
                     { id: 'KIDS', label: 'Kids English' },
-                    { id: 'PEDAGOGY', label: 'Sư Phạm EdTech' },
+                    { id: 'PEDAGOGY', label: 'Phương Pháp Sư Phạm' },
                     { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
                     { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
                     { id: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân' },
@@ -2197,7 +2201,7 @@ export default function AdminCoursesPage() {
                     </div>
                     <div>
                       <p className="text-xs font-black">Phát Triển Cá Nhân & Sư Phạm</p>
-                      <p className="text-[10px] text-slate-500">Sư phạm EdTech, Kỹ năng sống & mềm</p>
+                      <p className="text-[10px] text-slate-500">Phương pháp Sư phạm, Kỹ năng sống & mềm</p>
                     </div>
                   </button>
                 </div>
@@ -2298,7 +2302,7 @@ export default function AdminCoursesPage() {
                           { cat: 'KIDS', label: 'Kids English' },
                         ]
                       : [
-                          { cat: 'PEDAGOGY', label: 'Sư Phạm EdTech' },
+                          { cat: 'PEDAGOGY', label: 'Phương Pháp Sư Phạm' },
                           { cat: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
                           { cat: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
                           { cat: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân' },
@@ -2426,19 +2430,15 @@ export default function AdminCoursesPage() {
                 />
               </div>
 
-              {/* 5. Short Description */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Mô tả tóm tắt mục tiêu đầu ra
-                </label>
-                <textarea
-                  rows={2}
-                  value={courseFormData.shortDesc}
-                  onChange={(e) => setCourseFormData({ ...courseFormData, shortDesc: e.target.value })}
-                  placeholder="Mô tả mục tiêu chuẩn đầu ra của khóa học..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs font-medium text-slate-800"
-                ></textarea>
-              </div>
+              {/* 5. Short Description with Rich Text Editor */}
+              <RichTextEditor
+                label="Mô tả mục tiêu chuẩn đầu ra & nội dung khóa học"
+                value={courseFormData.shortDesc}
+                onChange={(val) => setCourseFormData({ ...courseFormData, shortDesc: val })}
+                placeholder="Mô tả mục tiêu chuẩn đầu ra, đối tượng phù hợp, lộ trình học tập và phương pháp giảng dạy..."
+                minHeight="min-h-[140px]"
+                helperText="Hỗ trợ đầy đủ định dạng: In đậm, gạch đầu dòng, bảng biểu, mẹo học tập và ghi chú."
+              />
 
               <div className="pt-2 flex items-center justify-end space-x-2">
                 <button
@@ -2710,6 +2710,16 @@ export default function AdminCoursesPage() {
                   )}
                 </div>
               )}
+
+              {/* Lesson Reading Content / Instructions */}
+              <RichTextEditor
+                label="Nội dung bài học / Hướng dẫn & Ghi chú lý thuyết (Tùy chọn)"
+                value={lessonFormData.content}
+                onChange={(val) => setLessonFormData({ ...lessonFormData, content: val })}
+                placeholder="Nhập nội dung bài đọc, kiến thức cốt lõi, từ vựng hoặc hướng dẫn thực hành..."
+                minHeight="min-h-[120px]"
+                helperText="Học viên sẽ xem nội dung này tại trang chi tiết bài học."
+              />
 
               <div className="flex items-center gap-2 pt-1">
                 <input

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CustomSelect from '@/components/ui/custom-select';
+import RichTextEditor from '@/components/shared/rich-text-editor';
 import { toast } from '@/components/ui/toast';
 import { quizzesService, QuizQuestion as RemoteQuizQuestion } from '@/services/quizzes.service';
 import { coursesService, Course } from '@/services/courses.service';
@@ -45,6 +46,11 @@ import {
   Target,
   Trophy,
   FileEdit,
+  Download,
+  Upload,
+  Zap,
+  FileCode,
+  Check,
 } from 'lucide-react';
 
 // ==========================================
@@ -154,7 +160,7 @@ function AssessmentHubContent() {
       case 'PEDAGOGY':
         return [
           { value: 'TEACHING_METHOD', label: 'Phương pháp Giảng dạy & Soạn giáo án' },
-          { value: 'CLASS_MANAGEMENT', label: 'Quản trị Lớp học & Tương tác EdTech' },
+          { value: 'CLASS_MANAGEMENT', label: 'Quản trị Lớp học & Tương tác Trực Tuyến' },
           { value: 'SITUATION_HANDLING', label: 'Xử lý Tình huống Sư phạm Thực chiến' },
           { value: 'ASSESSMENT_RUBRICS', label: 'Kiểm tra Đánh giá & Tiêu chuẩn Sư phạm' },
         ];
@@ -240,8 +246,26 @@ function AssessmentHubContent() {
     optionC: '',
     optionD: '',
     correctAnswer: 'A',
+    fillBlankAnswers: '',
     explanation: '',
   });
+
+  // Smart Cambridge Importer State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importTargetQuizId, setImportTargetQuizId] = useState('');
+  const [importTab, setImportTab] = useState<'text' | 'file'>('text');
+  const [importText, setImportText] = useState('');
+  const [importForcedType, setImportForcedType] = useState<string>('AUTO');
+  const [parsedQuestions, setParsedQuestions] = useState<
+    {
+      orderIndex: number;
+      type: string;
+      content: string;
+      options: { content: string; isCorrect: boolean }[];
+      explanation?: string;
+    }[]
+  >([]);
+  const [isSubmittingImport, setIsSubmittingImport] = useState(false);
 
   const fetchQuizzesAndTests = async () => {
     setLoadingQuizzes(true);
@@ -399,6 +423,7 @@ function AssessmentHubContent() {
       optionC: '',
       optionD: '',
       correctAnswer: 'A',
+      fillBlankAnswers: '',
       explanation: '',
     });
     setIsQuestionModalOpen(true);
@@ -412,12 +437,32 @@ function AssessmentHubContent() {
     }
 
     try {
-      const options = [
-        { content: qFormData.optionA || 'Lựa chọn A', isCorrect: qFormData.correctAnswer === 'A' },
-        { content: qFormData.optionB || 'Lựa chọn B', isCorrect: qFormData.correctAnswer === 'B' },
-        { content: qFormData.optionC || 'Lựa chọn C', isCorrect: qFormData.correctAnswer === 'C' },
-        { content: qFormData.optionD || 'Lựa chọn D', isCorrect: qFormData.correctAnswer === 'D' },
-      ];
+      let options: { content: string; isCorrect: boolean }[] = [];
+
+      if (qFormData.type === 'TRUE_FALSE_NOT_GIVEN') {
+        options = [
+          { content: 'TRUE', isCorrect: qFormData.correctAnswer === 'TRUE' },
+          { content: 'FALSE', isCorrect: qFormData.correctAnswer === 'FALSE' },
+          { content: 'NOT GIVEN', isCorrect: qFormData.correctAnswer === 'NOT GIVEN' },
+        ];
+      } else if (qFormData.type === 'YES_NO_NOT_GIVEN') {
+        options = [
+          { content: 'YES', isCorrect: qFormData.correctAnswer === 'YES' },
+          { content: 'NO', isCorrect: qFormData.correctAnswer === 'NO' },
+          { content: 'NOT GIVEN', isCorrect: qFormData.correctAnswer === 'NOT GIVEN' },
+        ];
+      } else if (qFormData.type === 'FILL_BLANK' || qFormData.type === 'NOTE_COMPLETION') {
+        const parts = (qFormData.fillBlankAnswers || 'Đáp án mẫu').split('/').map((p) => p.trim()).filter(Boolean);
+        options = parts.map((p) => ({ content: p, isCorrect: true }));
+        if (options.length === 0) options = [{ content: 'Đáp án chuẩn', isCorrect: true }];
+      } else {
+        options = [
+          { content: qFormData.optionA || 'Lựa chọn A', isCorrect: qFormData.correctAnswer === 'A' },
+          { content: qFormData.optionB || 'Lựa chọn B', isCorrect: qFormData.correctAnswer === 'B' },
+          { content: qFormData.optionC || 'Lựa chọn C', isCorrect: qFormData.correctAnswer === 'C' },
+          { content: qFormData.optionD || 'Lựa chọn D', isCorrect: qFormData.correctAnswer === 'D' },
+        ];
+      }
 
       await quizzesService.createQuestion({
         quizId: qFormData.targetQuizId,
@@ -428,12 +473,298 @@ function AssessmentHubContent() {
         options,
       });
 
-      showNotice('✅ Đã thêm câu hỏi trắc nghiệm mới thành công!');
+      showNotice(`✅ Đã thêm câu hỏi (${qFormData.type}) mới thành công!`);
       await fetchQuizzesAndTests();
       setIsQuestionModalOpen(false);
     } catch (err: unknown) {
       showNotice(`❌ Lỗi khi thêm câu hỏi: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
     }
+  };
+
+  // ==========================================
+  // SMART CAMBRIDGE IMPORTER LOGIC & PARSER
+  // ==========================================
+  const sampleCambridgeReadingText = `Questions 1-4
+Do the following statements agree with the information given in Reading Passage 1?
+In boxes 1-4 on your answer sheet, write:
+TRUE if the statement agrees with the information
+FALSE if the statement contradicts the information
+NOT GIVEN if there is no information on this
+
+1. The ancient Roman water distribution grid was constructed entirely above ground level.
+Answer: FALSE
+Explanation: Paragraph 1 states that the vast majority was subterranean aqueducts.
+
+2. Modern metropolitan areas deploy AI-assisted IoT sensors to regulate municipal traffic flow.
+Answer: TRUE
+Explanation: Paragraph 3 mentions automated camera systems detecting congestion in real-time.
+
+3. The municipal government of Copenhagen achieved total carbon neutrality ahead of schedule in 2024.
+Answer: NOT GIVEN
+Explanation: The passage mentions ambitious targets but no confirmation of early completion.
+
+4. What is the primary environmental benefit of deploying decentralized solar microgrids?
+A. To eliminate all consumer electric bills
+B. To reduce peak-hour transmission loss and fossil fuel reliance
+C. To replace national utility providers completely
+D. To encourage residential crypto mining activities
+Answer: B
+Explanation: Paragraph 5 highlights reduced transmission resistance and cleaner distributed energy.
+
+5. Sustainable urban high-rise buildings utilize specialized ______ windows to generate thermal insulation.
+Answer: double-glazed / vacuum-insulated
+Explanation: Paragraph 6 details advanced glazing materials for thermal efficiency.`;
+
+  const handleOpenImportModal = (quizId?: string) => {
+    setImportTargetQuizId(quizId || mockTests[0]?.id || '');
+    setParsedQuestions([]);
+    setIsImportModalOpen(true);
+  };
+
+  const parseCambridgeRawText = (rawText: string, forcedType = 'AUTO') => {
+    const lines = rawText.split('\n').map((l) => l.trim()).filter(Boolean);
+    const questions: {
+      orderIndex: number;
+      type: string;
+      content: string;
+      options: { content: string; isCorrect: boolean }[];
+      explanation?: string;
+    }[] = [];
+
+    const questionRegex = /^(?:Question\s+|Q\s*)?(\d+)[\.\:\)]\s*(.*)$/i;
+    let currentQ: {
+      number: number;
+      text: string;
+      options: { letter: string; text: string }[];
+      answer?: string;
+      explanation?: string;
+    } | null = null;
+
+    const processAndPush = (q: typeof currentQ) => {
+      if (!q) return;
+      let type = forcedType !== 'AUTO' ? forcedType : 'SINGLE_CHOICE';
+      const ans = (q.answer || '').trim().toUpperCase();
+
+      if (forcedType === 'AUTO') {
+        if (['TRUE', 'FALSE', 'NOT GIVEN'].includes(ans) || q.text.toUpperCase().includes('TRUE/FALSE/NOT GIVEN')) {
+          type = 'TRUE_FALSE_NOT_GIVEN';
+        } else if (['YES', 'NO', 'NOT GIVEN'].includes(ans)) {
+          type = 'YES_NO_NOT_GIVEN';
+        } else if (q.options.length >= 2) {
+          type = 'SINGLE_CHOICE';
+        } else {
+          type = 'FILL_BLANK';
+        }
+      }
+
+      let finalOptions: { content: string; isCorrect: boolean }[] = [];
+      if (type === 'TRUE_FALSE_NOT_GIVEN') {
+        finalOptions = [
+          { content: 'TRUE', isCorrect: ans === 'TRUE' },
+          { content: 'FALSE', isCorrect: ans === 'FALSE' },
+          { content: 'NOT GIVEN', isCorrect: ans === 'NOT GIVEN' },
+        ];
+      } else if (type === 'YES_NO_NOT_GIVEN') {
+        finalOptions = [
+          { content: 'YES', isCorrect: ans === 'YES' },
+          { content: 'NO', isCorrect: ans === 'NO' },
+          { content: 'NOT GIVEN', isCorrect: ans === 'NOT GIVEN' },
+        ];
+      } else if (type === 'FILL_BLANK' || type === 'NOTE_COMPLETION') {
+        const parts = (q.answer || 'Đáp án mẫu').split('/');
+        finalOptions = parts.map((p) => ({ content: p.trim(), isCorrect: true }));
+      } else {
+        finalOptions = q.options.map((opt) => ({
+          content: opt.text || opt.letter,
+          isCorrect: opt.letter === ans || opt.text.trim().toLowerCase() === ans.toLowerCase(),
+        }));
+        if (finalOptions.length === 0) {
+          finalOptions = [
+            { content: 'A. Option A', isCorrect: ans === 'A' },
+            { content: 'B. Option B', isCorrect: ans === 'B' },
+            { content: 'C. Option C', isCorrect: ans === 'C' },
+            { content: 'D. Option D', isCorrect: ans === 'D' },
+          ];
+        }
+      }
+
+      questions.push({
+        orderIndex: q.number,
+        type,
+        content: q.text,
+        options: finalOptions,
+        explanation: q.explanation || 'Theo thông tin từ đề thi chuẩn Cambridge.',
+      });
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Ignore title/instruction lines like "Questions 1-5" or "Do the following statements..."
+      if (/^Questions?\s+\d+/i.test(line) || /^Do the following/i.test(line) || /^In boxes/i.test(line) || /^Choose the correct/i.test(line)) {
+        continue;
+      }
+
+      const ansMatch = line.match(/^(?:Answer|Ans|Key|Đáp án)[\s\:\-]+([A-Za-z0-9\s\/\-_]+)$/i);
+      if (ansMatch && currentQ) {
+        currentQ.answer = ansMatch[1].trim();
+        continue;
+      }
+
+      const expMatch = line.match(/^(?:Explanation|Exp|Giải thích)[\s\:\-]+(.*)$/i);
+      if (expMatch && currentQ) {
+        currentQ.explanation = expMatch[1].trim();
+        continue;
+      }
+
+      const optMatch = line.match(/^([A-D])[\.\:\)]\s*(.*)$/i);
+      if (optMatch && currentQ) {
+        currentQ.options.push({ letter: optMatch[1].toUpperCase(), text: optMatch[2].trim() });
+        continue;
+      }
+
+      const qMatch = line.match(questionRegex);
+      if (qMatch) {
+        if (currentQ) processAndPush(currentQ);
+        currentQ = { number: parseInt(qMatch[1], 10), text: qMatch[2].trim(), options: [] };
+        continue;
+      }
+
+      if (currentQ && currentQ.options.length === 0) {
+        currentQ.text += ' ' + line;
+      }
+    }
+
+    if (currentQ) processAndPush(currentQ);
+    return questions;
+  };
+
+  const handleParseImportText = () => {
+    if (!importText.trim()) {
+      showNotice('❌ Vui lòng dán nội dung văn bản đề thi Cambridge vào khung bên dưới!');
+      return;
+    }
+    const results = parseCambridgeRawText(importText, importForcedType);
+    if (results.length === 0) {
+      showNotice('⚠️ Không tìm thấy câu hỏi nào hợp lệ. Vui lòng định dạng số thứ tự (ví dụ: 1. Câu hỏi...)');
+      return;
+    }
+    setParsedQuestions(results);
+    showNotice(`🎉 Đã bóc tách thành công ${results.length} câu hỏi chuẩn Cambridge! Hãy kiểm tra Live Preview.`);
+  };
+
+  const handleExecuteImport = async () => {
+    if (!importTargetQuizId) {
+      showNotice('❌ Vui lòng chọn bài Quiz / Đề thi mục tiêu cần nạp câu hỏi!');
+      return;
+    }
+    if (parsedQuestions.length === 0) {
+      showNotice('❌ Chưa có câu hỏi nào được phân tích để import!');
+      return;
+    }
+
+    setIsSubmittingImport(true);
+    try {
+      const targetTest = mockTests.find((t) => t.id === importTargetQuizId);
+      const payload = parsedQuestions.map((q) => ({
+        content: q.content,
+        skill: targetTest?.skill || 'READING',
+        type: q.type,
+        explanation: q.explanation,
+        orderIndex: q.orderIndex,
+        options: q.options,
+      }));
+
+      await quizzesService.addQuestionsBulk(importTargetQuizId, payload);
+      showNotice(`🎉 Đã import thành công ${parsedQuestions.length} câu hỏi chuẩn Cambridge vào đề thi!`);
+      await fetchQuizzesAndTests();
+      setIsImportModalOpen(false);
+      setParsedQuestions([]);
+      setImportText('');
+    } catch (err: unknown) {
+      showNotice(`❌ Lỗi khi import câu hỏi: ${extractErrorMessage(err, 'Thao tác thất bại')}`);
+    } finally {
+      setIsSubmittingImport(false);
+    }
+  };
+
+  const handleDownloadJsonTemplate = () => {
+    const template = [
+      {
+        orderIndex: 1,
+        type: 'TRUE_FALSE_NOT_GIVEN',
+        content: 'The ancient Roman water supply system was built entirely above ground.',
+        options: [
+          { content: 'TRUE', isCorrect: false },
+          { content: 'FALSE', isCorrect: true },
+          { content: 'NOT GIVEN', isCorrect: false },
+        ],
+        explanation: 'Paragraph 1 states that majority was underground aqueducts.',
+      },
+      {
+        orderIndex: 2,
+        type: 'SINGLE_CHOICE',
+        content: 'What is the primary purpose of the automated traffic grid?',
+        options: [
+          { content: 'To decrease parking fines', isCorrect: false },
+          { content: 'To reduce carbon emissions during peak hours', isCorrect: true },
+          { content: 'To replace all human drivers', isCorrect: false },
+          { content: 'To encourage bike sharing programs', isCorrect: false },
+        ],
+        explanation: 'Paragraph 4 explains reduction of traffic jams and carbon emission.',
+      },
+      {
+        orderIndex: 3,
+        type: 'FILL_BLANK',
+        content: 'Smart power grids rely heavily on specialized ______ batteries.',
+        options: [
+          { content: 'lithium-ion', isCorrect: true },
+          { content: 'solar', isCorrect: true },
+        ],
+        explanation: 'Paragraph 6 mentions lithium-ion storage units.',
+      },
+    ];
+
+    const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cambridge_ielts_questions_template.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (Array.isArray(json)) {
+          const validated = json.map((item, idx) => ({
+            orderIndex: item.orderIndex || idx + 1,
+            type: item.type || 'SINGLE_CHOICE',
+            content: item.content || item.questionText || `Câu hỏi ${idx + 1}`,
+            options: Array.isArray(item.options)
+              ? item.options
+              : [
+                  { content: 'TRUE', isCorrect: true },
+                  { content: 'FALSE', isCorrect: false },
+                ],
+            explanation: item.explanation || 'Theo bài đọc Cambridge.',
+          }));
+          setParsedQuestions(validated);
+          showNotice(`✅ Đã nạp thành công ${validated.length} câu hỏi từ file JSON!`);
+        } else {
+          showNotice('❌ Định dạng file JSON không hợp lệ (phải là danh sách mảng câu hỏi)');
+        }
+      } catch {
+        showNotice('❌ Lỗi đọc file JSON: Nội dung không đúng cú pháp JSON');
+      }
+    };
+    reader.readAsText(file);
   };
 
   const filteredMockTests = useMemo(() => {
@@ -870,6 +1201,13 @@ function AssessmentHubContent() {
 
             <div className="flex items-center gap-2">
               <button
+                onClick={() => handleOpenImportModal()}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>⚡ Smart Import Cambridge</span>
+              </button>
+              <button
                 onClick={() => handleOpenAddQuestion()}
                 className="px-3.5 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-primary font-bold text-xs border border-sky-200 transition flex items-center gap-1.5"
               >
@@ -981,7 +1319,7 @@ function AssessmentHubContent() {
                 {(filterTrack === 'PERSONAL_DEV'
                   ? [
                       { id: 'ALL', label: 'Tất cả Kỹ Năng' },
-                      { id: 'PEDAGOGY', label: 'Sư Phạm EdTech' },
+                      { id: 'PEDAGOGY', label: 'Sư Phạm' },
                       { id: 'LIFE_SKILLS', label: 'Kỹ Năng Sống' },
                       { id: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm' },
                       { id: 'PERSONAL_DEV', label: 'Bản Thân' },
@@ -1120,6 +1458,14 @@ function AssessmentHubContent() {
                               {t.questionsCount} câu
                             </td>
                             <td className="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
+                              <button
+                                onClick={() => handleOpenImportModal(t.id)}
+                                className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-[11px] hover:bg-emerald-100 transition inline-flex items-center gap-1"
+                                title="Smart Import câu hỏi chuẩn Cambridge"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                <span>Import</span>
+                              </button>
                               <button
                                 onClick={() => handleOpenAddQuestion(t.id)}
                                 className="px-2 py-1 rounded-lg bg-sky-50 text-primary font-bold text-[11px] hover:bg-sky-100 transition"
@@ -1748,7 +2094,7 @@ function AssessmentHubContent() {
                   options={
                     testFormData.track === 'PERSONAL_DEV'
                       ? [
-                          { value: 'PEDAGOGY', label: 'Năng Lực Sư Phạm EdTech' },
+                          { value: 'PEDAGOGY', label: 'Năng Lực Sư Phạm & Giảng Dạy' },
                           { value: 'LIFE_SKILLS', label: 'Kỹ Năng Sống & Thuyết Trình' },
                           { value: 'SOFT_SKILLS', label: 'Kỹ Năng Mềm Doanh Nghiệp' },
                           { value: 'PERSONAL_DEV', label: 'Phát Triển Bản Thân & Lãnh Đạo' },
@@ -1821,18 +2167,14 @@ function AssessmentHubContent() {
               </div>
 
               {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Mô tả mục tiêu kiểm tra
-                </label>
-                <textarea
-                  rows={2}
-                  value={testFormData.description}
-                  onChange={(e) => setTestFormData({ ...testFormData, description: e.target.value })}
-                  placeholder="Mô tả bối cảnh, năng lực trọng tâm cần đánh giá..."
-                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs"
-                />
-              </div>
+              <RichTextEditor
+                label="Mô tả mục tiêu bài kiểm tra & yêu cầu"
+                value={testFormData.description}
+                onChange={(val) => setTestFormData({ ...testFormData, description: val })}
+                placeholder="Mô tả bối cảnh, năng lực trọng tâm cần đánh giá, lưu ý khi làm bài..."
+                minHeight="min-h-[120px]"
+                helperText="Hỗ trợ in đậm, gạch đầu dòng, lưu ý quan trọng."
+              />
 
               {/* Time Limit & Pass Score */}
               <div className="grid grid-cols-2 gap-4">
@@ -1872,24 +2214,22 @@ function AssessmentHubContent() {
               </div>
 
               {/* Passage / Scenario Text */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  {testFormData.track === 'PERSONAL_DEV'
+              <RichTextEditor
+                label={
+                  testFormData.track === 'PERSONAL_DEV'
                     ? 'Bối cảnh tình huống thực tế / Case Study (Scenario Text - Tùy chọn)'
-                    : 'Đoạn văn đọc hiểu (Passage - Tùy chọn)'}
-                </label>
-                <textarea
-                  rows={3}
-                  value={testFormData.passage}
-                  onChange={(e) => setTestFormData({ ...testFormData, passage: e.target.value })}
-                  placeholder={
-                    testFormData.track === 'PERSONAL_DEV'
-                      ? 'Mô tả chi tiết tình huống thực tế (ví dụ: Trong một lớp học trực tuyến LiveKit, có 2 học viên liên tục mất tập trung...)'
-                      : 'Nhập đoạn văn cho bài đọc Reading...'
-                  }
-                  className="w-full px-3.5 py-2 rounded-xl border border-line text-xs"
-                />
-              </div>
+                    : 'Đoạn văn đọc hiểu (Passage - Tùy chọn)'
+                }
+                value={testFormData.passage}
+                onChange={(val) => setTestFormData({ ...testFormData, passage: val })}
+                placeholder={
+                  testFormData.track === 'PERSONAL_DEV'
+                    ? 'Mô tả chi tiết tình huống thực tế (ví dụ: Trong một lớp học trực tuyến tương tác, có 2 học viên liên tục mất tập trung...)'
+                    : 'Nhập đoạn văn cho bài đọc Reading Cambridge IELTS...'
+                }
+                minHeight="min-h-[160px]"
+                helperText="Hỗ trợ đầy đủ định dạng: In đậm, gạch đầu dòng, trích dẫn bối cảnh và bảng dữ liệu."
+              />
 
               {/* Audio URL (Optional) */}
               <div>
@@ -1933,7 +2273,7 @@ function AssessmentHubContent() {
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-line p-6 space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <h3 className="text-base font-extrabold text-slate-900">
-                Thêm Câu Hỏi Trắc Nghiệm Mới
+                Thêm Câu Hỏi Đề Thi
               </h3>
               <button
                 onClick={() => setIsQuestionModalOpen(false)}
@@ -1955,6 +2295,23 @@ function AssessmentHubContent() {
                 }))}
               />
 
+              <CustomSelect
+                label="Dạng bài câu hỏi (Question Type) *"
+                value={qFormData.type}
+                onChange={(val) => {
+                  let defaultAns = 'A';
+                  if (val === 'TRUE_FALSE_NOT_GIVEN') defaultAns = 'TRUE';
+                  else if (val === 'YES_NO_NOT_GIVEN') defaultAns = 'YES';
+                  setQFormData({ ...qFormData, type: val, correctAnswer: defaultAns });
+                }}
+                options={[
+                  { value: 'SINGLE_CHOICE', label: 'Trắc nghiệm 4 lựa chọn (A, B, C, D)' },
+                  { value: 'TRUE_FALSE_NOT_GIVEN', label: 'True / False / Not Given (Cambridge Reading)' },
+                  { value: 'YES_NO_NOT_GIVEN', label: 'Yes / No / Not Given (Cambridge Reading)' },
+                  { value: 'FILL_BLANK', label: 'Điền từ vào chỗ trống (Sentence / Note Completion)' },
+                ]}
+              />
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Nội dung câu hỏi <span className="text-red-500">*</span>
@@ -1964,63 +2321,133 @@ function AssessmentHubContent() {
                   required
                   value={qFormData.questionText}
                   onChange={(e) => setQFormData({ ...qFormData, questionText: e.target.value })}
-                  placeholder="Ví dụ: According to paragraph 2, what is the main reason for..."
+                  placeholder={
+                    qFormData.type === 'FILL_BLANK'
+                      ? 'Ví dụ: Sustainable smart buildings utilize specialized ______ windows for insulation.'
+                      : 'Ví dụ: According to paragraph 2, what is the main reason for...'
+                  }
                   className="w-full px-3.5 py-2 rounded-xl border border-line text-xs font-semibold"
                 ></textarea>
               </div>
 
-              {/* 4 Options */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700">
-                  4 Phương án lựa chọn (A, B, C, D) <span className="text-red-500">*</span>
-                </label>
-                {(['A', 'B', 'C', 'D'] as const).map((letter) => {
-                  const key = `option${letter}` as 'optionA' | 'optionB' | 'optionC' | 'optionD';
-                  return (
-                    <div key={letter} className="flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-lg bg-slate-100 font-bold text-xs flex items-center justify-center shrink-0">
-                        {letter}
-                      </span>
-                      <input
-                        type="text"
-                        required
-                        value={qFormData[key]}
-                        onChange={(e) => setQFormData({ ...qFormData, [key]: e.target.value })}
-                        placeholder={`Nội dung lựa chọn ${letter}...`}
-                        className="flex-1 px-3 py-1.5 rounded-xl border border-line text-xs font-medium"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Đáp án chuẩn xác <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-3">
-                  {(['A', 'B', 'C', 'D'] as const).map((letter) => (
-                    <label
-                      key={letter}
-                      className={`flex-1 p-2 rounded-xl border text-center font-bold text-xs cursor-pointer transition ${
-                        qFormData.correctAnswer === letter
-                          ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs'
-                          : 'bg-white border-line text-slate-600'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="correctAnswer"
-                        value={letter}
-                        checked={qFormData.correctAnswer === letter}
-                        onChange={() => setQFormData({ ...qFormData, correctAnswer: letter })}
-                        className="hidden"
-                      />
-                      <span>Đáp án {letter}</span>
-                    </label>
-                  ))}
+              {/* Conditional Options Input according to Question Type */}
+              {qFormData.type === 'TRUE_FALSE_NOT_GIVEN' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Chọn đáp án đúng chuẩn Cambridge <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['TRUE', 'FALSE', 'NOT GIVEN'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setQFormData({ ...qFormData, correctAnswer: opt })}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-black transition ${
+                          qFormData.correctAnswer === opt
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                            : 'bg-slate-50 text-slate-700 border-line hover:bg-slate-100'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : qFormData.type === 'YES_NO_NOT_GIVEN' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Chọn đáp án đúng chuẩn Cambridge <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['YES', 'NO', 'NOT GIVEN'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setQFormData({ ...qFormData, correctAnswer: opt })}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-black transition ${
+                          qFormData.correctAnswer === opt
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                            : 'bg-slate-50 text-slate-700 border-line hover:bg-slate-100'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : qFormData.type === 'FILL_BLANK' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Từ khóa đáp án đúng (Chấp nhận nhiều phương án, ngăn cách bằng dấu /) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={qFormData.fillBlankAnswers}
+                    onChange={(e) => setQFormData({ ...qFormData, fillBlankAnswers: e.target.value })}
+                    placeholder="Ví dụ: lithium-ion / solar / storage battery"
+                    className="w-full px-3.5 py-2 rounded-xl border border-line text-xs font-semibold focus:outline-none focus:border-primary"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Hệ thống sẽ đối chiếu không phân biệt chữ hoa/thường khi học viên làm bài.
+                  </p>
+                </div>
+              ) : (
+                /* Standard 4 Options MCQ */
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">
+                      4 Phương án lựa chọn (A, B, C, D) <span className="text-red-500">*</span>
+                    </label>
+                    {(['A', 'B', 'C', 'D'] as const).map((letter) => {
+                      const key = `option${letter}` as 'optionA' | 'optionB' | 'optionC' | 'optionD';
+                      return (
+                        <div key={letter} className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-lg bg-slate-100 font-bold text-xs flex items-center justify-center shrink-0">
+                            {letter}
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            value={qFormData[key]}
+                            onChange={(e) => setQFormData({ ...qFormData, [key]: e.target.value })}
+                            placeholder={`Nội dung lựa chọn ${letter}...`}
+                            className="flex-1 px-3 py-1.5 rounded-xl border border-line text-xs font-medium"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Đáp án chuẩn xác <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      {(['A', 'B', 'C', 'D'] as const).map((letter) => (
+                        <label
+                          key={letter}
+                          className={`flex-1 p-2 rounded-xl border text-center font-bold text-xs cursor-pointer transition ${
+                            qFormData.correctAnswer === letter
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs'
+                              : 'bg-white border-line text-slate-600'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="correctAnswer"
+                            value={letter}
+                            checked={qFormData.correctAnswer === letter}
+                            onChange={() => setQFormData({ ...qFormData, correctAnswer: letter })}
+                            className="hidden"
+                          />
+                          <span>Đáp án {letter}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -2051,6 +2478,297 @@ function AssessmentHubContent() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: SMART CAMBRIDGE IELTS IMPORTER                                     */}
+      {/* ========================================================================= */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl border border-line p-6 sm:p-7 space-y-5 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-line pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/20 shrink-0">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                    <span>⚡ Smart Import Đề Thi Cambridge IELTS</span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      Reading & Listening
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Tự động nhận diện dạng bài, bóc tách câu hỏi và nạp 40 câu hỏi chỉ trong vài giây.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsImportModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Target Quiz Selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CustomSelect
+                label="1. Chọn Đề thi / Quiz cần nạp câu hỏi *"
+                value={importTargetQuizId}
+                onChange={(val) => setImportTargetQuizId(val)}
+                options={mockTests.map((t) => ({
+                  value: t.id,
+                  label: t.title,
+                  sublabel: `${t.category} • ${t.skill} • ${t.questionsCount || 0} câu hiện có`,
+                }))}
+              />
+
+              <CustomSelect
+                label="2. Định dạng câu hỏi (Auto / Chỉ định) *"
+                value={importForcedType}
+                onChange={(val) => setImportForcedType(val)}
+                options={[
+                  { value: 'AUTO', label: 'Tự động nhận diện thông minh (Khuyên dùng)' },
+                  { value: 'TRUE_FALSE_NOT_GIVEN', label: 'Ép dạng: True / False / Not Given' },
+                  { value: 'YES_NO_NOT_GIVEN', label: 'Ép dạng: Yes / No / Not Given' },
+                  { value: 'SINGLE_CHOICE', label: 'Ép dạng: Trắc nghiệm 4 lựa chọn (A, B, C, D)' },
+                  { value: 'FILL_BLANK', label: 'Ép dạng: Điền từ vào chỗ trống' },
+                ]}
+              />
+            </div>
+
+            {/* Tab switch: Raw Text Parser vs JSON File Upload */}
+            <div className="flex items-center gap-2 border-b border-line pb-2">
+              <button
+                type="button"
+                onClick={() => setImportTab('text')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  importTab === 'text'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Dán Văn Bản Thô (Cambridge Text Parser)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setImportTab('file')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  importTab === 'file'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                <span>Import File JSON & Template Mẫu</span>
+              </button>
+            </div>
+
+            {/* TAB 1: RAW TEXT PARSER */}
+            {importTab === 'text' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Dán đề bài từ sách Cambridge (PDF / Word) vào đây:
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportText(sampleCambridgeReadingText);
+                      showNotice('📋 Đã nạp đề mẫu Cambridge Reading để thử nghiệm!');
+                    }}
+                    className="text-xs font-extrabold text-emerald-700 hover:text-emerald-800 underline flex items-center gap-1"
+                  >
+                    <span>Dán đề mẫu thử nghiệm</span>
+                  </button>
+                </div>
+
+                <textarea
+                  rows={8}
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  placeholder={`Dán nội dung câu hỏi theo định dạng:
+1. The ancient Roman water system was built entirely above ground.
+Answer: FALSE
+Explanation: Paragraph 1 states...
+
+2. What is the primary purpose of smart traffic grids?
+A. Decrease fines
+B. Reduce carbon emissions
+C. Replace human drivers
+D. Encourage biking
+Answer: B`}
+                  className="w-full px-4 py-3 rounded-2xl border border-line text-xs font-mono focus:outline-none focus:border-emerald-500 bg-slate-50 focus:bg-white leading-relaxed"
+                ></textarea>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    Hỗ trợ tự động: Số câu hỏi (`1.`, `2.`), Dạng TFNG/YNNG, Trắc nghiệm ABCD, Điền từ, Dòng `Answer: ...` và `Explanation: ...`
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleParseImportText}
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-sm transition flex items-center gap-1.5"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>⚡ Phân Tích & Bóc Tách Đề Thi</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: JSON FILE UPLOAD & TEMPLATE */}
+            {importTab === 'file' && (
+              <div className="space-y-4 p-5 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">
+                      Tải Tệp Mẫu Cấu Trúc JSON Chuẩn Cambridge
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      File mẫu bao gồm đầy đủ dạng TFNG, Trắc nghiệm 4 đáp án và Điền từ.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadJsonTemplate}
+                    className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 font-extrabold text-xs shadow-2xs transition flex items-center gap-1.5 shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Tải File Template .JSON</span>
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-2">
+                    Tải lên file JSON câu hỏi của bạn:
+                  </label>
+                  <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-white transition group">
+                    <Upload className="w-8 h-8 text-slate-400 group-hover:text-emerald-600 transition" />
+                    <span className="text-xs font-extrabold text-slate-700 mt-2">
+                      Nhấp để chọn file hoặc kéo thả file JSON vào đây
+                    </span>
+                    <span className="text-[11px] text-slate-400 mt-0.5">
+                      Định dạng hỗ trợ: .json (Mảng các Question objects)
+                    </span>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* LIVE PREVIEW SECTION */}
+            {parsedQuestions.length > 0 && (
+              <div className="space-y-3 pt-3 border-t border-line">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-slate-900">
+                      Kết Quả Bóc Tách (Live Preview):
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs">
+                      {parsedQuestions.length} câu hỏi hợp lệ
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setParsedQuestions([])}
+                    className="text-xs text-slate-400 hover:text-red-500"
+                  >
+                    Xóa kết quả
+                  </button>
+                </div>
+
+                <div className="max-h-56 overflow-y-auto space-y-2 border border-slate-200 rounded-2xl p-3 bg-slate-50">
+                  {parsedQuestions.map((q, idx) => {
+                    const correctOpt = q.options.find((o) => o.isCorrect);
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-mono font-black flex items-center justify-center text-[11px]">
+                              {q.orderIndex || idx + 1}
+                            </span>
+                            <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-100">
+                              {q.type}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-slate-400">Đáp án:</span>
+                            <span className="px-2 py-0.5 rounded font-mono font-black text-emerald-700 bg-emerald-50 border border-emerald-200">
+                              {correctOpt?.content || 'Chưa nhận diện'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="font-semibold text-slate-800 line-clamp-2">
+                          {q.content}
+                        </p>
+
+                        {q.options && q.options.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {q.options.map((opt, optIdx) => (
+                              <span
+                                key={optIdx}
+                                className={`text-[10.5px] px-2 py-0.5 rounded border ${
+                                  opt.isCorrect
+                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
+                                    : 'bg-slate-50 border-slate-200 text-slate-600'
+                                }`}
+                              >
+                                {opt.content}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+              >
+                Hủy bỏ
+              </button>
+
+              <button
+                type="button"
+                disabled={parsedQuestions.length === 0 || isSubmittingImport}
+                onClick={handleExecuteImport}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-2"
+              >
+                {isSubmittingImport ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                <span>
+                  {isSubmittingImport
+                    ? 'Đang import...'
+                    : `Xác Nhận Lưu ${parsedQuestions.length} Câu Hỏi Vào Đề`}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

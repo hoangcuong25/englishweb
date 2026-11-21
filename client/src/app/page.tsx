@@ -13,7 +13,6 @@ import {
   Headphones,
   Briefcase,
   Target,
-  Sparkles,
   Users,
   Award,
   Globe,
@@ -32,6 +31,13 @@ import {
   CheckCheck,
   LogIn,
   LayoutDashboard,
+  Smile,
+  Laptop,
+  Compass,
+  Brain,
+  Lightbulb,
+  MapPin,
+  Heart,
 } from 'lucide-react';
 import HeroOpenBook from '@/components/shared/hero-open-book';
 
@@ -50,14 +56,19 @@ interface ProgramDetail {
 export default function HomePage() {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useI18n();
+  const isEn = lang === 'en';
+  const isZh = lang === 'zh';
+  const isJa = lang === 'ja';
 
   // Mobile menu & language dropdown states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const langDropdownRef = useRef<HTMLDivElement | null>(null);
 
-  // Pillar filter state
+  // Pillar focus filter state
   const [activePillarFilter, setActivePillarFilter] = useState<'all' | 'p1' | 'p2' | 'p3' | 'p4' | 'p5'>('all');
+  const [pillarViewMode, setPillarViewMode] = useState<'showcase' | 'grid'>('showcase');
+  const [activeShowcasePillar, setActiveShowcasePillar] = useState<'p1' | 'p2' | 'p3' | 'p4' | 'p5'>('p1');
 
   // Program Detail Modal state
   const [selectedProgram, setSelectedProgram] = useState<ProgramDetail | null>(null);
@@ -138,7 +149,7 @@ export default function HomePage() {
                   ? '実践ビジネス英語：契約交渉、英文メール作成、プレゼンテーション、国際オンライン会議の進行。'
                   : 'Tiếng Anh thương mại chuyên nghiệp: kỹ năng đàm phán hợp đồng, soạn thảo email đối tác quốc tế, thuyết trình dự án và chủ trì cuộc họp trực tuyến.',
             targetAudience: isEn ? 'Working Professionals, Managers' : isZh ? '职场人士、企业管理者' : isJa ? '社会人・マネージャー' : 'Người đi làm, Quản lý, Nhân viên văn phòng',
-            format: 'LiveKit WebRTC 1:7 + LMS',
+            format: isEn ? 'Interactive Small Class 1:7 + LMS' : 'Lớp học tương tác 1:7 + LMS',
             icon: Briefcase,
           },
           {
@@ -155,7 +166,7 @@ export default function HomePage() {
                   ? 'IELTSアカデミック Band 6.5→7.5+ 突破コース：AIによる4基準ライティング即時添削と講師によるタイムスタンプ付きスピーキング指導。'
                   : 'Lộ trình bứt phá IELTS Academic Band 6.5 -> 7.5+: tích hợp chấm Writing AI 4 tiêu chí chuẩn Cambridge và phòng Speaking Studio ghim nhận xét theo mốc thời gian từ Teacher Dong.',
             targetAudience: isEn ? 'High School & University Students' : isZh ? '高中生、大学生、留学生' : isJa ? '高校生・大学生・留学生' : 'Học sinh cấp 3, Sinh viên, Du học sinh',
-            format: 'WebRTC LiveKit + AI Writing Engine',
+            format: isEn ? 'IELTS Mock Test + AI Writing' : 'Thi thử IELTS Mock Test + AI Writing',
             icon: Target,
           },
           {
@@ -172,7 +183,7 @@ export default function HomePage() {
                   ? '自然なリスニング＆スピーキングの反射神経を養成。IPA発音記号や抑揚を修正し、自信を持って話せる力を培います。'
                   : 'Rèn luyện phản xạ nghe nói tiếng Anh tự nhiên, chỉnh sửa phát âm chuẩn IPA, làm chủ ngữ điệu và giao tiếp tự tin trong đời sống thực tế.',
             targetAudience: isEn ? 'All Ages Seeking Speaking Confidence' : isZh ? '所有渴望流利表达的学习者' : isJa ? '英会話に自信を持ちたいすべての年代' : 'Mọi lứa tuổi muốn tự tin nói tiếng Anh',
-            format: 'Live Interactive SFU Classroom',
+            format: isEn ? 'Interactive Speaking Class' : 'Lớp học tương tác chuyên sâu',
             icon: Headphones,
           },
           {
@@ -189,8 +200,8 @@ export default function HomePage() {
                   ? '4〜10歳向けの自然な言語習得メソッド。インタラクティブなゲーム、絵本の読み聞かせ、カラフルなホワイトボードで楽しく学びます。'
                   : 'Phương pháp thẩm thấu ngôn ngữ tự nhiên dành cho trẻ mầm non & tiểu học (4-10 tuổi) qua trò chơi, câu chuyện kể và bảng trắng trực quan nhiều màu sắc.',
             targetAudience: isEn ? 'Children aged 4 - 10' : isZh ? '4 - 10 岁学龄前及小学儿童' : isJa ? '4〜10歳の幼児・小学生' : 'Trẻ em từ 4 - 10 tuổi',
-            format: 'Fun & Engaging LiveKit Classroom',
-            icon: Sparkles,
+            format: isEn ? 'Engaging Online Classroom' : 'Lớp học trực tuyến sinh động',
+            icon: Smile,
           },
         ],
       },
@@ -213,7 +224,7 @@ export default function HomePage() {
             category: '2. Professional Development',
             pillarId: 'p2',
             title: 'AI Integration in Education',
-            badge: 'AI EdTech',
+            badge: isEn ? 'AI in Education' : 'AI Giáo Dục',
             badgeColor: 'bg-emerald-100 text-emerald-800',
             description: isEn
               ? 'Leverage AI (ChatGPT, Claude, Prompt Engineering, Canva AI) to generate automated lesson plans, smart quizzes, and 5x pedagogical productivity.'
@@ -224,7 +235,7 @@ export default function HomePage() {
                   : 'Ứng dụng AI đột phá (ChatGPT, Claude, Prompt Engineering, Canva AI) để thiết kế bài giảng tự động, tạo đề kiểm tra thông minh và nâng cao hiệu suất sư phạm gấp 5 lần.',
             targetAudience: isEn ? 'Teachers, Instructors, Content Creators' : isZh ? '大中小学教师、教育内容创作者' : isJa ? '教員・講師・教育コンテンツ制作者' : 'Giáo viên, Giảng viên, Nhà sáng tạo nội dung giáo dục',
             format: 'Hands-on AI Workshop',
-            icon: Sparkles,
+            icon: Laptop,
           },
           {
             category: '2. Professional Development',
@@ -241,7 +252,7 @@ export default function HomePage() {
                   : 'Định hướng lộ trình nghề nghiệp trong ngành giáo dục & ngôn ngữ, chiến lược săn học bổng quốc tế và kỹ năng phỏng vấn tuyển dụng trường quốc tế.',
             targetAudience: isEn ? 'Education Students, Career Changers' : isZh ? '师范生、教育转型人才' : isJa ? '教育学部生・キャリアチェンジ希望者' : 'Sinh viên sư phạm, Người chuyển ngành giáo dục',
             format: '1-on-1 Mentoring',
-            icon: Target,
+            icon: Compass,
           },
           {
             category: '2. Professional Development',
@@ -343,7 +354,7 @@ export default function HomePage() {
                   : 'Rèn luyện thói quen tư duy phản biện, nhận diện bẫy ngụy biện logic, phân tích dữ liệu đa chiều và đưa ra giải pháp sáng tạo cho các thách thức thực tế.',
             targetAudience: isEn ? 'Students & Working Adults' : isZh ? '青年学生、职场人士' : isJa ? '学生・ビジネスパーソン' : 'Học sinh, Sinh viên, Người đi làm',
             format: 'Interactive Problem Labs',
-            icon: Sparkles,
+            icon: Brain,
           },
           {
             category: '3. Life Skills and Personal Growth',
@@ -411,7 +422,7 @@ export default function HomePage() {
                   : 'Chuỗi tọa đàm thắp sáng khát vọng học hỏi, vượt qua rào cản tự ti ngôn ngữ, định hình lý tưởng sống và tiếp thêm năng lượng tích cực.',
             targetAudience: isEn ? 'Learners & Readers Community' : isZh ? '广大学员与读者群体' : isJa ? '受講生およびコミュニティ読者' : 'Cộng đồng học viên & Độc giả',
             format: 'Monthly Interactive Talkshow',
-            icon: Star,
+            icon: Lightbulb,
           },
           {
             category: '4. Life Experiences and Inspiration',
@@ -513,7 +524,7 @@ export default function HomePage() {
                   : 'Hành trình trải nghiệm danh lam thắng cảnh, ẩm thực tinh hoa và chiều sâu lịch sử của các quốc gia Châu Á (Nhật Bản, Trung Quốc, Đông Nam Á...).',
             targetAudience: isEn ? 'Explorers & World Travelers' : isZh ? '热爱旅行探索的旅人' : isJa ? '旅を愛する旅行者' : 'Người yêu du lịch & khám phá',
             format: 'Travel Journals',
-            icon: Star,
+            icon: MapPin,
           },
           {
             category: '5. Travel and Culture Blog',
@@ -545,11 +556,20 @@ export default function HomePage() {
     e.preventDefault();
     setIsSubmittingConsult(true);
     try {
+      const programMap: Record<string, string> = {
+        p1: t('consult.opt1'),
+        p2: t('consult.opt2'),
+        p3: t('consult.opt3'),
+        p4: t('consult.opt4'),
+        p5: t('consult.opt5'),
+      };
+      const interestedLabel = programMap[formData.interestedProgram] || formData.interestedProgram;
+
       await notificationsService.sendConsultationRequest({
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        interestedProgram: formData.interestedProgram,
+        interestedProgram: interestedLabel,
         message: formData.message,
       });
       setFormSubmitted(true);
@@ -600,9 +620,23 @@ export default function HomePage() {
     }
   };
 
-  const filteredPillars = activePillarFilter === 'all'
-    ? pillarsData
-    : pillarsData.filter((p) => p.id === activePillarFilter);
+  const handlePillarTabClick = (tabId: 'all' | 'p1' | 'p2' | 'p3' | 'p4' | 'p5') => {
+    setActivePillarFilter(tabId);
+    if (tabId === 'all') {
+      setPillarViewMode('grid');
+    } else {
+      setActiveShowcasePillar(tabId);
+      setPillarViewMode('showcase');
+    }
+    setTimeout(() => {
+      const el = document.getElementById('home-programs-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  };
+
+  const activePillarId = activePillarFilter === 'all' ? 'p1' : activePillarFilter;
 
   return (
     <div className="min-h-screen bg-[#F7FAFD] text-[#14263D] font-sans antialiased overflow-x-hidden selection:bg-[#DDF3FC] selection:text-[#1B64B0]">
@@ -991,7 +1025,7 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B64B0] hover:shadow-md transition-all group cursor-default">
-            <Sparkles className="w-8 h-8 text-slate-400 group-hover:text-[#1B64B0] shrink-0 transition-colors" />
+            <GraduationCap className="w-8 h-8 text-slate-400 group-hover:text-[#1B64B0] shrink-0 transition-colors" />
             <div>
               <strong className="text-base font-black text-slate-900 group-hover:text-[#1B64B0] transition-colors block">{t('values.grow.title')}</strong>
               <span className="text-xs text-slate-500 leading-tight block">{t('values.grow.desc')}</span>
@@ -1007,7 +1041,7 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:border-[#1B64B0] hover:shadow-md transition-all group cursor-default">
-            <Star className="w-8 h-8 text-slate-400 group-hover:text-[#1B64B0] shrink-0 transition-colors" />
+            <Lightbulb className="w-8 h-8 text-slate-400 group-hover:text-[#1B64B0] shrink-0 transition-colors" />
             <div>
               <strong className="text-base font-black text-slate-900 group-hover:text-[#1B64B0] transition-colors block">{t('values.inspire.title')}</strong>
               <span className="text-xs text-slate-500 leading-tight block">{t('values.inspire.desc')}</span>
@@ -1031,103 +1065,415 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Filter Bar with Horizontal Scroll for Mobile */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 sm:justify-center">
-            {[
-              { id: 'all', label: t('pillars.filter.all') },
-              { id: 'p1', label: t('pillars.filter.p1') },
-              { id: 'p2', label: t('pillars.filter.p2') },
-              { id: 'p3', label: t('pillars.filter.p3') },
-              { id: 'p4', label: t('pillars.filter.p4') },
-              { id: 'p5', label: t('pillars.filter.p5') },
-            ].map((tab) => {
-              const isSelected = activePillarFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActivePillarFilter(tab.id as 'all' | 'p1' | 'p2' | 'p3' | 'p4' | 'p5')}
-                  className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    isSelected
-                      ? 'bg-[#1B64B0] text-white shadow-md'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+          {/* Interactive Navigation & View Switcher */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-2 max-w-5xl mx-auto">
+            {/* 5 Pillar Tabs */}
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-1 px-1 w-full md:w-auto justify-start sm:justify-center">
+              {[
+                { id: 'p1', code: '01', label: t('pillars.filter.p1') },
+                { id: 'p2', code: '02', label: t('pillars.filter.p2') },
+                { id: 'p3', code: '03', label: t('pillars.filter.p3') },
+                { id: 'p4', code: '04', label: t('pillars.filter.p4') },
+                { id: 'p5', code: '05', label: t('pillars.filter.p5') },
+              ].map((tab) => {
+                const isSelected =
+                  (pillarViewMode === 'showcase' && activeShowcasePillar === tab.id) ||
+                  (pillarViewMode === 'grid' && activePillarFilter === tab.id);
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handlePillarTabClick(tab.id as any)}
+                    className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-2 ${
+                      isSelected
+                        ? 'bg-[#1B64B0] text-white shadow-md shadow-sky-600/25 scale-[1.02]'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <span
+                      className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      {tab.code}
+                    </span>
+                    <span>{tab.label.replace(/^\d+\.\s*/, '')}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* View Mode Switcher */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200 shrink-0 self-end md:self-auto">
+              <button
+                type="button"
+                onClick={() => setPillarViewMode('showcase')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  pillarViewMode === 'showcase'
+                    ? 'bg-white text-[#1B64B0] shadow-2xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>⭐</span>
+                <span>{t('pillars.viewShowcase')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPillarViewMode('grid');
+                  setActivePillarFilter('all');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  pillarViewMode === 'grid'
+                    ? 'bg-white text-[#1B64B0] shadow-2xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>📊</span>
+                <span>{t('pillars.viewGrid')}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Pillars Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPillars.map((pillar) => (
-              <div
-                key={pillar.id}
-                className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-xs hover:shadow-xl hover:border-[#1B64B0] hover:-translate-y-1 transition-all flex flex-col justify-between group"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <span className="text-[11px] font-black tracking-wider uppercase text-[#1B64B0]">
-                        {pillar.code}
-                      </span>
-                      <h3 className="text-base sm:text-lg font-black text-slate-900 mt-0.5 group-hover:text-[#1B64B0] transition-colors">
-                        {pillar.title}
-                      </h3>
-                    </div>
-                    <span className="px-3 py-1 rounded-full text-[10.5px] sm:text-[11px] font-black bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
-                      {pillar.badge}
-                    </span>
-                  </div>
+          {/* VIEW 1: SPOTLIGHT SHOWCASE (Rich Deep Dive, No Empty Slots) */}
+          {pillarViewMode === 'showcase' && (() => {
+            const currentPillar = pillarsData.find((p) => p.id === activeShowcasePillar) || pillarsData[0];
+            const pillarHighlights: Record<string, string[]> = {
+              p1: [
+                isEn ? 'Small-class interactive training (1:7) + 1-on-1 personalized feedback' : 'Lớp học tương tác chuyên sâu sĩ số nhỏ 1:7',
+                isEn ? 'Automated 4-criteria AI Writing assessment + Speaking Studio' : 'Tích hợp phòng chấm Writing AI 4 tiêu chí & Speaking Studio',
+                isEn ? 'Official Cambridge IELTS syllabus & business communication excellence' : 'Cam kết lộ trình đầu ra chuẩn Cambridge IELTS & Giao tiếp',
+              ],
+              p2: [
+                isEn ? 'AI-powered lesson planning tools for 5x pedagogical productivity' : 'Ứng dụng AI đột phá nâng cao hiệu suất soạn giảng gấp 5 lần',
+                isEn ? 'Modern frameworks: CLT, Task-Based Learning, and Flipped Classrooms' : 'Phương pháp giảng dạy hiện đại chuẩn quốc tế (CLT, TBL)',
+                isEn ? 'Global career roadmap & 1-on-1 educational research mentorship' : 'Cố vấn nghề nghiệp quốc tế & Nghiên cứu khoa học học thuật',
+              ],
+              p3: [
+                isEn ? 'Systematic critical thinking & multi-perspective problem solving' : 'Mài sắc tư duy phản biện & giải quyết vấn đề đa chiều',
+                isEn ? 'Confident public speaking, vocal modulation & stage presence' : 'Làm chủ nghệ thuật thuyết trình trước công chúng & kiểm soát sân khấu',
+                isEn ? 'Peak productivity frameworks (Pomodoro, Eisenhower) under stress' : 'Quản trị thời gian tối ưu & giữ phong độ đỉnh cao dưới áp lực',
+              ],
+              p4: [
+                isEn ? 'Authentic real-world stories from international teaching journeys' : 'Câu chuyện người thật việc thật từ kinh nghiệm giảng dạy quốc tế',
+                isEn ? 'Expat survival guides, cross-border careers & global cultural adaptation' : 'Cẩm nang sinh tồn, tìm việc & hội nhập môi trường đa văn hóa',
+                isEn ? 'Inspirational talk series cultivating lifelong learning passions' : 'Chuỗi tọa đàm truyền cảm hứng & triết lý giáo dục nhân văn',
+              ],
+              p5: [
+                isEn ? 'Deep cultural appreciation & nurturing cosmopolitan mindsets' : 'Không gian văn hóa đa sắc tộc, nuôi dưỡng tư duy công dân toàn cầu',
+                isEn ? 'Scenic heritage adventures & culinary wonders across Asia' : 'Hành trình trải nghiệm danh lam thắng cảnh & ẩm thực tinh hoa Châu Á',
+                isEn ? 'Linguistic chronicles, dialect wisdom & touching human encounters' : 'Sự kỳ diệu của ngôn ngữ bản địa & nét đẹp con người bình dị',
+              ],
+            };
 
-                  <p className="text-xs text-slate-500 leading-relaxed mb-5 font-normal">
-                    {pillar.desc}
-                  </p>
+            const highlights = pillarHighlights[currentPillar.id] || pillarHighlights.p1;
+            const stripColor =
+              currentPillar.id === 'p1'
+                ? 'from-sky-600 to-blue-700'
+                : currentPillar.id === 'p2'
+                ? 'from-cyan-600 to-teal-700'
+                : currentPillar.id === 'p3'
+                ? 'from-amber-500 to-orange-600'
+                : currentPillar.id === 'p4'
+                ? 'from-rose-500 to-red-600'
+                : 'from-emerald-600 to-teal-700';
 
-                  {/* 20 Sub-items clickable list */}
-                  <div className="space-y-2 mb-6">
-                    {pillar.programs.map((item, idx) => {
-                      const IconComp = item.icon;
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => openProgramModalFromPillar(item)}
-                          className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 hover:border-[#1B64B0] hover:bg-slate-50 transition-all cursor-pointer group/item shadow-2xs"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <IconComp className="w-4 h-4 text-slate-400 group-hover/item:text-[#1B64B0] shrink-0 transition-colors" />
-                            <span className="text-xs font-bold text-slate-800 group-hover/item:text-[#1B64B0] truncate">
-                              {item.title}
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ml-2 bg-slate-100 text-slate-700 group-hover/item:bg-sky-50 group-hover/item:text-[#1B64B0] transition-colors">
-                            {item.badge}
+            return (
+              <div className="space-y-4 animate-in fade-in duration-300">
+                {/* Main Showcase Hero Card */}
+                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-lg overflow-hidden relative">
+                  {/* Accent Top Strip */}
+                  <div className={`h-2 bg-gradient-to-r ${stripColor} w-full`} />
+
+                  <div className="p-6 sm:p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* Left Column: Pillar Identity & Highlights (5 cols) */}
+                    <div className="lg:col-span-5 space-y-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="px-3 py-1 rounded-full text-xs font-black bg-[#DDF3FC] text-[#1B64B0]">
+                            {currentPillar.code}
+                          </span>
+                          <span className="px-3 py-1 rounded-full text-xs font-black bg-slate-100 text-slate-700 border border-slate-200">
+                            {currentPillar.badge}
                           </span>
                         </div>
-                      );
-                    })}
+                        <h3 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
+                          {currentPillar.title}
+                        </h3>
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                          {currentPillar.desc}
+                        </p>
+                      </div>
+
+                      {/* Pillar Highlights List */}
+                      <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+                          {isEn ? 'Key Curriculum Strengths' : 'Ưu thế đào tạo trọng tâm'}
+                        </span>
+                        {highlights.map((hl, hIdx) => (
+                          <div key={hIdx} className="flex items-start gap-2.5 text-xs text-slate-700 font-semibold">
+                            <CheckCircle2 className="w-4 h-4 text-[#1B64B0] shrink-0 mt-0.5" />
+                            <span>{hl}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Primary CTA Button */}
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, interestedProgram: currentPillar.id }));
+                            scrollToSection('consultation-section');
+                          }}
+                          className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[#1B64B0] hover:bg-[#154E8A] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <span>{t('pillars.detailBtn')}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Interactive Programs Grid (7 cols) */}
+                    <div className="lg:col-span-7 space-y-3">
+                      <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                        <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+                          {isEn ? `Specialized Programs (${currentPillar.programs.length})` : `Danh mục chuyên đề & khóa học (${currentPillar.programs.length})`}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {isEn ? 'Click any card to view syllabus' : 'Bấm vào từng thẻ để xem chi tiết'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {currentPillar.programs.map((item, idx) => {
+                          const IconComp = item.icon;
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => openProgramModalFromPillar(item)}
+                              className="p-4 rounded-2xl bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-[#1B64B0] shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between space-y-3"
+                            >
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="w-8 h-8 rounded-xl bg-sky-100 text-[#1B64B0] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                    <IconComp className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 group-hover:border-sky-300 group-hover:text-[#1B64B0] transition-colors">
+                                    {item.badge}
+                                  </span>
+                                </div>
+                                <h4 className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-[#1B64B0] transition-colors line-clamp-1">
+                                  {item.title}
+                                </h4>
+                                <p className="text-[11.5px] text-slate-500 line-clamp-2 leading-relaxed">
+                                  {item.description}
+                                </p>
+                              </div>
+
+                              <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10.5px]">
+                                <span className="text-slate-400 font-semibold truncate max-w-[140px]">{item.targetAudience}</span>
+                                <span className="font-extrabold text-[#1B64B0] flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform shrink-0">
+                                  <span>{isEn ? 'Details' : 'Chi tiết'}</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Card CTA */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData((prev) => ({ ...prev, interestedProgram: pillar.id }));
-                    scrollToSection('consultation-section');
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-slate-200 text-xs font-extrabold text-[#1B64B0] hover:bg-[#1B64B0] hover:text-white transition-all cursor-pointer"
-                >
-                  <span>{t('pillars.detailBtn')}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                {/* Bottom 5-Pillar Mini Selector */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 pt-1">
+                  {pillarsData.map((p) => {
+                    const isAct = p.id === currentPillar.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setActiveShowcasePillar(p.id as any)}
+                        className={`p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between ${
+                          isAct
+                            ? 'bg-sky-50/80 border-[#1B64B0] shadow-sm ring-2 ring-[#1B64B0]/20'
+                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`text-[10px] font-black uppercase ${isAct ? 'text-[#1B64B0]' : 'text-slate-400'}`}>
+                            {p.code}
+                          </span>
+                          <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-md bg-white border border-slate-200 text-slate-600">
+                            {p.programs.length} {isEn ? 'topics' : 'mục'}
+                          </span>
+                        </div>
+                        <div className="font-black text-xs text-slate-900 truncate">
+                          {p.title.replace(/^\d+\.\s*/, '')}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })()}
+
+          {/* VIEW 2: BALANCED 2+3 GRID (Zero Blank Slots, Full 100% Width) */}
+          {pillarViewMode === 'grid' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {/* Row 1: Top 2 Major Pillars (50% each on lg, zero empty slots) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {pillarsData.slice(0, 2).map((pillar) => {
+                  const isSelected = activePillarFilter === pillar.id;
+                  const stripColor = pillar.id === 'p1' ? 'bg-[#1B64B0]' : 'bg-[#1B83B6]';
+                  return (
+                    <div
+                      key={pillar.id}
+                      className={`bg-white rounded-3xl p-6 sm:p-7 border transition-all duration-300 flex flex-col justify-between relative overflow-hidden shadow-xs hover:shadow-lg ${
+                        isSelected
+                          ? 'border-2 border-[#1B64B0] ring-4 ring-[#1B64B0]/15'
+                          : 'border-slate-200 hover:border-[#1B64B0]'
+                      }`}
+                    >
+                      <div className={`absolute top-0 left-0 right-0 h-1.5 ${stripColor}`} />
+                      <div>
+                        <div className="flex items-start justify-between gap-3 mb-3 pt-1">
+                          <div>
+                            <span className="text-[11px] font-black tracking-wider uppercase text-[#1B64B0]">
+                              {pillar.code}
+                            </span>
+                            <h3 className="text-lg font-black text-slate-900 mt-1 leading-snug">
+                              {pillar.title}
+                            </h3>
+                          </div>
+                          <span className="px-3 py-1 rounded-full text-[11px] font-black border bg-[#DDF3FC] text-[#1B64B0] border-[#B9E6F9] shrink-0">
+                            {pillar.badge}
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed mb-5">
+                          {pillar.desc}
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
+                          {pillar.programs.map((item, idx) => {
+                            const IconComp = item.icon;
+                            return (
+                              <div
+                                key={idx}
+                                onClick={() => openProgramModalFromPillar(item)}
+                                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-[#1B64B0] transition cursor-pointer group/item shadow-2xs"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-6 h-6 rounded-lg bg-slate-100 group-hover/item:bg-sky-100 text-slate-600 group-hover/item:text-[#1B64B0] flex items-center justify-center shrink-0 transition-colors">
+                                    <IconComp className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span className="text-xs font-bold text-slate-800 group-hover/item:text-[#1B64B0] truncate">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 shrink-0 ml-1">
+                                  {item.badge}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, interestedProgram: pillar.id }));
+                          scrollToSection('consultation-section');
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-[#1B64B0] text-[#1B64B0] hover:bg-[#1B64B0] hover:text-white text-xs font-extrabold transition-all cursor-pointer mt-auto"
+                      >
+                        <span>{t('pillars.detailBtn')}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Row 2: Bottom 3 Pillars (33.33% each on lg, zero empty slots) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pillarsData.slice(2, 5).map((pillar) => {
+                  const isSelected = activePillarFilter === pillar.id;
+                  const stripColor =
+                    pillar.id === 'p3' ? 'bg-[#D97706]' : pillar.id === 'p4' ? 'bg-[#E11D48]' : 'bg-[#0D9488]';
+                  return (
+                    <div
+                      key={pillar.id}
+                      className={`bg-white rounded-3xl p-5 sm:p-6 border transition-all duration-300 flex flex-col justify-between relative overflow-hidden shadow-xs hover:shadow-lg ${
+                        isSelected
+                          ? 'border-2 border-[#1B64B0] ring-4 ring-[#1B64B0]/15'
+                          : 'border-slate-200 hover:border-[#1B64B0]'
+                      }`}
+                    >
+                      <div className={`absolute top-0 left-0 right-0 h-1.5 ${stripColor}`} />
+                      <div>
+                        <div className="flex items-start justify-between gap-3 mb-3 pt-1">
+                          <div>
+                            <span className="text-[11px] font-black tracking-wider uppercase text-[#1B64B0]">
+                              {pillar.code}
+                            </span>
+                            <h3 className="text-base sm:text-lg font-black text-slate-900 mt-1 leading-snug">
+                              {pillar.title}
+                            </h3>
+                          </div>
+                          <span className="px-3 py-1 rounded-full text-[10.5px] font-black border bg-slate-100 text-slate-700 border-slate-200 shrink-0">
+                            {pillar.badge}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 leading-relaxed mb-5">
+                          {pillar.desc}
+                        </p>
+                        <div className="space-y-2 mb-6">
+                          {pillar.programs.map((item, idx) => {
+                            const IconComp = item.icon;
+                            return (
+                              <div
+                                key={idx}
+                                onClick={() => openProgramModalFromPillar(item)}
+                                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-[#1B64B0] transition cursor-pointer group/item shadow-2xs"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-6 h-6 rounded-lg bg-slate-100 group-hover/item:bg-sky-100 text-slate-600 group-hover/item:text-[#1B64B0] flex items-center justify-center shrink-0 transition-colors">
+                                    <IconComp className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span className="text-xs font-bold text-slate-800 group-hover/item:text-[#1B64B0] truncate">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 shrink-0 ml-1">
+                                  {item.badge}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, interestedProgram: pillar.id }));
+                          scrollToSection('consultation-section');
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-[#1B64B0] text-[#1B64B0] hover:bg-[#1B64B0] hover:text-white text-xs font-extrabold transition-all cursor-pointer mt-auto"
+                      >
+                        <span>{t('pillars.detailBtn')}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
-        {/* ================= 6. TRẢI NGHIỆM CÔNG NGHỆ EDTECH ĐỘC QUYỀN ================= */}
+        {/* ================= 6. TRẢI NGHIỆM TÍNH NĂNG ĐỘT PHÁ ================= */}
         <section id="tech-preview-section" className="scroll-mt-24 rounded-3xl bg-[#F1F6FC] border border-[#E1EBF5] p-5 sm:p-10 lg:p-12 space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="inline-block px-4 py-1 rounded-full text-xs font-black bg-[#DDF3FC] text-[#1B64B0]">
@@ -1142,18 +1488,18 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {/* LiveKit SFU */}
+            {/* IELTS Mock Test */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 text-center flex flex-col items-center justify-between shadow-xs hover:border-[#1B64B0] hover:shadow-lg transition-all group">
               <div className="flex flex-col items-center space-y-3">
-                <Video className="w-10 h-10 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
-                <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-[#1B64B0] transition-colors">{t('tech.livekit.title')}</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">{t('tech.livekit.desc')}</p>
+                <Award className="w-10 h-10 text-slate-400 group-hover:text-[#1B64B0] transition-colors" />
+                <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-[#1B64B0] transition-colors">{t('tech.mocktest.title')}</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">{t('tech.mocktest.desc')}</p>
               </div>
               <Link
-                href="/student/classroom"
+                href="/student/quizzes"
                 className="mt-6 w-full py-2.5 rounded-full bg-[#1B64B0] text-white text-xs font-extrabold hover:bg-[#154E8A] transition-colors shadow-sm"
               >
-                {t('tech.livekit.btn')}
+                {t('tech.mocktest.btn')}
               </Link>
             </div>
 
@@ -1444,7 +1790,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setActivePillarFilter('p1');
+                      handlePillarTabClick('p1');
                       scrollToSection('home-programs-section');
                     }}
                     className="hover:text-white transition-colors cursor-pointer text-left"
@@ -1456,7 +1802,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setActivePillarFilter('p2');
+                      handlePillarTabClick('p2');
                       scrollToSection('home-programs-section');
                     }}
                     className="hover:text-white transition-colors cursor-pointer text-left"
@@ -1468,7 +1814,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setActivePillarFilter('p3');
+                      handlePillarTabClick('p3');
                       scrollToSection('home-programs-section');
                     }}
                     className="hover:text-white transition-colors cursor-pointer text-left"
@@ -1480,7 +1826,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setActivePillarFilter('p4');
+                      handlePillarTabClick('p4');
                       scrollToSection('home-programs-section');
                     }}
                     className="hover:text-white transition-colors cursor-pointer text-left"
@@ -1492,7 +1838,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setActivePillarFilter('p5');
+                      handlePillarTabClick('p5');
                       scrollToSection('home-programs-section');
                     }}
                     className="hover:text-white transition-colors cursor-pointer text-left"
@@ -1503,35 +1849,35 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Col 3: EdTech Ecosystem */}
+            {/* Col 3: Learning Tools */}
             <div className="lg:col-span-2 space-y-3">
               <h4 className="text-xs font-black uppercase tracking-wider text-white">
                 {t('footer.colTech')}
               </h4>
               <ul className="space-y-2 text-xs text-[#94A3B8]">
                 <li>
-                  <Link href="/student/classroom" className="hover:text-white transition-colors">
-                    WebRTC LiveKit Class
+                  <Link href="/student/quizzes" className="hover:text-white transition-colors">
+                    {isEn ? 'IELTS Mock Test' : isZh ? '雅思全真模考' : isJa ? 'IELTS本番模試' : 'Thi thử IELTS Mock Test'}
                   </Link>
                 </li>
                 <li>
                   <Link href="/student/writing" className="hover:text-white transition-colors">
-                    AI Writing Evaluator
+                    {isEn ? 'AI Writing Evaluation' : isZh ? 'AI 写作智能批改' : isJa ? 'AIライティング添削' : 'Chấm bài Writing AI'}
                   </Link>
                 </li>
                 <li>
                   <Link href="/student/speaking" className="hover:text-white transition-colors">
-                    Speaking Audio Studio
+                    {isEn ? 'Speaking Audio Studio' : isZh ? '口语录音与点评' : isJa ? 'スピーキング録音' : 'Phòng luyện nói Speaking'}
                   </Link>
                 </li>
                 <li>
                   <Link href="/student/library" className="hover:text-white transition-colors">
-                    Digital Secure Library
+                    {isEn ? 'Digital Resource Library' : isZh ? '数字学术资料库' : isJa ? '学習教材ライブラリ' : 'Kho tài liệu & Học liệu'}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/student/quizzes" className="hover:text-white transition-colors">
-                    Interactive Quiz Engine
+                  <Link href="/student/classroom" className="hover:text-white transition-colors">
+                    {isEn ? 'Online Interactive Class' : isZh ? '在线互动课堂' : isJa ? 'オンライン双方向授業' : 'Lớp học trực tuyến'}
                   </Link>
                 </li>
               </ul>
@@ -1568,7 +1914,7 @@ export default function HomePage() {
           </div>
 
           <div className="pt-8 border-t border-white/10 text-center text-xs text-[#94A3B8]">
-            Teacher Dong Academy • Next.js 14 App Router & LiveKit WebRTC Monorepo Architecture.
+            Teacher Dong Academy • Nền Tảng Đào Tạo Anh Ngữ & Phát Triển Năng Lực Toàn Diện.
           </div>
         </div>
       </footer>

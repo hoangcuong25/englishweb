@@ -299,19 +299,19 @@ async function main() {
   console.log('📚 Seeding Non-IELTS Courses (Pedagogy, Life Skills, Business)...');
 
   const coursePedagogy = await prisma.course.upsert({
-    where: { slug: 'nang-luc-su-pham-edtech-mastery' },
+    where: { slug: 'nang-luc-su-pham-hien-dai-mastery' },
     update: {
-      title: 'Năng Lực Sư Phạm 4.0 & Kỹ Năng Thiết Kế Lớp Học Trực Tuyến EdTech',
-      description: 'Chương trình chuẩn hóa năng lực giảng dạy trực tuyến, làm chủ công nghệ tương tác, quản lý lớp học WebRTC và tâm lý học lứa tuổi.',
+      title: 'Năng Lực Sư Phạm 4.0 & Kỹ Năng Thiết Kế Lớp Học Trực Tuyến Hiện Đại',
+      description: 'Chương trình chuẩn hóa năng lực giảng dạy trực tuyến, làm chủ phương pháp tương tác, quản lý lớp học hiệu quả và tâm lý học lứa tuổi.',
       category: CourseCategory.PEDAGOGY,
       isEnglishCourse: false,
       isPublished: true,
       thumbnail: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop',
     },
     create: {
-      title: 'Năng Lực Sư Phạm 4.0 & Kỹ Năng Thiết Kế Lớp Học Trực Tuyến EdTech',
-      slug: 'nang-luc-su-pham-edtech-mastery',
-      description: 'Chương trình chuẩn hóa năng lực giảng dạy trực tuyến, làm chủ công nghệ tương tác, quản lý lớp học WebRTC và tâm lý học lứa tuổi.',
+      title: 'Năng Lực Sư Phạm 4.0 & Kỹ Năng Thiết Kế Lớp Học Trực Tuyến Hiện Đại',
+      slug: 'nang-luc-su-pham-hien-dai-mastery',
+      description: 'Chương trình chuẩn hóa năng lực giảng dạy trực tuyến, làm chủ phương pháp tương tác, quản lý lớp học hiệu quả và tâm lý học lứa tuổi.',
       category: CourseCategory.PEDAGOGY,
       isEnglishCourse: false,
       isPublished: true,
@@ -364,73 +364,163 @@ async function main() {
   // ==========================================
   // 3. SEED SECURED DIGITAL LIBRARY (Materials)
   // ==========================================
-  console.log('📑 Seeding Cambridge Materials (PDFs & Audio Streams)...');
+  console.log('📑 Seeding Course-Specific Secured Materials (PDFs & Audio Streams)...');
 
-  const materialsData = [
-    {
+  // Course 1: Cambridge IELTS 18 & 19
+  const cam18Book = await prisma.material.create({
+    data: {
+      courseId: course.id,
       lessonId: lesson1_1.id,
       title: 'Cambridge_IELTS_18_Academic_Student_Book_With_Answers.pdf',
       type: MaterialType.PDF,
       fileKey: 'Cambridge_IELTS_18_Academic_Student_Book.pdf',
       fileSize: 14889728, // ~14.2 MB
+      isPrivate: true,
+      isWatermarked: true,
     },
-    {
-      lessonId: lesson1_1.id,
+  });
+
+  // Attached Audio Track to Cambridge 18 Book (Child)
+  await prisma.material.create({
+    data: {
+      courseId: course.id,
+      parentId: cam18Book.id,
       title: 'Cambridge_IELTS_18_Test1_Listening_Audio_Track.mp3',
       type: MaterialType.AUDIO,
       fileKey: 'Cambridge_IELTS_18_Test1_Listening.mp3',
       fileSize: 29779456, // ~28.4 MB
       durationSeconds: 1840,
+      isPrivate: true,
+      isWatermarked: true,
     },
-    {
+  });
+
+  await prisma.material.create({
+    data: {
+      courseId: course.id,
       lessonId: lesson2_2.id,
       title: 'IELTS_Writing_Task_2_Band_8_Formula_Handbook.pdf',
       type: MaterialType.PDF,
       fileKey: 'IELTS_Writing_Task_2_Band_8_Formula.pdf',
       fileSize: 8912896, // ~8.5 MB
+      isPrivate: true,
+      isWatermarked: true,
     },
-    {
+  });
+
+  await prisma.material.create({
+    data: {
+      courseId: course.id,
       lessonId: lesson3_1.id,
       title: 'IELTS_Speaking_Native_Model_Audio_Set_01.mp3',
       type: MaterialType.AUDIO,
       fileKey: 'IELTS_Speaking_Native_Model_Audio_01.mp3',
       fileSize: 23383296, // ~22.3 MB
       durationSeconds: 1520,
+      isPrivate: true,
+      isWatermarked: true,
     },
-    {
+  });
+
+  await prisma.material.create({
+    data: {
+      courseId: course.id,
       lessonId: lesson4_1.id,
       title: 'Cambridge_IELTS_19_Academic_Official_Test_Collection.pdf',
       type: MaterialType.PDF,
       fileKey: 'Cambridge_IELTS_19_Academic_Official_Test.pdf',
       fileSize: 18979328, // ~18.1 MB
+      isPrivate: true,
+      isWatermarked: true,
     },
-  ];
+  });
 
-  for (const m of materialsData) {
-    // Write sample mock file physically to private_storage so real streaming works
-    const physicalFile = path.join(storageDir, m.fileKey);
-    if (!fs.existsSync(physicalFile)) {
+  // Course 2: Business English
+  await prisma.material.create({
+    data: {
+      courseId: courseBusiness.id,
+      title: 'Business_English_Contract_Negotiation_Master_Guide.pdf',
+      type: MaterialType.PDF,
+      fileKey: 'Business_English_Contract_Negotiation_Master_Guide.pdf',
+      fileSize: 12450000,
+      isPrivate: true,
+      isWatermarked: true,
+    },
+  });
+
+  await prisma.material.create({
+    data: {
+      courseId: courseBusiness.id,
+      title: 'International_Trade_Commercial_Email_Handbook.pdf',
+      type: MaterialType.PDF,
+      fileKey: 'International_Trade_Commercial_Email_Handbook.pdf',
+      fileSize: 6800000,
+      isPrivate: true,
+      isWatermarked: true,
+    },
+  });
+
+  // Course 3: Pedagogy & Teaching Methodology
+  await prisma.material.create({
+    data: {
+      courseId: coursePedagogy.id,
+      title: 'Modern_Online_Teaching_Methodology_Handbook.pdf',
+      type: MaterialType.PDF,
+      fileKey: 'Modern_Online_Teaching_Methodology_Handbook.pdf',
+      fileSize: 15300000,
+      isPrivate: true,
+      isWatermarked: true,
+    },
+  });
+
+  await prisma.material.create({
+    data: {
+      courseId: coursePedagogy.id,
+      title: 'CLT_Task_Based_Classroom_Management_Guide.pdf',
+      type: MaterialType.PDF,
+      fileKey: 'CLT_Task_Based_Classroom_Management_Guide.pdf',
+      fileSize: 7400000,
+      isPrivate: true,
+      isWatermarked: true,
+    },
+  });
+
+  // Course 4: Life Skills & Oratory
+  await prisma.material.create({
+    data: {
+      courseId: courseLifeSkills.id,
+      title: 'Mastering_Public_Speaking_Stage_Presence.pdf',
+      type: MaterialType.PDF,
+      fileKey: 'Mastering_Public_Speaking_Stage_Presence.pdf',
+      fileSize: 9200000,
+      isPrivate: true,
+      isWatermarked: true,
+    },
+  });
+
+  // Ensure mock files physically exist
+  const mockFileNames = [
+    'Cambridge_IELTS_18_Academic_Student_Book.pdf',
+    'Cambridge_IELTS_18_Test1_Listening.mp3',
+    'IELTS_Writing_Task_2_Band_8_Formula.pdf',
+    'IELTS_Speaking_Native_Model_Audio_01.mp3',
+    'Cambridge_IELTS_19_Academic_Official_Test.pdf',
+    'Business_English_Contract_Negotiation_Master_Guide.pdf',
+    'International_Trade_Commercial_Email_Handbook.pdf',
+    'Modern_Online_Teaching_Methodology_Handbook.pdf',
+    'CLT_Task_Based_Classroom_Management_Guide.pdf',
+    'Mastering_Public_Speaking_Stage_Presence.pdf',
+  ];
+  for (const fName of mockFileNames) {
+    const p = path.join(storageDir, fName);
+    if (!fs.existsSync(p)) {
       fs.writeFileSync(
-        physicalFile,
-        m.type === MaterialType.PDF
-          ? `%PDF-1.4\n% Teacher Dong Academy Secured Cambridge Document: ${m.title}\n%%EOF`
-          : `ID3\x04\x00\x00\x00\x00\x00\x23Teacher Dong Academy Cambridge Audio Stream: ${m.title}`,
+        p,
+        fName.endsWith('.pdf')
+          ? `%PDF-1.4\n% Teacher Dong Academy Secured Course Material: ${fName}\n%%EOF`
+          : `ID3\x04\x00\x00\x00\x00\x00\x23Teacher Dong Academy Audio Track: ${fName}`,
       );
     }
-
-    await prisma.material.create({
-      data: {
-        courseId: course.id,
-        lessonId: m.lessonId,
-        title: m.title,
-        type: m.type,
-        fileKey: m.fileKey,
-        fileSize: m.fileSize,
-        durationSeconds: m.durationSeconds || null,
-        isPrivate: true,
-        isWatermarked: true,
-      },
-    });
   }
 
   // ==========================================
@@ -638,7 +728,7 @@ async function main() {
   const quizPedagogy = await prisma.quiz.create({
     data: {
       courseId: coursePedagogy.id,
-      title: 'Case Study Sư Phạm EdTech 01: Quản Trị Tương Tác & Giải Quyết Xung Đột Nhóm Trong Lớp Trực Tuyến',
+      title: 'Case Study Phương Pháp Sư Phạm 01: Quản Trị Tương Tác & Giải Quyết Xung Đột Nhóm Trong Lớp Trực Tuyến',
       description: 'Trắc nghiệm xử lý tình huống thực tế dành cho giáo viên và giảng viên: Phân tích bối cảnh, đánh giá tâm lý người học và đưa ra can thiệp sư phạm chuẩn xác.',
       category: CourseCategory.PEDAGOGY,
       quizType: 'SITUATION_QUIZ',
@@ -646,7 +736,7 @@ async function main() {
       testType: 'SITUATION_QUIZ',
       timeLimitMinutes: 20,
       passScore: 80,
-      passage: `TÌNH HUỐNG THỰC TẾ (PEDAGOGICAL CASE STUDY):\n\nBối cảnh: Trong một buổi học trực tuyến qua WebRTC kéo dài 90 phút với 8 học viên người lớn (khóa đào tạo kỹ năng doanh nghiệp), giáo viên giao bài tập thảo luận nhóm (Breakout Room) 4 người để xây dựng kế hoạch dự án.\n\nDiễn biến 1: Tại Phòng 1, học viên A (giữ vị trí trưởng phòng ngoài đời) lập tức áp đặt quan điểm, liên tục ngắt lời và phủ nhận ý kiến của học viên B (một sinh viên mới ra trường). Học viên B sau đó tắt hoàn toàn camera và micro, không tham gia thêm bất kỳ hoạt động nào.\n\nDiễn biến 2: Giáo viên ghé thăm Phòng 1 và nhận thấy không khí căng thẳng cực độ, chỉ có học viên A nói một mình trong khi 3 thành viên còn lại đều im lặng. Thời gian thảo luận nhóm chỉ còn lại 7 phút trước khi quay trở lại phòng chính.\n\nYêu cầu: Người học trong vai trò Giáo viên điều phối cần phân tích động lực tâm lý nhóm và lựa chọn phương án can thiệp tức thời và hậu kỳ sư phạm tối ưu.`,
+      passage: `TÌNH HUỐNG THỰC TẾ (PEDAGOGICAL CASE STUDY):\n\nBối cảnh: Trong một buổi học trực tuyến kéo dài 90 phút với 8 học viên người lớn (khóa đào tạo kỹ năng doanh nghiệp), giáo viên giao bài tập thảo luận nhóm (Breakout Room) 4 người để xây dựng kế hoạch dự án.\n\nDiễn biến 1: Tại Phòng 1, học viên A (giữ vị trí trưởng phòng ngoài đời) lập tức áp đặt quan điểm, liên tục ngắt lời và phủ nhận ý kiến của học viên B (một sinh viên mới ra trường). Học viên B sau đó tắt hoàn toàn camera và micro, không tham gia thêm bất kỳ hoạt động nào.\n\nDiễn biến 2: Giáo viên ghé thăm Phòng 1 và nhận thấy không khí căng thẳng cực độ, chỉ có học viên A nói một mình trong khi 3 thành viên còn lại đều im lặng. Thời gian thảo luận nhóm chỉ còn lại 7 phút trước khi quay trở lại phòng chính.\n\nYêu cầu: Người học trong vai trò Giáo viên điều phối cần phân tích động lực tâm lý nhóm và lựa chọn phương án can thiệp tức thời và hậu kỳ sư phạm tối ưu.`,
     },
   });
 
@@ -1168,6 +1258,22 @@ async function main() {
     },
   });
 
+  // Student 1: Active Enrollment in Business English Course
+  await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId: primaryStudent.id, courseId: courseBusiness.id } },
+    update: { progressPercent: 60, status: 'ACTIVE' },
+    create: {
+      userId: primaryStudent.id,
+      courseId: courseBusiness.id,
+      progressPercent: 60,
+      status: 'ACTIVE',
+      paymentAmount: 3500000,
+      paymentNote: 'TD 0912345678 BUSINESS - CK Techcombank Nguyen Thi Mai',
+      enrolledAt: new Date(Date.now() - 3600000 * 24 * 15),
+      approvedAt: new Date(Date.now() - 3600000 * 24 * 15),
+    },
+  });
+
   // Mark lessons completed for Student 1
   const completedLessonIds = [lesson1_1.id, lesson1_2.id, lesson2_1.id, lesson2_2.id, lesson3_1.id];
   for (const lid of completedLessonIds) {
@@ -1399,6 +1505,83 @@ async function main() {
       },
     });
   }
+
+  // ==========================================
+  // 11. SEED HOMEWORK ASSIGNMENTS & SUBMISSIONS
+  // ==========================================
+  console.log('📚 Seeding Homework Assignments & Submissions...');
+  await prisma.homeworkSubmission.deleteMany({});
+  await prisma.homework.deleteMany({});
+
+  // Homework 1 (IELTS Master)
+  const hw1 = await prisma.homework.create({
+    data: {
+      courseId: course.id,
+      lessonId: lesson1_1.id,
+      title: 'Bài tập tuần 1: Phân tích biểu đồ Bar Chart Task 1 & Luyện đọc Passage 1 Cambridge 18',
+      description: 'Yêu cầu thực hiện:\n1. Tóm tắt các đặc điểm nổi bật nhất (Key trends) của biểu đồ năng lượng tái tạo 4 quốc gia (tối thiểu 150 từ).\n2. Gạch chân 5 collocations học thuật và giải thích lý do lựa chọn.\n3. Hoàn thành bài đọc Passage 1 và nộp bài trước hạn chót.',
+      dueDate: new Date(Date.now() + 7 * 86400000),
+      maxScore: 100,
+    },
+  });
+
+  // Homework 2 (Business English)
+  const hw2 = await prisma.homework.create({
+    data: {
+      courseId: courseBusiness.id,
+      title: 'Bài tập thực hành: Soạn thảo thư chào hàng (Sales Pitch Email) gửi đối tác nước ngoài',
+      description: 'Yêu cầu thực hiện:\n1. Đóng vai Giám đốc phát triển kinh doanh viết email chào hàng gửi đối tác Singapore.\n2. Áp dụng cấu trúc AIDA (Attention - Interest - Desire - Action).\n3. Sử dụng ít nhất 3 thành ngữ thương mại và phong cách trang trọng (Formal Register).',
+      dueDate: new Date(Date.now() + 5 * 86400000),
+      maxScore: 100,
+    },
+  });
+
+  // Homework 3 (Pedagogy & Teaching)
+  const hw3 = await prisma.homework.create({
+    data: {
+      courseId: coursePedagogy.id,
+      title: 'Thiết kế kế hoạch bài giảng (Lesson Plan) ứng dụng AI trong giảng dạy kỹ năng Viết',
+      description: 'Yêu cầu thực hiện:\n1. Xây dựng kế hoạch bài giảng 45 phút cho học viên trình độ B1.\n2. Phân định rõ thời điểm sử dụng công cụ AI (Prompting) và thời điểm giáo viên phản hồi sư phạm 1:1.\n3. Đính kèm tiêu chí đánh giá (Rubric) chống gian lận học thuật.',
+      dueDate: new Date(Date.now() + 10 * 86400000),
+      maxScore: 100,
+    },
+  });
+
+  // Homework 4 (Life Skills)
+  const hw4 = await prisma.homework.create({
+    data: {
+      courseId: courseLifeSkills.id,
+      title: 'Bài tập tình huống: Phân tích ngụy biện logic trong bài phát biểu tranh biện',
+      description: 'Yêu cầu thực hiện:\n1. Nghe trích đoạn bài tranh luận kinh tế và chỉ ra 3 lỗi ngụy biện logic (Ad Hominem, Straw Man, False Dilemma).\n2. Viết đoạn văn phản biện lại các luận cứ trên theo mô hình ARE (Assertion - Reasoning - Evidence).',
+      dueDate: new Date(Date.now() + 8 * 86400000),
+      maxScore: 100,
+    },
+  });
+
+  // Seed Submissions for Homework 1
+  // Primary Student (Nguyen Thi Mai) - GRADED
+  await prisma.homeworkSubmission.create({
+    data: {
+      homeworkId: hw1.id,
+      studentId: primaryStudent.id,
+      content: 'Kính gửi Thầy Đông, em xin gửi bài tập tuần 1:\n\n1. Dàn ý phân tích Bar Chart:\n- Overview: Năng lượng tái tạo của Đức và Anh tăng trưởng đột biến trong giai đoạn 2010 - 2024, trong khi hai quốc gia còn lại duy trì xu hướng ổn định.\n- Body 1: Dữ liệu chi tiết về năng lượng gió và mặt trời...\n- Body 2: So sánh tỷ trọng đóng góp vào lưới điện quốc gia...\n\n2. 5 Collocations học thuật sử dụng:\n- renewable energy alternatives\n- exponential growth trajectory\n- carbon mitigation initiatives\n- empirical evidence demonstrates\n- substantial disparity exists',
+      score: 95,
+      feedback: 'Bài làm rất xuất sắc! Em nắm cấu trúc Overview cực kỳ sắc sảo, dẫn chứng mạch lạc và dùng collocation tự nhiên. Thầy cộng điểm thưởng cho phần giải thích collocation logic. 95/100 điểm, tiếp tục phát huy nhé Mai!',
+      gradedAt: new Date(Date.now() - 3600000 * 5),
+      status: SubmissionStatus.GRADED,
+    },
+  });
+
+  // Student 2 (Tran Van Bao) - PENDING
+  await prisma.homeworkSubmission.create({
+    data: {
+      homeworkId: hw1.id,
+      studentId: students[1].id,
+      content: 'Em chào Thầy Đông ạ, em nộp bài tập phân tích biểu đồ Bar Chart tuần 1. Em đã hoàn thành phần mở bài và thân bài 1, phần thân bài 2 em đang hoàn thiện thêm số liệu so sánh.',
+      submittedAt: new Date(Date.now() - 3600000 * 2),
+      status: SubmissionStatus.PENDING,
+    },
+  });
 
   console.log('✅ Successfully seeded full production-grade Cambridge IELTS dataset!');
   console.log('🎓 Ready for full production deployment with authentic API consumption.');

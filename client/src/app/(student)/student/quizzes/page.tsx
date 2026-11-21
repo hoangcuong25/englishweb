@@ -38,6 +38,8 @@ import {
   Compass,
   Trophy,
   FileEdit,
+  Briefcase,
+  GraduationCap,
 } from 'lucide-react';
 
 export type QuestionType =
@@ -83,7 +85,7 @@ export default function StudentQuizPage() {
   const [availablePersonalDevCourses, setAvailablePersonalDevCourses] = useState<Course[]>([]);
 
   // Multi-Track & Multi-Dimensional Filter States
-  const [selectedTrack, setSelectedTrack] = useState<'ENGLISH' | 'PERSONAL_DEV'>('ENGLISH');
+  const [selectedTrack, setSelectedTrack] = useState<'ALL' | 'IELTS' | 'BUSINESS' | 'PEDAGOGY' | 'LIFE_SKILLS'>('ALL');
   const [filterQuizType, setFilterQuizType] = useState<string>('ALL');
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
 
@@ -309,7 +311,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
     },
     {
       id: 'mock-pedagogy-case-01',
-      title: 'Case Study Sư Phạm EdTech 01: Quản Trị Tương Tác & Giải Quyết Xung Đột Nhóm Trong Lớp Trực Tuyến',
+      title: 'Case Study Phương Pháp Sư Phạm 01: Quản Trị Tương Tác & Giải Quyết Xung Đột Nhóm Trong Lớp Trực Tuyến',
       skill: 'READING',
       category: 'PEDAGOGY',
       quizType: 'SITUATION_QUIZ',
@@ -373,6 +375,45 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
         },
       ],
     },
+    {
+      id: 'mock-business-email-01',
+      title: 'Business English Diagnostic: Professional Email Tone & Contract Negotiation',
+      skill: 'READING',
+      category: 'BUSINESS',
+      quizType: 'PRACTICE_TEST',
+      timeLimitMinutes: 15,
+      passScore: 80,
+      questions: [
+        {
+          id: 'b-1',
+          type: 'SINGLE_CHOICE',
+          typeLabel: 'Business Correspondence',
+          text: 'Which opening sentence establishes the highest level of diplomatic professionalism in your email reply to an international dispute?',
+          options: [
+            { key: 'A', text: 'Thank you for bringing this issue to our urgent attention; we are actively addressing the shipment delay.' },
+            { key: 'B', text: 'We got your angry email and we are trying to fix it.' },
+            { key: 'C', text: 'You need to calm down because delays happen in logistics all the time.' },
+            { key: 'D', text: 'Sorry about that, my staff forgot to load the container.' },
+          ],
+          correctAnswer: 'A',
+          explanation: 'Phương án A thiết lập giọng điệu ngoại giao chuẩn thương mại quốc tế (diplomatic register), ghi nhận vấn đề một cách chuyên nghiệp mà không bao biện.',
+        },
+        {
+          id: 'b-2',
+          type: 'SINGLE_CHOICE',
+          typeLabel: 'Contract Terminology',
+          text: 'In international business contract negotiations, what does the term "liquidated damages" specifically signify?',
+          options: [
+            { key: 'A', text: 'Pre-estimated monetary compensation agreed upon in the contract in the event of a breach or delay.' },
+            { key: 'B', text: 'Physical damage caused to liquid goods during maritime transport.' },
+            { key: 'C', text: 'The total bankrupt value of a defaulting company.' },
+            { key: 'D', text: 'Discounts offered to customers who purchase in bulk.' },
+          ],
+          correctAnswer: 'A',
+          explanation: '"Liquidated damages" là chế định tiền bồi thường thiệt hại ước tính trước đã được các bên thỏa thuận trong hợp đồng thương mại khi xảy ra vi phạm nghĩa vụ.',
+        },
+      ],
+    },
   ];
 
   const [testsList, setTestsList] = useState<QuizTestData[]>(mockTestsList);
@@ -381,9 +422,16 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
   const filteredTestsList = useMemo(() => {
     return testsList.filter((test) => {
       // 1. Track filter
-      const isEnglishTrack = ['ENGLISH', 'IELTS', 'BUSINESS', 'KIDS'].includes(test.category || 'IELTS');
-      if (selectedTrack === 'ENGLISH' && !isEnglishTrack) return false;
-      if (selectedTrack === 'PERSONAL_DEV' && isEnglishTrack) return false;
+      if (selectedTrack === 'IELTS') {
+        const isIelts = test.category === 'IELTS' || test.category === 'ENGLISH' || test.skill === 'READING' || test.skill === 'LISTENING';
+        if (!isIelts) return false;
+      } else if (selectedTrack === 'BUSINESS') {
+        if (test.category !== 'BUSINESS') return false;
+      } else if (selectedTrack === 'PEDAGOGY') {
+        if (test.category !== 'PEDAGOGY') return false;
+      } else if (selectedTrack === 'LIFE_SKILLS') {
+        if (test.category !== 'LIFE_SKILLS' && test.category !== 'PERSONAL_DEV') return false;
+      }
 
       // 2. Quiz Type filter
       if (filterQuizType !== 'ALL' && test.quizType !== filterQuizType) return false;
@@ -436,7 +484,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
 
         // Auto-switch track if user only has personal development access
         if (!englishAccess && personalDevAccess) {
-          setSelectedTrack('PERSONAL_DEV');
+          setSelectedTrack('PEDAGOGY');
         }
 
         // Fetch courses for recommendation if locked
@@ -530,6 +578,10 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
               };
             });
 
+            const isIeltsTest = t.category === 'IELTS' || (!t.category && t.skill !== 'GRAMMAR');
+            const defaultPassage = isIeltsTest && skillStr === 'READING' ? defaultTemplate.passage : undefined;
+            const defaultAudio = isIeltsTest && skillStr === 'LISTENING' ? defaultTemplate.audioUrl : undefined;
+
             return {
               id: t.id,
               title: t.title,
@@ -537,10 +589,10 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
               category: t.category || (t.skill === 'LISTENING' ? 'IELTS' : 'ENGLISH'),
               quizType: t.quizType || 'PRACTICE_TEST',
               courseTitle: t.course?.title,
-              timeLimitMinutes: t.timeLimitMinutes || defaultTemplate.timeLimitMinutes,
-              passScore: t.passScore || defaultTemplate.passScore,
-              passage: t.passage || defaultTemplate.passage,
-              audioUrl: t.audioUrl || defaultTemplate.audioUrl,
+              timeLimitMinutes: t.timeLimitMinutes || defaultTemplate.timeLimitMinutes || 15,
+              passScore: t.passScore || defaultTemplate.passScore || 80,
+              passage: t.passage || defaultPassage,
+              audioUrl: t.audioUrl || defaultAudio,
               questions: mappedQuestions.length > 0 ? mappedQuestions : defaultTemplate.questions,
             };
           });
@@ -812,40 +864,85 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* 1. Track Selector & Quick Type Pills */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-3xl bg-white border border-line shadow-xs">
-        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl shrink-0">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl shrink-0 overflow-x-auto scrollbar-none">
           <button
             onClick={() => {
-              setSelectedTrack('ENGLISH');
+              setSelectedTrack('ALL');
               setFilterCategory('ALL');
               setFilterQuizType('ALL');
               setSelectedQuizIndex(0);
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
-              selectedTrack === 'ENGLISH'
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              selectedTrack === 'ALL'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>Tất Cả ({testsList.length})</span>
+          </button>
+          <button
+            onClick={() => {
+              setSelectedTrack('IELTS');
+              setFilterCategory('ALL');
+              setFilterQuizType('ALL');
+              setSelectedQuizIndex(0);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              selectedTrack === 'IELTS'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Globe className="w-3.5 h-3.5 shrink-0" />
             <span>Tiếng Anh & IELTS</span>
-            {hasEnglishAccess && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
           </button>
           <button
             onClick={() => {
-              setSelectedTrack('PERSONAL_DEV');
+              setSelectedTrack('BUSINESS');
               setFilterCategory('ALL');
               setFilterQuizType('ALL');
               setSelectedQuizIndex(0);
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
-              selectedTrack === 'PERSONAL_DEV'
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              selectedTrack === 'BUSINESS'
+                ? 'bg-sky-700 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Briefcase className="w-3.5 h-3.5 shrink-0" />
+            <span>Tiếng Anh Doanh Nghiệp</span>
+          </button>
+          <button
+            onClick={() => {
+              setSelectedTrack('PEDAGOGY');
+              setFilterCategory('ALL');
+              setFilterQuizType('ALL');
+              setSelectedQuizIndex(0);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              selectedTrack === 'PEDAGOGY'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
+            <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+            <span>Năng Lực Sư Phạm</span>
+          </button>
+          <button
+            onClick={() => {
+              setSelectedTrack('LIFE_SKILLS');
+              setFilterCategory('ALL');
+              setFilterQuizType('ALL');
+              setSelectedQuizIndex(0);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              selectedTrack === 'LIFE_SKILLS'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
             <Compass className="w-3.5 h-3.5 shrink-0" />
-            <span>Kỹ Năng & Sư Phạm</span>
-            {hasPersonalDevAccess && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
+            <span>Kỹ Năng Sống</span>
           </button>
         </div>
 
@@ -878,7 +975,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
       </div>
 
       {/* 2. Check if selected track is locked */}
-      {selectedTrack === 'ENGLISH' && !hasEnglishAccess ? (
+      {selectedTrack === 'IELTS' && !hasEnglishAccess ? (
         <div className="p-8 sm:p-12 rounded-3xl bg-white border border-line shadow-xl text-center space-y-6">
           <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner border border-amber-200">
             <Lock className="w-8 h-8 text-amber-600" />
@@ -916,7 +1013,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
             </div>
           </div>
         </div>
-      ) : selectedTrack === 'PERSONAL_DEV' && !hasPersonalDevAccess ? (
+      ) : (selectedTrack === 'PEDAGOGY' || selectedTrack === 'LIFE_SKILLS') && !hasPersonalDevAccess ? (
         <div className="p-8 sm:p-12 rounded-3xl bg-white border border-line shadow-xl text-center space-y-6">
           <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-inner border border-emerald-200">
             <Lock className="w-8 h-8 text-emerald-600" />
@@ -930,7 +1027,7 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
               Yêu Cầu Sở Hữu Khóa Học Để Làm Trắc Nghiệm Tình Huống Sư Phạm & Kỹ Năng Sống
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
-              Các bài kiểm tra trắc nghiệm tình huống thực tế (Case Study Dilemmas, xử lý xung đột lớp học, thuyết trình đám đông) chỉ dành cho học viên đăng ký phân hệ Sư Phạm EdTech & Phát Triển Bản Thân.
+              Các bài kiểm tra trắc nghiệm tình huống thực tế (Case Study Dilemmas, xử lý xung đột lớp học, thuyết trình đám đông) chỉ dành cho học viên đăng ký phân hệ Phương Pháp Sư Phạm & Phát Triển Bản Thân.
             </p>
           </div>
           <div className="pt-4 border-t border-slate-100 space-y-4 text-left">
@@ -977,9 +1074,15 @@ Paragraph D: Economic analysts also caution against viewing vertical foliage as 
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-100 text-primary text-xs font-bold mb-1">
                 <Award className="w-3.5 h-3.5" />
                 <span>
-                  {selectedTrack === 'ENGLISH'
-                    ? 'IELTS & English Examination & Diagnostic Engine'
-                    : 'Personal Development & EdTech Pedagogy Assessment'}
+                  {selectedTrack === 'IELTS'
+                    ? 'IELTS & Academic English Mock Examination'
+                    : selectedTrack === 'BUSINESS'
+                    ? 'Business English & Professional Communication Assessment'
+                    : selectedTrack === 'PEDAGOGY'
+                    ? 'Modern Pedagogy & Classroom Management Assessment'
+                    : selectedTrack === 'LIFE_SKILLS'
+                    ? 'Critical Thinking & Public Speaking Assessment'
+                    : 'Teacher Dong Academy Multi-Course Assessment Engine'}
                 </span>
               </div>
               <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">

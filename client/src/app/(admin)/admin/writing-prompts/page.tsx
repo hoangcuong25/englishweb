@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { writingService, WritingPrompt } from '@/services/writing.service';
 import { useI18n } from '@/lib/i18n-context';
 import { extractErrorMessage } from '@/lib/api-error';
+import RichTextEditor from '@/components/shared/rich-text-editor';
 import {
   FileText,
   Plus,
@@ -363,17 +364,15 @@ export default function AdminWritingPromptsPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nội Dung Đề Bài (Prompt Description):</label>
-                <textarea
-                  required
-                  rows={4}
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Nhập toàn bộ đề bài và hướng dẫn làm bài..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-line focus:outline-none focus:border-primary leading-relaxed"
-                />
-              </div>
+              <RichTextEditor
+                label="Nội Dung Đề Bài (Prompt Description)"
+                required
+                value={formDesc}
+                onChange={(val) => setFormDesc(val)}
+                placeholder="Nhập toàn bộ đề bài IELTS Writing và yêu cầu/hướng dẫn làm bài chi tiết..."
+                minHeight="min-h-[160px]"
+                helperText="Hỗ trợ in đậm, gạch đầu dòng, bảng số liệu mẫu Task 1 và hộp lưu ý."
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
